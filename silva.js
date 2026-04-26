@@ -960,7 +960,7 @@ async function connectToWhatsApp() {
 
                         // Auto-follow: newsletters only push to you if you're subscribed OR WhatsApp surfaces them.
                         // Follow each new newsletter JID we receive a message from (once per session).
-                        if (true) { // always auto-follow newsletters that message us
+                        if (config.AUTO_FOLLOW_NEWSLETTER) { // only auto-follow if enabled in config
                             if (!global._followedNewsletters) global._followedNewsletters = new Set();
                             if (!global._followedNewsletters.has(nlJid)) {
                                 try {

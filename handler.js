@@ -552,6 +552,7 @@ async function handleMessages(sock, message) {
         // ── Dispatch ──────────────────────────────────────────────────────────
         const RECORDING_CMDS = new Set(['play', 'song', 'sticker', 's', 'tiktok', 'tt', 'ttdl', 'tiktokdl', 'youtube', 'yt', 'instagram', 'igdl', 'ig', 'insta', 'facebook', 'fb', 'fbdl']);
 
+        let executed = false;
         for (const plugin of plugins) {
             if (!plugin.commands.includes(resolvedCommand)) continue;
 
@@ -571,7 +572,8 @@ async function handleMessages(sock, message) {
                         th.footer ? `_${th.footer}_` : ''
                     ].filter(Boolean).join('\n')
                 }, { quoted: message });
-                continue;
+                executed = true;
+                break;
             }
 
             if (!isGroup && !allowPrivate) {
@@ -584,7 +586,8 @@ async function handleMessages(sock, message) {
                         th.footer ? `_${th.footer}_` : ''
                     ].filter(Boolean).join('\n')
                 }, { quoted: message });
-                continue;
+                executed = true;
+                break;
             }
 
             // ── Bot admin guard ───────────────────────────────────────────────
@@ -598,7 +601,8 @@ async function handleMessages(sock, message) {
                         th.footer ? `_${th.footer}_` : ''
                     ].filter(Boolean).join('\n')
                 }, { quoted: message });
-                continue;
+                executed = true;
+                break;
             }
 
             // ── Permission check ──────────────────────────────────────────────
@@ -622,7 +626,8 @@ async function handleMessages(sock, message) {
                         th.footer ? `_${th.footer}_` : ''
                     ].filter(Boolean).join('\n')
                 }, { quoted: message });
-                continue;
+                executed = true;
+                break;
             }
 
             // ── Prediction note: let user know what command was resolved ────
@@ -631,13 +636,16 @@ async function handleMessages(sock, message) {
                 predictionNote = null;
             }
 
-            // ── Override presence to recording for media commands ───────────
-            if (config.AUTO_RECORDING && RECORDING_CMDS.has(resolvedCommand)) {
-                try { await sock.sendPresenceUpdate('recording', jid); } catch { /* non-fatal */ }
+            // ── Presence logic ───────────────────────────────────────────────
+            if (config.AUTO_RECORDING || plugin.recording || RECORDING_CMDS.has(resolvedCommand)) {
+                try { await sock.sendPresenceUpdate('recording', jid); } catch { /* ok */ }
+            } else if (config.AUTO_TYPING) {
+                try { await sock.sendPresenceUpdate('composing', jid); } catch { /* ok */ }
             }
 
             try {
                 await plugin.run(sock, message, args, ctx);
+                executed = true;
             } catch (err) {
                 console.error(`[Plugin:${command}] ${err.stack || err.message}`);
                 const errTheme = getActiveTheme();
@@ -650,12 +658,15 @@ async function handleMessages(sock, message) {
                         th.footer ? `_${th.footer}_` : ''
                     ].filter(Boolean).join('\n')
                 }, { quoted: message });
+                executed = true;
             }
 
-            // ── Auto-presence: back to paused after responding ───────────────
-            if (config.AUTO_TYPING || config.AUTO_RECORDING) {
-                try { await sock.sendPresenceUpdate('paused', jid); } catch { /* non-fatal */ }
-            }
+            if (executed) break;
+        }
+
+        // ── Auto-presence: back to paused after responding ───────────────
+        if (executed && (config.AUTO_TYPING || config.AUTO_RECORDING)) {
+            try { await sock.sendPresenceUpdate('paused', jid); } catch { /* non-fatal */ }
         }
     } catch (err) {
         console.error('[Handler] Fatal:', err.stack || err.message);

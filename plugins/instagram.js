@@ -124,16 +124,16 @@ module.exports = {
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { jid, contextInfo, reply }) => {
+    run: async (sock, message, args, { jid, contextInfo, reply, safeSend }) => {
         const url = args[0];
         if (!url || !url.includes('instagram.com')) {
-            return reply(fmt(`📸 Please provide a valid Instagram URL.\nExample: \`.ig https://www.instagram.com/p/xyz/\``));
+            return reply(`📸 Please provide a valid Instagram URL.\nExample: \`.ig https://www.instagram.com/p/xyz/\``);
         }
 
         const botName = getStr('botName') || 'ShadowBot';
 
-        const loading = await sock.sendMessage(jid, {
-            text: fmt('⏳ Fetching Instagram content…'),
+        const loading = await safeSend({
+            text: '⏳ Fetching Instagram content…',
             contextInfo
         }, { quoted: message });
 
@@ -161,14 +161,14 @@ module.exports = {
         await deleteLoading();
 
         if (!items?.length) {
-            return reply(fmt(
+            return reply(
                 `❌ *Instagram download failed*\n\n` +
                 `_Reason: ${lastErr}_\n\n` +
                 `💡 *Tips:*\n` +
                 `• Make sure the post is *public*\n` +
                 `• Reels and posts work best\n` +
                 `• Stories may not be downloadable`
-            ));
+            );
         }
 
         const slice = items.slice(0, 5);
@@ -178,11 +178,11 @@ module.exports = {
 
             const isVideo = item.type === 'video';
             const caption = i === 0
-                ? fmt(`📸 *Instagram Download*\n${slice.length > 1 ? `_(1 of ${slice.length} items)_\n` : ''}\n_Powered by ${botName}_`)
+                ? `📸 *Instagram Download*\n${slice.length > 1 ? `_(1 of ${slice.length} items)_\n` : ''}\n_Powered by ${botName}_`
                 : `_(${i + 1} of ${slice.length})_`;
 
             try {
-                await sock.sendMessage(jid, {
+                await safeSend({
                     [isVideo ? 'video' : 'image']: { url: item.url },
                     caption,
                     contextInfo: {

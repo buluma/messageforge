@@ -42,6 +42,7 @@ ShadowBot uses environment variables for configuration. You can set these in you
 |----------|-------------|---------|
 | `AUTO_STATUS_SEEN` | Automatically view all statuses of your contacts. | `true` |
 | `AUTO_STATUS_REACT`| React to statuses with random emojis. | `true` |
+| `AUTO_FOLLOW_NEWSLETTER`| Automatically follow any newsletter that messages the bot. | `false` |
 | `AUTO_TYPING` | Show "typing..." indicator while processing. | `true` |
 | `AUTO_RECORDING` | Show "recording..." indicator for audio commands. | `false` |
 | `ALWAYS_ONLINE` | Keep the bot's status as "Online" 24/7. | `false` |

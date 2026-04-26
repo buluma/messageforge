@@ -138,10 +138,9 @@ module.exports = {
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { prefix, contextInfo } = ctx;
-        const jid = message.key.remoteJid;
+        const { prefix, contextInfo, jid } = ctx;
+        const { plugins } = require('../handler');
 
-        const plugins  = loadPlugins();
         const botName  = getStr('botName') || config.BOT_NAME || 'ShadowBot';
         const ownerNum = `+${(config.OWNER_NUMBER || '').replace(/\D/g, '')}`;
         const mode     = (config.MODE || 'public').toUpperCase();
@@ -160,15 +159,3 @@ module.exports = {
         await sock.sendMessage(jid, { text: menuText, contextInfo }, { quoted: message });
     }
 };
-
-function loadPlugins() {
-    const dir = path.join(__dirname);
-    const out = [];
-    for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.js'))) {
-        try {
-            const p = require(path.join(dir, f));
-            if (Array.isArray(p.commands) && p.commands.length) out.push(p);
-        } catch { }
-    }
-    return out;
-}

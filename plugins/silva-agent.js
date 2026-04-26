@@ -63,23 +63,9 @@ const BOT_IDENTITY = {
 function getPluginMap() {
     const map = new Map();
     try {
-        // Use the same plugin list handler.js loaded — guaranteed same instances
         const { plugins } = require('../handler');
-        for (const p of plugins) {
-            if (Array.isArray(p.commands) && typeof p.run === 'function') {
-                for (const cmd of p.commands) {
-                    if (!map.has(cmd)) map.set(cmd, p);
-                }
-            }
-        }
-        if (map.size > 0) return map;
-    } catch { /* fallback below */ }
-
-    // Fallback: scan plugins directory directly
-    const dir = path.join(__dirname);
-    for (const f of fs.readdirSync(dir).filter(f => f.endsWith('.js'))) {
-        try {
-            const p = require(path.join(dir, f));
+        const allPlugins = Array.isArray(plugins) ? plugins : [];
+        for (const p of allPlugins) {
             const mods = Array.isArray(p) ? p : [p];
             for (const mod of mods) {
                 if (Array.isArray(mod?.commands) && typeof mod.run === 'function') {
@@ -88,7 +74,9 @@ function getPluginMap() {
                     }
                 }
             }
-        } catch {}
+        }
+    } catch (e) {
+        console.error('[Agent] getPluginMap failed:', e.message);
     }
     return map;
 }

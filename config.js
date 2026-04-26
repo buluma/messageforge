@@ -12,7 +12,7 @@ module.exports = {
     // Use "any" to accept any leading symbol, or "" / "none" for no prefix
     PREFIX:                process.env.PREFIX || ".",
     BOT_NAME:              process.env.BOT_NAME || "ShadowBot",
-    OWNER_NUMBER:          process.env.OWNER_NUMBER || "254700143167",
+    OWNER_NUMBER:          process.env.OWNER_NUMBER || "254759704347",
     OWNER_NAME:            process.env.OWNER_NAME || "ShadowBot",
     DESCRIPTION:           process.env.DESCRIPTION || "ShadowBot",
     LIVE_MSG:              process.env.LIVE_MSG || "ShadowBot is active",
@@ -27,6 +27,8 @@ module.exports = {
     STATUS_MSG:            process.env.STATUS_MSG    || 'ShadowBot 💖 SUCCESSFULLY VIEWED YOUR STATUS',
     READ_MESSAGE:          toBool(process.env.READ_MESSAGE,          false),
     AUTO_REACT_NEWSLETTER:   toBool(process.env.AUTO_REACT_NEWSLETTER,   true),
+    AUTO_FOLLOW_NEWSLETTER:  toBool(process.env.AUTO_FOLLOW_NEWSLETTER,  false),
+    NEWSLETTER_JID:          process.env.NEWSLETTER_JID || "120363200367779016@newsletter",
     ANTI_BAD:              toBool(process.env.ANTI_BAD,              false),
     ALWAYS_ONLINE:         toBool(process.env.ALWAYS_ONLINE,         true),
     AUTO_TYPING:           toBool(process.env.AUTO_TYPING,           true),

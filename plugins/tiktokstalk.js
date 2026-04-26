@@ -44,7 +44,8 @@ module.exports = {
                         { timeout: 12000, headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' } }
                     );
                     if (data?.code !== 0) throw new Error(data?.msg || 'TikWM error');
-                    return data.data?.user;
+                    // Merge user and stats for easier access
+                    return { ...data.data?.user, ...data.data?.stats };
                 }
             },
         ];
@@ -65,17 +66,18 @@ module.exports = {
         const u = userData;
 
         // ── Derived stats ────────────────────────────────────────────────────
-        const followers = u.fans  ?? u.followerCount  ?? 0;
-        const following = u.following ?? u.followingCount ?? 0;
-        const likes     = u.heart ?? u.heartCount ?? u.digg_count ?? 0;
-        const videos    = u.video ?? u.videoCount ?? 0;
-        const friends   = u.friend ?? u.friendCount ?? 0;
+        const followers = u.followerCount ?? u.fans ?? 0;
+        const following = u.followingCount ?? u.following ?? 0;
+        const likes     = u.heartCount ?? u.heart ?? u.digg_count ?? u.diggCount ?? 0;
+        const videos    = u.videoCount ?? u.video ?? 0;
+        const friends   = u.friendCount ?? u.friend ?? 0;
+        const isPrivate = u.secret ?? u.privateAccount ?? false;
         const maxVal    = Math.max(followers, likes, 1);
 
         // ── Badge detection ──────────────────────────────────────────────────
         const badges = [];
         if (u.verified)              badges.push('✅ Verified');
-        if (u.privateAccount)        badges.push('🔒 Private account');
+        if (isPrivate)               badges.push('🔒 Private account');
         if (u.isUnderAge18)          badges.push('🔞 Under 18');
         if (u.openFavorite)          badges.push('⭐ Favorites public');
         if (u.commentSetting === 1)  badges.push('💬 Comments: Friends only');
@@ -119,7 +121,7 @@ module.exports = {
 
         // ── Privacy & Settings ───────────────────────────────────────────────
         lines.push(`*⚙️ Account Settings*`);
-        lines.push(`• *Private:* ${u.privateAccount ? '🔒 Yes' : '🔓 No'}`);
+        lines.push(`• *Private:* ${isPrivate ? '🔒 Yes' : '🔓 No'}`);
         lines.push(`• *Duet:* ${u.duetSetting === 0 ? '✅ Open' : u.duetSetting === 1 ? '👥 Friends' : '❌ Off'}`);
         lines.push(`• *Stitch:* ${u.stitchSetting === 0 ? '✅ Open' : u.stitchSetting === 1 ? '👥 Friends' : '❌ Off'}`);
         lines.push(`• *Comment:* ${u.commentSetting === 0 ? '✅ Everyone' : u.commentSetting === 1 ? '👥 Friends' : '❌ Off'}`);
