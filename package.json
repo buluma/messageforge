@@ -4,7 +4,12 @@
   "description": "ShadowBot — A feature-rich multi-device WhatsApp bot with 1200+ commands, AI agent, 19 smart features, and anti-ban protection. Built with Node.js and Baileys.",
   "main": "silva.js",
   "scripts": {
-    "start": "node silva.js"
+    "start": "node silva.js",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:restart": "pm2 restart silva-bot",
+    "pm2:stop": "pm2 stop silva-bot",
+    "pm2:logs": "pm2 logs silva-bot",
+    "pm2:delete": "pm2 delete silva-bot"
   },
   "engines": {
     "node": ">=20.0.0"

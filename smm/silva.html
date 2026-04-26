@@ -1,154 +1,227 @@
 <!doctype html>
 <html lang="en" data-theme="dark">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ShadowBot — Admin</title>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>ShadowBot — Admin</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css">
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="/css/styles.css" />
 
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment.min.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
-</head>
-<body>
-  <div class="shell">
-    <!-- Left nav rail -->
-    <nav class="rail">
-      <div class="rail-logo" title="ShadowBot">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-          <rect x="2" y="4" width="20" height="14" rx="3" fill="url(#g)"/>
-          <circle cx="8.8" cy="11" r="1.6" fill="#fff"/>
-          <circle cx="15.2" cy="11" r="1.6" fill="#fff"/>
-          <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#10b981"/></linearGradient></defs>
-        </svg>
-      </div>
-      <button class="rail-btn active" data-view="chats" title="Chats">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      </button>
-      <button class="rail-btn" data-view="dashboard" title="Dashboard">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
-      </button>
-      <button class="rail-btn" data-view="plugins" title="Plugins">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 7V3a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h4M14 7h6a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-7M14 7l7 7"/></svg>
-      </button>
-      <div class="rail-spacer"></div>
-      <a class="rail-btn" href="https://github.com/SilvaTechB/silva-md-bot" target="_blank" title="GitHub">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.16c-3.2.7-3.87-1.36-3.87-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.24 3.34.95.1-.74.4-1.24.72-1.53-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.16 1.18a10.97 10.97 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.58.23 2.75.11 3.04.74.81 1.18 1.84 1.18 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.13v3.16c0 .31.21.67.8.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
-      </a>
-    </nav>
-
-    <!-- Workspace -->
-    <main class="workspace">
-
-      <!-- ── Chats view ───────────────────────────────────────── -->
-      <section class="view view-chats active" id="view-chats">
-        <aside class="chat-list-panel">
-          <header class="panel-header">
-            <h2>Chats</h2>
-            <button id="refreshChats" class="ghost-btn" title="Refresh">↻</button>
-          </header>
-          <div class="search-wrap">
-            <input type="text" id="chatSearch" placeholder="Search chats..." autocomplete="off">
-          </div>
-          <div id="chatList" class="chat-list">
-            <div class="empty-state">Loading conversations…</div>
-          </div>
-        </aside>
-
-        <section class="thread-panel">
-          <header id="chatHeader" class="thread-header" hidden>
-            <div class="chat-info">
-              <div id="activeChatAvatar" class="avatar avatar-md"></div>
-              <div class="chat-meta">
-                <div id="activeChatName" class="chat-name">Chat</div>
-                <div id="activeChatStatus" class="chat-status">—</div>
-              </div>
-            </div>
-            <div class="chat-actions">
-              <button id="togglePin" class="ghost-btn" title="Pin">☆</button>
-            </div>
-          </header>
-
-          <div id="messageThread" class="message-thread">
-            <div class="placeholder">
-              <div class="placeholder-icon">💬</div>
-              <p>Select a conversation to start messaging</p>
-            </div>
-          </div>
-
-          <div id="typingIndicator" class="typing-indicator"></div>
-
-          <div id="replyPreview" class="reply-preview" hidden>
-            <div class="reply-text" id="replyText"></div>
-            <button class="ghost-btn" id="cancelReplyBtn">✕</button>
-          </div>
-
-          <div id="chatInputArea" class="chat-input-area" hidden>
-            <input type="text" id="messageInput" placeholder="Type a message…" autocomplete="off" />
-            <button id="sendMessage" class="primary-btn" title="Send">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-            </button>
-          </div>
-        </section>
-      </section>
-
-      <!-- ── Dashboard view ───────────────────────────────────── -->
-      <section class="view view-dashboard" id="view-dashboard">
-        <header class="view-header">
-          <h1>Dashboard</h1>
-          <div class="view-meta" id="lastUpdated">—</div>
-        </header>
-
-        <div class="stats-grid">
-          <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-body"><div class="stat-label">Plugins</div><div class="stat-value" id="pluginsCount">—</div></div></div>
-          <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-body"><div class="stat-label">Stars</div><div class="stat-value" id="starsCount">—</div></div></div>
-          <div class="stat-card"><div class="stat-icon">🍴</div><div class="stat-body"><div class="stat-label">Forks</div><div class="stat-value" id="forksCount">—</div></div></div>
-          <div class="stat-card"><div class="stat-icon">❗</div><div class="stat-body"><div class="stat-label">Issues</div><div class="stat-value" id="issuesCount">—</div></div></div>
-        </div>
-
-        <div class="grid-2">
-          <div class="card">
-            <header class="card-header"><h3>Repository Activity</h3><span id="chartStatus" class="muted">Loading…</span></header>
-            <div class="chart-wrapper"><canvas id="commitsChart"></canvas></div>
-          </div>
-          <div class="card">
-            <header class="card-header"><h3>Developer</h3></header>
-            <div class="dev-card">
-              <div class="avatar avatar-lg" id="devAvatar"></div>
-              <div class="dev-info">
-                <div class="dev-name" id="devName">—</div>
-                <div class="dev-bio" id="devBio">Loading…</div>
-                <div class="dev-stats">
-                  <div id="devFollowers" class="dev-stat">—</div>
-                  <div id="devRepos" class="dev-stat">—</div>
+        <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/min/moment.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+    </head>
+    <body>
+        <div class="shell">
+            <!-- Left nav rail -->
+            <nav class="rail">
+                <div class="rail-logo" title="ShadowBot">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                        <rect x="2" y="4" width="20" height="14" rx="3" fill="url(#g)" />
+                        <circle cx="8.8" cy="11" r="1.6" fill="#fff" />
+                        <circle cx="15.2" cy="11" r="1.6" fill="#fff" />
+                        <defs>
+                            <linearGradient id="g" x1="0" x2="1">
+                                <stop offset="0" stop-color="#6366f1" />
+                                <stop offset="1" stop-color="#10b981" />
+                            </linearGradient>
+                        </defs>
+                    </svg>
                 </div>
-              </div>
-            </div>
-          </div>
+                <button class="rail-btn active" data-view="chats" title="Chats">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                </button>
+                <button class="rail-btn" data-view="dashboard" title="Dashboard">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
+                    </svg>
+                </button>
+                <button class="rail-btn" data-view="plugins" title="Plugins">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path
+                            d="M14 7V3a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h4M14 7h6a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-7M14 7l7 7"
+                        />
+                    </svg>
+                </button>
+                <div class="rail-spacer"></div>
+                <a
+                    class="rail-btn"
+                    href="https://github.com/SilvaTechB/silva-md-bot"
+                    target="_blank"
+                    title="GitHub"
+                >
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.16c-3.2.7-3.87-1.36-3.87-1.36-.52-1.32-1.27-1.67-1.27-1.67-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.68 1.24 3.34.95.1-.74.4-1.24.72-1.53-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.18-3.1-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.16 1.18a10.97 10.97 0 0 1 5.76 0c2.2-1.49 3.16-1.18 3.16-1.18.62 1.58.23 2.75.11 3.04.74.81 1.18 1.84 1.18 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.13v3.16c0 .31.21.67.8.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"
+                        />
+                    </svg>
+                </a>
+            </nav>
+
+            <!-- Workspace -->
+            <main class="workspace">
+                <!-- ── Chats view ───────────────────────────────────────── -->
+                <section class="view view-chats active" id="view-chats">
+                    <aside class="chat-list-panel">
+                        <header class="panel-header">
+                            <h2>Chats</h2>
+                            <button id="refreshChats" class="ghost-btn" title="Refresh">↻</button>
+                        </header>
+                        <div class="search-wrap">
+                            <input
+                                type="text"
+                                id="chatSearch"
+                                placeholder="Search chats..."
+                                autocomplete="off"
+                            />
+                        </div>
+                        <div id="chatList" class="chat-list">
+                            <div class="empty-state">Loading conversations…</div>
+                        </div>
+                    </aside>
+
+                    <section class="thread-panel">
+                        <header id="chatHeader" class="thread-header" hidden>
+                            <div class="chat-info">
+                                <div id="activeChatAvatar" class="avatar avatar-md"></div>
+                                <div class="chat-meta">
+                                    <div id="activeChatName" class="chat-name">Chat</div>
+                                    <div id="activeChatStatus" class="chat-status">—</div>
+                                </div>
+                            </div>
+                            <div class="chat-actions">
+                                <button id="togglePin" class="ghost-btn" title="Pin">☆</button>
+                            </div>
+                        </header>
+
+                        <button id="loadOlderBtn" class="ghost-btn load-older-btn" hidden>
+                            Load older
+                        </button>
+
+                        <div id="messageThread" class="message-thread">
+                            <div class="placeholder">
+                                <div class="placeholder-icon">💬</div>
+                                <p>Select a conversation to start messaging</p>
+                            </div>
+                        </div>
+
+                        <div id="typingIndicator" class="typing-indicator"></div>
+
+                        <div id="replyPreview" class="reply-preview" hidden>
+                            <div class="reply-text" id="replyText"></div>
+                            <button class="ghost-btn" id="cancelReplyBtn">✕</button>
+                        </div>
+
+                        <div id="chatInputArea" class="chat-input-area" hidden>
+                            <input
+                                type="text"
+                                id="messageInput"
+                                placeholder="Type a message…"
+                                autocomplete="off"
+                            />
+                            <button id="sendMessage" class="primary-btn" title="Send">
+                                <svg
+                                    width="18"
+                                    height="18"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </section>
+                </section>
+
+                <!-- ── Dashboard view ───────────────────────────────────── -->
+                <section class="view view-dashboard" id="view-dashboard">
+                    <header class="view-header">
+                        <h1>Dashboard</h1>
+                        <div class="view-meta" id="lastUpdated">—</div>
+                    </header>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">📦</div>
+                            <div class="stat-body">
+                                <div class="stat-label">Plugins</div>
+                                <div class="stat-value" id="pluginsCount">—</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">⭐</div>
+                            <div class="stat-body">
+                                <div class="stat-label">Stars</div>
+                                <div class="stat-value" id="starsCount">—</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🍴</div>
+                            <div class="stat-body">
+                                <div class="stat-label">Forks</div>
+                                <div class="stat-value" id="forksCount">—</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">❗</div>
+                            <div class="stat-body">
+                                <div class="stat-label">Issues</div>
+                                <div class="stat-value" id="issuesCount">—</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="card">
+                            <header class="card-header">
+                                <h3>Repository Activity</h3>
+                                <span id="chartStatus" class="muted">Loading…</span>
+                            </header>
+                            <div class="chart-wrapper"><canvas id="commitsChart"></canvas></div>
+                        </div>
+                        <div class="card">
+                            <header class="card-header"><h3>Developer</h3></header>
+                            <div class="dev-card">
+                                <div class="avatar avatar-lg" id="devAvatar"></div>
+                                <div class="dev-info">
+                                    <div class="dev-name" id="devName">—</div>
+                                    <div class="dev-bio" id="devBio">Loading…</div>
+                                    <div class="dev-stats">
+                                        <div id="devFollowers" class="dev-stat">—</div>
+                                        <div id="devRepos" class="dev-stat">—</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ── Plugins view ─────────────────────────────────────── -->
+                <section class="view view-plugins" id="view-plugins">
+                    <header class="view-header">
+                        <h1>Plugins</h1>
+                        <div class="filter-pills">
+                            <button class="pill active" data-filter="all">All</button>
+                            <button class="pill" data-filter="public">Public</button>
+                            <button class="pill" data-filter="admin">Admin</button>
+                            <button class="pill" data-filter="owner">Owner</button>
+                        </div>
+                    </header>
+                    <div id="pluginsLoading" class="empty-state">Loading plugins…</div>
+                    <div id="pluginsGrid" class="plugins-grid"></div>
+                </section>
+            </main>
         </div>
-      </section>
 
-      <!-- ── Plugins view ─────────────────────────────────────── -->
-      <section class="view view-plugins" id="view-plugins">
-        <header class="view-header">
-          <h1>Plugins</h1>
-          <div class="filter-pills">
-            <button class="pill active" data-filter="all">All</button>
-            <button class="pill" data-filter="public">Public</button>
-            <button class="pill" data-filter="admin">Admin</button>
-            <button class="pill" data-filter="owner">Owner</button>
-          </div>
-        </header>
-        <div id="pluginsLoading" class="empty-state">Loading plugins…</div>
-        <div id="pluginsGrid" class="plugins-grid"></div>
-      </section>
-
-    </main>
-  </div>
-
-  <script type="module" src="/js/main.js"></script>
-</body>
+        <script type="module" src="/js/main.js"></script>
+    </body>
 </html>

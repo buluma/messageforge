@@ -3,13 +3,19 @@ const { File: BufferFile } = require('node:buffer');
 global.File = BufferFile;
 
 // ── Integrity verification ─────────────────────────────────────────────────
-;(function _verify() {
+(function _verify() {
     const _p = require('./package.json');
-    const _k = [83,105,108,118,97].map(function(c){return String.fromCharCode(c);}).join('');
+    const _k = [83, 105, 108, 118, 97]
+        .map(function (c) {
+            return String.fromCharCode(c);
+        })
+        .join('');
     const _h = Buffer.from(_k).toString('base64');
-    const _a = Buffer.from((_p.author||''), 'utf8').toString('base64');
+    const _a = Buffer.from(_p.author || '', 'utf8').toString('base64');
     if (_a !== _h) {
-        process.stderr.write('\n\x1b[31m⛔  Cheap editing of ShadowBot Bot detected. Build failed.\x1b[0m\n\n');
+        process.stderr.write(
+            '\n\x1b[31m⛔  Cheap editing of ShadowBot Bot detected. Build failed.\x1b[0m\n\n',
+        );
         process.exit(1);
     }
     process.stdout.write('\x1b[32m✅ Passed the Silva security check.\x1b[0m\n');
@@ -30,7 +36,7 @@ const {
     jidNormalizedUser,
     downloadContentFromMessage,
     proto,
-    generateMessageIDV2
+    generateMessageIDV2,
 } = baileys;
 
 // Minimal in-memory message store (makeInMemoryStore was removed in gifted-baileys)
@@ -56,7 +62,9 @@ function makeInMemoryStore() {
         loadMessage(jid, id) {
             return messages.get(jid)?.get(id) || null;
         },
-        get chats() { return messages; }
+        get chats() {
+            return messages;
+        },
     };
 }
 
@@ -69,6 +77,7 @@ const axios = require('axios');
 const P = require('pino');
 const { handleMessages } = require('./handler');
 const { handleStatusBroadcast } = require('./lib/statusManager');
+const messengerStore = require('./lib/messengerStore');
 const config = require('./config.js');
 const { connectDB } = require('./lib/database');
 
@@ -79,6 +88,59 @@ const prefix = config.PREFIX || '.';
 const tempDir = path.join(os.tmpdir(), 'silva-cache');
 const port = process.env.PORT || 25680;
 const pluginsDir = path.join(__dirname, 'plugins');
+const dashboardToken = String(process.env.DASHBOARD_TOKEN || '').trim();
+const DASHBOARD_ROOM = 'dashboard-authenticated';
+
+function isLocalAddress(ip = '') {
+    const value = String(ip).trim();
+    return (
+        value === '::1' ||
+        value === '127.0.0.1' ||
+        value === '::ffff:127.0.0.1' ||
+        value.startsWith('127.') ||
+        value.toLowerCase().includes('localhost')
+    );
+}
+
+function requestIp(req) {
+    const fwd = String(req.headers['x-forwarded-for'] || '')
+        .split(',')[0]
+        .trim();
+    return fwd || req.socket?.remoteAddress || '';
+}
+
+function extractAuthToken(source = {}) {
+    const authHeader = String(source.headers?.authorization || '');
+    const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    const headerToken = String(source.headers?.['x-dashboard-token'] || '').trim();
+    const queryToken = String(source.query?.token || '').trim();
+    return bearer || headerToken || queryToken;
+}
+
+function isAuthorizedByToken(provided) {
+    return !!dashboardToken && provided === dashboardToken;
+}
+
+function requireDashboardAuth(req, res, next) {
+    if (dashboardToken) {
+        const provided = extractAuthToken(req);
+        if (!isAuthorizedByToken(provided)) {
+            return res.status(401).json({ error: 'Unauthorized dashboard access token' });
+        }
+        return next();
+    }
+
+    const ip = requestIp(req);
+    if (isLocalAddress(ip)) return next();
+    return res
+        .status(403)
+        .json({ error: 'Dashboard access denied. Set DASHBOARD_TOKEN for remote access.' });
+}
+
+function emitDashboard(event, payload) {
+    if (!global.io) return;
+    global.io.to(DASHBOARD_ROOM).emit(event, payload);
+}
 
 // ✅ Session paths
 const sessionDir = path.join(__dirname, 'session');
@@ -110,32 +172,29 @@ async function loadSession() {
             // Overwriting on every restart breaks Signal encryption state (Bad MAC errors).
             if (!fs.existsSync(credsPath)) {
                 const [header, b64data] = sid.split('~');
-                if (header !== "Silva" || !b64data) {
-                    logMessage('WARN', "⚠️ SESSION_ID format invalid — falling back to QR scan");
+                if (header !== 'Silva' || !b64data) {
+                    logMessage('WARN', '⚠️ SESSION_ID format invalid — falling back to QR scan');
                     return;
                 }
 
                 const cleanB64 = b64data.replace('...', '');
                 const compressedData = Buffer.from(cleanB64, 'base64');
                 const decompressedData = zlib.gunzipSync(compressedData);
-                fs.writeFileSync(credsPath, decompressedData, "utf8");
-                logMessage('SUCCESS', "✅ ɴᴇᴡ ꜱᴇꜱꜱɪᴏɴ ʟᴏᴀᴅᴇᴅ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ");
+                fs.writeFileSync(credsPath, decompressedData, 'utf8');
+                logMessage('SUCCESS', '✅ ɴᴇᴡ ꜱᴇꜱꜱɪᴏɴ ʟᴏᴀᴅᴇᴅ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ');
             } else {
-                logMessage('INFO', "📂 Using existing session from disk");
+                logMessage('INFO', '📂 Using existing session from disk');
             }
-
         } else if (fs.existsSync(credsPath)) {
             // No SESSION_ID — reuse the session already on disk (Replit / local mode)
-            logMessage('INFO', "📂 Using existing session from disk");
-
+            logMessage('INFO', '📂 Using existing session from disk');
         } else {
             // No session at all — Baileys will generate a QR code to scan
-            logMessage('WARN', "⚠️ No session found — scan the QR code to connect");
+            logMessage('WARN', '⚠️ No session found — scan the QR code to connect');
         }
-
     } catch (e) {
         logMessage('ERROR', `Session Error: ${e.message}`);
-        logMessage('WARN', "⚠️ Session load failed — attempting QR fallback");
+        logMessage('WARN', '⚠️ Session load failed — attempting QR fallback');
     }
 }
 
@@ -148,7 +207,7 @@ if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
 
 function getLogFileName() {
     const date = new Date();
-    return `messages-${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()}.log`;
+    return `messages-${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}.log`;
 }
 
 function logMessage(type, message) {
@@ -178,17 +237,22 @@ function safeGetUserJid(sock) {
 
 // ✅ Ensure Temp Directory Exists
 if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
-setInterval(() => {
-    try {
-        fs.readdirSync(tempDir).forEach(file => fs.unlinkSync(path.join(tempDir, file)));
-    } catch (e) { /* ignore */ }
-}, 5 * 60 * 1000);
+setInterval(
+    () => {
+        try {
+            fs.readdirSync(tempDir).forEach((file) => fs.unlinkSync(path.join(tempDir, file)));
+        } catch (e) {
+            /* ignore */
+        }
+    },
+    5 * 60 * 1000,
+);
 
 // ✅ Load Plugins
 let plugins = new Map();
 function loadPlugins() {
     if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir);
-    const files = fs.readdirSync(pluginsDir).filter(file => file.endsWith('.js'));
+    const files = fs.readdirSync(pluginsDir).filter((file) => file.endsWith('.js'));
     plugins.clear();
     for (const file of files) {
         try {
@@ -246,7 +310,7 @@ function generateConfigTable() {
         { name: 'AUTO_REACT_NEWSLETTER', value: config.AUTO_REACT_NEWSLETTER },
         { name: 'ANTILINK', value: config.ANTILINK },
         { name: 'ALWAYS_ONLINE', value: config.ALWAYS_ONLINE },
-        { name: 'GROUP_COMMANDS', value: config.GROUP_COMMANDS }
+        { name: 'GROUP_COMMANDS', value: config.GROUP_COMMANDS },
     ];
 
     let table = '╔══════════════════════════╦═══════════╗\n';
@@ -270,13 +334,13 @@ function generateFancyBio() {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
     });
 
     const timeStr = now.toLocaleTimeString('en-KE', {
         hour: '2-digit',
         minute: '2-digit',
-        hour12: true
+        hour12: true,
     });
 
     const bios = [
@@ -284,7 +348,7 @@ function generateFancyBio() {
         `⚡ ShadowBot Active ✦ ${timeStr} ✦ ${dateStr} ✦`,
         `💫 ${config.BOT_NAME} Operational ✦ ${dateStr} ✦`,
         `🚀 ShadowBot Live ✦ ${dateStr} ✦ ${timeStr} ✦`,
-        `🌟 ${config.BOT_NAME} Running ✦ ${dateStr} ✦`
+        `🌟 ${config.BOT_NAME} Running ✦ ${dateStr} ✦`,
     ];
 
     return bios[Math.floor(Math.random() * bios.length)];
@@ -293,19 +357,32 @@ function generateFancyBio() {
 // ✅ Welcome Message
 async function sendWelcomeMessage(sock) {
     const now = new Date().toLocaleString('en-US', {
-        weekday: 'short', month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Nairobi'
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Africa/Nairobi',
     });
 
     const welcomeMsg = [
         `*${config.BOT_NAME}* is online ⚡`,
         ``,
         `▸ Prefix: \`${prefix}\``,
-        `▸ Plugins: ${plugins.size} files | ${(() => { let c=0; for(const [,p] of plugins){ const ms=Array.isArray(p)?p:[p]; for(const m of ms){ if(m&&m.commands) c+=m.commands.length; } } return c; })()} commands`,
+        `▸ Plugins: ${plugins.size} files | ${(() => {
+            let c = 0;
+            for (const [, p] of plugins) {
+                const ms = Array.isArray(p) ? p : [p];
+                for (const m of ms) {
+                    if (m && m.commands) c += m.commands.length;
+                }
+            }
+            return c;
+        })()} commands`,
         `▸ Mode: ${config.MODE}`,
         `▸ Time: ${now}`,
         ``,
-        `Type \`${prefix}menu\` to see all commands.`
+        `Type \`${prefix}menu\` to see all commands.`,
     ].join('\n');
 
     try {
@@ -315,16 +392,38 @@ async function sendWelcomeMessage(sock) {
         // For private chats, disappearing messages must be enabled via a raw
         // EPHEMERAL_SETTING protocol message (sendMessage's disappearingMessagesInChat
         // shorthand only works for groups). relayMessage lets us send it directly.
-        const ephemeralOn  = { protocolMessage: { type: proto.Message.ProtocolMessage.Type.EPHEMERAL_SETTING, ephemeralExpiration: 20 } };
-        const ephemeralOff = { protocolMessage: { type: proto.Message.ProtocolMessage.Type.EPHEMERAL_SETTING, ephemeralExpiration: 0  } };
+        const ephemeralOn = {
+            protocolMessage: {
+                type: proto.Message.ProtocolMessage.Type.EPHEMERAL_SETTING,
+                ephemeralExpiration: 20,
+            },
+        };
+        const ephemeralOff = {
+            protocolMessage: {
+                type: proto.Message.ProtocolMessage.Type.EPHEMERAL_SETTING,
+                ephemeralExpiration: 0,
+            },
+        };
 
-        await sock.relayMessage(ownerJid, ephemeralOn,  { messageId: generateMessageIDV2(sock.user?.id) });
-        await sock.sendMessage(ownerJid, { text: welcomeMsg, contextInfo: globalContextInfo, ephemeralExpiration: 20 });
+        await sock.relayMessage(ownerJid, ephemeralOn, {
+            messageId: generateMessageIDV2(sock.user?.id),
+        });
+        await sock.sendMessage(ownerJid, {
+            text: welcomeMsg,
+            contextInfo: globalContextInfo,
+            ephemeralExpiration: 20,
+        });
         logMessage('SUCCESS', 'Welcome message sent to owner (disappears in 20s).');
 
         // Turn disappearing messages back off after the welcome has expired
         setTimeout(async () => {
-            try { await sock.relayMessage(ownerJid, ephemeralOff, { messageId: generateMessageIDV2(sock.user?.id) }); } catch { /* ok */ }
+            try {
+                await sock.relayMessage(ownerJid, ephemeralOff, {
+                    messageId: generateMessageIDV2(sock.user?.id),
+                });
+            } catch {
+                /* ok */
+            }
         }, 25_000);
     } catch (e) {
         logMessage('WARN', `Welcome message failed: ${e.message}`);
@@ -347,10 +446,13 @@ async function connectToWhatsApp() {
     const seenStatusIds = new Set();
     const seenCmdIds = new Set();
 
-    setInterval(() => {
-        if (seenCmdIds.size > 5000) seenCmdIds.clear();
-        if (seenStatusIds.size > 5000) seenStatusIds.clear();
-    }, 10 * 60 * 1000);
+    setInterval(
+        () => {
+            if (seenCmdIds.size > 5000) seenCmdIds.clear();
+            if (seenStatusIds.size > 5000) seenStatusIds.clear();
+        },
+        10 * 60 * 1000,
+    );
 
     // Use the session directory for multi-file auth state
     const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
@@ -361,8 +463,8 @@ async function connectToWhatsApp() {
         sessionThreshold: 0,
         cache: {
             TRANSACTION: false,
-            PRE_KEYS: false
-        }
+            PRE_KEYS: false,
+        },
     };
 
     const sock = makeWASocket({
@@ -381,24 +483,29 @@ async function connectToWhatsApp() {
             const stored = store.loadMessage(key.remoteJid, key.id);
             return stored?.message || undefined;
         },
-        ...cryptoOptions
+        ...cryptoOptions,
     });
 
     global.sock = sock;
 
-    // ── Real-time Dashboard Sync ─────────────────────────────────────────────
+    // ── Persist messenger history and realtime dashboard events ──────────────
+    sock.ev.on('messages.upsert', ({ messages: newMsgs }) => {
+        void messengerStore.persistMessages(newMsgs);
+    });
+
     sock.ev.on('messages.upsert', async ({ messages: newMsgs, type }) => {
         if (type !== 'notify') return;
         for (const m of newMsgs) {
-            if (global.io) {
-                const clientCount = global.io.engine?.clientsCount || 0;
-                logMessage('INFO', `[Dashboard] emit new-message jid=${m.key.remoteJid} clients=${clientCount}`);
-                global.io.emit('new-message', {
-                    jid: m.key.remoteJid,
-                    message: m,
-                    pushName: m.pushName || global.pushNameCache?.get(m.key.remoteJid) || 'User'
-                });
-            }
+            const clientCount = global.io?.engine?.clientsCount || 0;
+            logMessage(
+                'INFO',
+                `[Dashboard] emit new-message jid=${m.key.remoteJid} clients=${clientCount}`,
+            );
+            emitDashboard('new-message', {
+                jid: m.key.remoteJid,
+                message: m,
+                pushName: m.pushName || global.pushNameCache?.get(m.key.remoteJid) || 'User',
+            });
         }
     });
 
@@ -410,7 +517,7 @@ async function connectToWhatsApp() {
     }
 
     sock.ev.on('presence.update', ({ id, presences }) => {
-        if (global.io) global.io.emit('presence-update', { jid: id, presences });
+        emitDashboard('presence-update', { jid: id, presences });
     });
 
     // On fully LID-migrated accounts the contact id IS the LID — no phone JID is provided.
@@ -419,7 +526,11 @@ async function connectToWhatsApp() {
     if (!global.lidPhoneCache) global.lidPhoneCache = new Map();
     if (!global.pushNameCache) global.pushNameCache = new Map();
     let _globalLidMapping;
-    try { ({ globalLidMapping: _globalLidMapping } = require('@whiskeysockets/baileys/lib/Utils/lid-mapping')); } catch {}
+    try {
+        ({
+            globalLidMapping: _globalLidMapping,
+        } = require('@whiskeysockets/baileys/lib/Utils/lid-mapping'));
+    } catch {}
 
     const CACHE_DIR_EARLY = path.join(__dirname, 'data');
     const LID_CACHE_EARLY = path.join(CACHE_DIR_EARLY, 'lid-phone-cache.json');
@@ -429,9 +540,16 @@ async function connectToWhatsApp() {
             const raw = JSON.parse(fs.readFileSync(LID_CACHE_EARLY, 'utf8'));
             for (const [lid, phone] of Object.entries(raw)) {
                 global.lidPhoneCache.set(lid, phone);
-                if (_globalLidMapping) _globalLidMapping.set(lid.endsWith('@lid') ? lid : lid + '@lid', phone.endsWith('@s.whatsapp.net') ? phone : phone + '@s.whatsapp.net');
+                if (_globalLidMapping)
+                    _globalLidMapping.set(
+                        lid.endsWith('@lid') ? lid : lid + '@lid',
+                        phone.endsWith('@s.whatsapp.net') ? phone : phone + '@s.whatsapp.net',
+                    );
             }
-            logMessage('INFO', `[Cache] Early-loaded ${Object.keys(raw).length} LID→phone mappings`);
+            logMessage(
+                'INFO',
+                `[Cache] Early-loaded ${Object.keys(raw).length} LID→phone mappings`,
+            );
         }
     } catch {}
     try {
@@ -451,11 +569,19 @@ async function connectToWhatsApp() {
     function flushCachesToDisk() {
         try {
             fs.mkdirSync(CACHE_DIR_EARLY, { recursive: true });
-            const lidObj = {}; global.lidPhoneCache.forEach((v, k) => { lidObj[k] = v; });
+            const lidObj = {};
+            global.lidPhoneCache.forEach((v, k) => {
+                lidObj[k] = v;
+            });
             atomicWriteJson(LID_CACHE_EARLY, lidObj);
-            const nameObj = {}; global.pushNameCache.forEach((v, k) => { nameObj[k] = v; });
+            const nameObj = {};
+            global.pushNameCache.forEach((v, k) => {
+                nameObj[k] = v;
+            });
             atomicWriteJson(NAME_CACHE_EARLY, nameObj);
-        } catch (e) { logMessage('WARN', `[Cache] flush error: ${e.message}`); }
+        } catch (e) {
+            logMessage('WARN', `[Cache] flush error: ${e.message}`);
+        }
     }
 
     let _cacheTimerEarly = null;
@@ -467,8 +593,14 @@ async function connectToWhatsApp() {
         }, 30000);
     }
 
-    process.once('SIGINT', () => { flushCachesToDisk(); process.exit(0); });
-    process.once('SIGTERM', () => { flushCachesToDisk(); process.exit(0); });
+    process.once('SIGINT', () => {
+        flushCachesToDisk();
+        process.exit(0);
+    });
+    process.once('SIGTERM', () => {
+        flushCachesToDisk();
+        process.exit(0);
+    });
 
     const trackContacts = (contacts, source) => {
         let mapped = 0;
@@ -489,18 +621,29 @@ async function connectToWhatsApp() {
             }
             if (c.name || c.notify || c.pushName || c.verifiedName) {
                 const name = c.name || c.notify || c.pushName || c.verifiedName;
-                if (jid) { global.pushNameCache.set(jid, name); }
-                if (lid) { global.pushNameCache.set(lid, name); const n = lid.split(':')[0].split('@')[0] + '@lid'; if (n !== lid) global.pushNameCache.set(n, name); }
+                if (jid) {
+                    global.pushNameCache.set(jid, name);
+                }
+                if (lid) {
+                    global.pushNameCache.set(lid, name);
+                    const n = lid.split(':')[0].split('@')[0] + '@lid';
+                    if (n !== lid) global.pushNameCache.set(n, name);
+                }
             }
         }
         if (contacts.length > 0 && mapped > 0) {
-            logMessage('INFO', `[LID] ${source}: mapped ${mapped}/${contacts.length} LID→JID (total: ${global.lidJidMap.size})`);
+            logMessage(
+                'INFO',
+                `[LID] ${source}: mapped ${mapped}/${contacts.length} LID→JID (total: ${global.lidJidMap.size})`,
+            );
             scheduleCacheSave();
         }
     };
     sock.ev.on('contacts.upsert', (c) => trackContacts(c, 'contacts.upsert'));
     sock.ev.on('contacts.update', (c) => trackContacts(c, 'contacts.update'));
-    sock.ev.on('messaging-history.set', ({ contacts }) => { if (contacts?.length) trackContacts(contacts, 'messaging-history.set'); });
+    sock.ev.on('messaging-history.set', ({ contacts }) => {
+        if (contacts?.length) trackContacts(contacts, 'messaging-history.set');
+    });
 
     // keep handler's setup in place if your handler requires connection hooks
     try {
@@ -511,9 +654,9 @@ async function connectToWhatsApp() {
     }
 
     // connection update
-    sock.ev.on('connection.update', async update => {
+    sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
-        
+
         // Handle QR code
         if (qr) {
             const QRCode = require('qrcode');
@@ -526,7 +669,10 @@ async function connectToWhatsApp() {
             }
         }
         if (connection === 'close') {
-            logMessage('WARN', `Connection closed: ${lastDisconnect?.error?.output?.statusCode || 'Unknown'}`);
+            logMessage(
+                'WARN',
+                `Connection closed: ${lastDisconnect?.error?.output?.statusCode || 'Unknown'}`,
+            );
             if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
                 logMessage('INFO', 'Reconnecting...');
                 setTimeout(() => connectToWhatsApp(), 2000);
@@ -583,7 +729,6 @@ async function connectToWhatsApp() {
             //         // ignored
             //     }
             // }, 5000);
-
         }
     });
 
@@ -592,17 +737,17 @@ async function connectToWhatsApp() {
     // ✅ Cache messages for anti-delete
     sock.ev.on('messages.upsert', ({ messages }) => {
         if (!Array.isArray(messages)) return;
-        
+
         for (const m of messages) {
             if (!m.message || !m.key.id) continue;
-            
+
             const cacheKey = `${m.key.remoteJid}-${m.key.id}`;
             messageCache.set(cacheKey, {
                 message: m.message,
-                timestamp: Date.now()
+                timestamp: Date.now(),
             });
         }
-        
+
         const now = Date.now();
         for (const [key, value] of messageCache.entries()) {
             if (now - value.timestamp > 3 * 60 * 60 * 1000) {
@@ -614,79 +759,93 @@ async function connectToWhatsApp() {
     // ✅ Anti-delete/anti-edit handler (messages.update)
     // Forward reactions to dashboard via the proper Baileys event
     sock.ev.on('messages.reaction', (reactions) => {
-        if (!global.io) return;
         for (const r of reactions) {
-            const reactorJid = r.reaction?.key?.participant
-                || r.reaction?.key?.remoteJid
-                || r.key?.remoteJid;
-            global.io.emit('reaction-update', {
+            const reactorJid =
+                r.reaction?.key?.participant || r.reaction?.key?.remoteJid || r.key?.remoteJid;
+            emitDashboard('reaction-update', {
                 jid: r.key?.remoteJid,
                 msgId: r.key?.id,
                 emoji: r.reaction?.text || '',
                 sender: r.reaction?.key?.fromMe ? 'me' : reactorJid,
-                fromMe: !!r.reaction?.key?.fromMe
+                fromMe: !!r.reaction?.key?.fromMe,
             });
         }
     });
 
-    sock.ev.on("messages.update", async (updates) => {
+    sock.ev.on('messages.update', async (updates) => {
         for (const { key, update } of updates) {
-            if (key.remoteJid === "status@broadcast") continue;
+            if (key.remoteJid === 'status@broadcast') continue;
             if (key.fromMe) continue;
 
-            const isGroup   = key.remoteJid?.endsWith('@g.us');
-            if ((isGroup && !config.ANTIDELETE_GROUP) || (!isGroup && !config.ANTIDELETE_PRIVATE)) continue;
+            const isGroup = key.remoteJid?.endsWith('@g.us');
+            if ((isGroup && !config.ANTIDELETE_GROUP) || (!isGroup && !config.ANTIDELETE_PRIVATE))
+                continue;
 
-            const ownerJid  = `${config.OWNER_NUMBER}@s.whatsapp.net`;
-            const cacheKey  = `${key.remoteJid}-${key.id}`;
-            const original  = messageCache.get(cacheKey);
-            const sender    = key.participant || key.remoteJid;
+            const ownerJid = `${config.OWNER_NUMBER}@s.whatsapp.net`;
+            const cacheKey = `${key.remoteJid}-${key.id}`;
+            const original = messageCache.get(cacheKey);
+            const sender = key.participant || key.remoteJid;
             const senderNum = sender.split('@')[0];
 
             // ── Deleted message ──────────────────────────────────────────────
             if (update?.message === null) {
                 if (!original?.message) continue;
                 const msgObj = original.message;
-                const mType  = Object.keys(msgObj)[0];
-                const label  = isGroup ? `Group: ${key.remoteJid.split('@')[0]}` : 'Private';
+                const mType = Object.keys(msgObj)[0];
+                const label = isGroup ? `Group: ${key.remoteJid.split('@')[0]}` : 'Private';
 
                 try {
                     await sock.sendMessage(ownerJid, {
                         text: `🗑️ *Deleted Message Recovered*\n👤 From: @${senderNum}\n📌 ${label}`,
                         contextInfo: globalContextInfo,
-                        mentions: [sender]
+                        mentions: [sender],
                     });
-                    if (["conversation", "extendedTextMessage"].includes(mType)) {
+                    if (['conversation', 'extendedTextMessage'].includes(mType)) {
                         const text = msgObj.conversation || msgObj.extendedTextMessage?.text || '';
                         await sock.sendMessage(ownerJid, { text, contextInfo: globalContextInfo });
-                    } else if (["imageMessage", "videoMessage", "audioMessage", "stickerMessage", "documentMessage"].includes(mType)) {
-                        const stream = await downloadContentFromMessage(msgObj[mType], mType.replace("Message", ""));
+                    } else if (
+                        [
+                            'imageMessage',
+                            'videoMessage',
+                            'audioMessage',
+                            'stickerMessage',
+                            'documentMessage',
+                        ].includes(mType)
+                    ) {
+                        const stream = await downloadContentFromMessage(
+                            msgObj[mType],
+                            mType.replace('Message', ''),
+                        );
                         let buffer = Buffer.from([]);
                         for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
-                        const field   = mType.replace("Message", "");
+                        const field = mType.replace('Message', '');
                         const payload = { [field]: buffer, contextInfo: globalContextInfo };
                         if (msgObj[mType]?.caption) payload.caption = msgObj[mType].caption;
                         await sock.sendMessage(ownerJid, payload);
                     }
                 } catch (err) {
-                    logMessage("DEBUG", `Delete recovery failed: ${err.message}`);
+                    logMessage('DEBUG', `Delete recovery failed: ${err.message}`);
                 }
             }
 
             // ── Edited message ───────────────────────────────────────────────
             const editedMsg = update?.message?.protocolMessage?.editedMessage;
             if (editedMsg) {
-                const oldText  = original?.message?.conversation || original?.message?.extendedTextMessage?.text || '(unknown)';
-                const newText  = editedMsg.conversation || editedMsg.extendedTextMessage?.text || '(media)';
-                const label    = isGroup ? `Group: ${key.remoteJid.split('@')[0]}` : 'Private';
+                const oldText =
+                    original?.message?.conversation ||
+                    original?.message?.extendedTextMessage?.text ||
+                    '(unknown)';
+                const newText =
+                    editedMsg.conversation || editedMsg.extendedTextMessage?.text || '(media)';
+                const label = isGroup ? `Group: ${key.remoteJid.split('@')[0]}` : 'Private';
                 try {
                     await sock.sendMessage(ownerJid, {
                         text: `✏️ *Edited Message*\n👤 From: @${senderNum}\n📌 ${label}\n\n*Before:* ${oldText}\n*After:* ${newText}`,
                         contextInfo: globalContextInfo,
-                        mentions: [sender]
+                        mentions: [sender],
                     });
                 } catch (err) {
-                    logMessage("DEBUG", `Edit recovery failed: ${err.message}`);
+                    logMessage('DEBUG', `Edit recovery failed: ${err.message}`);
                 }
             }
         }
@@ -695,11 +854,15 @@ async function connectToWhatsApp() {
     sock.ev.on('messages.delete', async (item) => {
         try {
             logMessage('DEBUG', 'messages.delete triggered');
-            const keys = Array.isArray(item) ? item.map(i => i.key) : (item?.keys || []);
+            const keys = Array.isArray(item) ? item.map((i) => i.key) : item?.keys || [];
             for (const key of keys) {
                 const from = key.remoteJid;
                 const isGroupChat = from?.endsWith?.('@g.us');
-                if ((isGroupChat && !config.ANTIDELETE_GROUP) || (!isGroupChat && !config.ANTIDELETE_PRIVATE)) continue;
+                if (
+                    (isGroupChat && !config.ANTIDELETE_GROUP) ||
+                    (!isGroupChat && !config.ANTIDELETE_PRIVATE)
+                )
+                    continue;
 
                 const cacheKey = `${from}-${key.id}`;
                 const cached = messageCache.get(cacheKey);
@@ -717,20 +880,39 @@ async function connectToWhatsApp() {
                 const opts = { contextInfo: { mentionedJid: [sender] } };
 
                 try {
-                    if (["conversation", "extendedTextMessage"].includes(msgType)) {
-                        const text = storedMsg.conversation || storedMsg.extendedTextMessage?.text || '';
-                        await sock.sendMessage(ownerJid, { text: `${caption}\n\n${text}`, ...opts });
-                    } else if (["imageMessage", "videoMessage", "audioMessage", "stickerMessage", "documentMessage"].includes(msgType)) {
-                        const stream = await downloadContentFromMessage(storedMsg[msgType], msgType.replace("Message", ""));
+                    if (['conversation', 'extendedTextMessage'].includes(msgType)) {
+                        const text =
+                            storedMsg.conversation || storedMsg.extendedTextMessage?.text || '';
+                        await sock.sendMessage(ownerJid, {
+                            text: `${caption}\n\n${text}`,
+                            ...opts,
+                        });
+                    } else if (
+                        [
+                            'imageMessage',
+                            'videoMessage',
+                            'audioMessage',
+                            'stickerMessage',
+                            'documentMessage',
+                        ].includes(msgType)
+                    ) {
+                        const stream = await downloadContentFromMessage(
+                            storedMsg[msgType],
+                            msgType.replace('Message', ''),
+                        );
                         let buffer = Buffer.from([]);
                         for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
-                        const field = msgType.replace("Message", "");
+                        const field = msgType.replace('Message', '');
                         const payload = { [field]: buffer, ...opts };
-                        if (storedMsg[msgType]?.caption) payload.caption = `${caption}\n\n${storedMsg[msgType].caption}`;
+                        if (storedMsg[msgType]?.caption)
+                            payload.caption = `${caption}\n\n${storedMsg[msgType].caption}`;
                         else payload.caption = caption;
                         await sock.sendMessage(ownerJid, payload);
                     } else {
-                        await sock.sendMessage(ownerJid, { text: `${caption}\n\n[${msgType}]`, ...opts });
+                        await sock.sendMessage(ownerJid, {
+                            text: `${caption}\n\n[${msgType}]`,
+                            ...opts,
+                        });
                     }
                     logMessage('SUCCESS', `Restored deleted message from ${senderName}`);
                 } catch (err) {
@@ -747,12 +929,15 @@ async function connectToWhatsApp() {
         try {
             // --- Anti-Demote ---
             if (action === 'demote' && global.antiDemoteGroups?.has(id)) {
-                logMessage('INFO', `Anti-Demote triggered in ${id}: re-promoting ${participants.join(', ')}`);
+                logMessage(
+                    'INFO',
+                    `Anti-Demote triggered in ${id}: re-promoting ${participants.join(', ')}`,
+                );
                 await sock.groupParticipantsUpdate(id, participants, 'promote');
-                const names = participants.map(p => `@${p.split('@')[0]}`).join(', ');
+                const names = participants.map((p) => `@${p.split('@')[0]}`).join(', ');
                 await sock.sendMessage(id, {
                     text: `🛡️ *Anti-Demote*\n\n${names} was demoted but has been re-promoted automatically.`,
-                    mentions: participants
+                    mentions: participants,
                 });
             }
 
@@ -792,7 +977,7 @@ async function connectToWhatsApp() {
         try {
             const stream = await downloadContentFromMessage(
                 message.message[msgType],
-                msgType.replace('Message', '')
+                msgType.replace('Message', ''),
             );
 
             let buffer = Buffer.from([]);
@@ -801,19 +986,21 @@ async function connectToWhatsApp() {
             const extMap = {
                 imageMessage: 'jpg',
                 videoMessage: 'mp4',
-                audioMessage: 'ogg'
+                audioMessage: 'ogg',
             };
 
             const filename = `${Date.now()}.${extMap[msgType]}`;
             const filePath = path.join(statusSaverDir, filename);
             fs.writeFileSync(filePath, buffer);
 
-            const selfJid = sockLocal.user.id.includes(':') ? `${sockLocal.user.id.split(':')[0]}@s.whatsapp.net` : sockLocal.user.id;
+            const selfJid = sockLocal.user.id.includes(':')
+                ? `${sockLocal.user.id.split(':')[0]}@s.whatsapp.net`
+                : sockLocal.user.id;
 
             await sockLocal.sendMessage(selfJid, {
                 [msgType.replace('Message', '')]: { url: filePath },
                 caption: caption,
-                mimetype: message.message[msgType].mimetype
+                mimetype: message.message[msgType].mimetype,
             });
             return true;
         } catch (error) {
@@ -826,7 +1013,8 @@ async function connectToWhatsApp() {
         const inner =
             msg.message?.viewOnceMessageV2?.message ||
             msg.message?.viewOnceMessage?.message ||
-            msg.message || {};
+            msg.message ||
+            {};
         const msgType = Object.keys(inner)[0] || '';
         return { inner, msgType };
     }
@@ -838,7 +1026,8 @@ async function connectToWhatsApp() {
         if (!normLid || !normPhone || normPhone.length < 7) return;
         global.lidPhoneCache.set(normLid, normPhone);
         global.lidPhoneCache.set(normLid + '@lid', normPhone);
-        if (_globalLidMapping) _globalLidMapping.set(normLid + '@lid', normPhone + '@s.whatsapp.net');
+        if (_globalLidMapping)
+            _globalLidMapping.set(normLid + '@lid', normPhone + '@s.whatsapp.net');
         scheduleCacheSave();
     }
 
@@ -848,7 +1037,8 @@ async function connectToWhatsApp() {
         const norm = jid.split(':')[0];
         if (norm !== jid) {
             if (jid.includes('@lid')) global.pushNameCache.set(norm + '@lid', name);
-            else if (jid.includes('@s.whatsapp.net')) global.pushNameCache.set(norm + '@s.whatsapp.net', name);
+            else if (jid.includes('@s.whatsapp.net'))
+                global.pushNameCache.set(norm + '@s.whatsapp.net', name);
         }
         scheduleCacheSave();
     }
@@ -884,11 +1074,22 @@ async function connectToWhatsApp() {
                 }
 
                 // RAW diagnostic — confirms statuses enter the loop at all
-                console.log('[DEBUG upsert]', type, remoteJid, '| fromMe:', m.key?.fromMe, '| participant:', m.key?.participant);
+                console.log(
+                    '[DEBUG upsert]',
+                    type,
+                    remoteJid,
+                    '| fromMe:',
+                    m.key?.fromMe,
+                    '| participant:',
+                    m.key?.participant,
+                );
 
                 // Debug: log any non-regular-message JIDs to help diagnose status delivery
                 if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@g.us')) {
-                    logMessage('DEBUG', `[upsert] type=${type} jid=${remoteJid} fromMe=${m.key?.fromMe} participant=${m.key?.participant}`);
+                    logMessage(
+                        'DEBUG',
+                        `[upsert] type=${type} jid=${remoteJid} fromMe=${m.key?.fromMe} participant=${m.key?.participant}`,
+                    );
                 }
 
                 // ---- STATUS handling (status@broadcast)
@@ -903,7 +1104,9 @@ async function connectToWhatsApp() {
                     if (mutedSet?.has(m.key.participant)) {
                         try {
                             await sock.sendMessage(remoteJid, { delete: m.key });
-                        } catch { /* ignore */ }
+                        } catch {
+                            /* ignore */
+                        }
                         continue;
                     }
                 }
@@ -920,9 +1123,15 @@ async function connectToWhatsApp() {
                                     text: `⚠️ @${num} has been removed for flooding.`,
                                     mentions: [m.key.participant],
                                 });
-                                await sock.groupParticipantsUpdate(remoteJid, [m.key.participant], 'remove');
+                                await sock.groupParticipantsUpdate(
+                                    remoteJid,
+                                    [m.key.participant],
+                                    'remove',
+                                );
                             }
-                        } catch { /* ignore */ }
+                        } catch {
+                            /* ignore */
+                        }
                     }
                 }
 
@@ -935,7 +1144,7 @@ async function connectToWhatsApp() {
                 // during that window were silently dropped. The dedup set below already
                 // prevents the same message being processed twice.
                 const msgTs = (m.messageTimestamp || 0) * 1000;
-                if (msgTs && (Date.now() - msgTs) > 5 * 60 * 1000) continue;
+                if (msgTs && Date.now() - msgTs > 5 * 60 * 1000) continue;
 
                 // Dedup: same message ID can arrive multiple times across device sessions
                 const cmdMsgId = m.key.id;
@@ -954,34 +1163,58 @@ async function connectToWhatsApp() {
 
                     if (vMsg) {
                         const ownerJid = `${config.OWNER_NUMBER}@s.whatsapp.net`;
-                        const chatJid  = m.key.remoteJid;
+                        const chatJid = m.key.remoteJid;
                         const senderJid = m.key.participant || chatJid;
                         const senderNum = senderJid.split('@')[0];
-                        const chatLabel = chatJid.endsWith('@g.us') ? `Group: ${chatJid.split('@')[0]}` : 'Private';
+                        const chatLabel = chatJid.endsWith('@g.us')
+                            ? `Group: ${chatJid.split('@')[0]}`
+                            : 'Private';
 
                         let revealType = null;
                         for (const t of ['imageMessage', 'videoMessage', 'audioMessage']) {
-                            if (vMsg[t]) { revealType = t; break; }
+                            if (vMsg[t]) {
+                                revealType = t;
+                                break;
+                            }
                         }
 
                         if (revealType) {
                             try {
-                                const stream = await downloadContentFromMessage(vMsg[revealType], revealType.replace('Message', ''));
+                                const stream = await downloadContentFromMessage(
+                                    vMsg[revealType],
+                                    revealType.replace('Message', ''),
+                                );
                                 let buffer = Buffer.from([]);
-                                for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
+                                for await (const chunk of stream)
+                                    buffer = Buffer.concat([buffer, chunk]);
 
                                 const header = `👁️ *Anti-ViewOnce*\n👤 From: @${senderNum}\n📌 ${chatLabel}`;
-                                const mime   = vMsg[revealType]?.mimetype;
+                                const mime = vMsg[revealType]?.mimetype;
 
                                 if (revealType === 'imageMessage') {
-                                    await sock.sendMessage(ownerJid, { image: buffer, caption: header, mimetype: mime || 'image/jpeg' });
+                                    await sock.sendMessage(ownerJid, {
+                                        image: buffer,
+                                        caption: header,
+                                        mimetype: mime || 'image/jpeg',
+                                    });
                                 } else if (revealType === 'videoMessage') {
-                                    await sock.sendMessage(ownerJid, { video: buffer, caption: header, mimetype: mime || 'video/mp4' });
+                                    await sock.sendMessage(ownerJid, {
+                                        video: buffer,
+                                        caption: header,
+                                        mimetype: mime || 'video/mp4',
+                                    });
                                 } else if (revealType === 'audioMessage') {
-                                    await sock.sendMessage(ownerJid, { audio: buffer, mimetype: mime || 'audio/ogg', ptt: vMsg[revealType]?.ptt || false });
+                                    await sock.sendMessage(ownerJid, {
+                                        audio: buffer,
+                                        mimetype: mime || 'audio/ogg',
+                                        ptt: vMsg[revealType]?.ptt || false,
+                                    });
                                     await sock.sendMessage(ownerJid, { text: header });
                                 }
-                                logMessage('INFO', `Anti-VV: forwarded ${revealType} from ${senderNum} to owner`);
+                                logMessage(
+                                    'INFO',
+                                    `Anti-VV: forwarded ${revealType} from ${senderNum} to owner`,
+                                );
                             } catch (e) {
                                 logMessage('WARN', `Anti-VV failed: ${e.message}`);
                             }
@@ -997,14 +1230,16 @@ async function connectToWhatsApp() {
                 // --- Newsletter messages — autofollow + react then skip
                 if (isNewsletter) {
                     if (process.uptime() > 25) {
-                        const nlJid    = m.key.remoteJid;
+                        const nlJid = m.key.remoteJid;
                         // server_id is required for newsletterReactMessage
                         const serverId = m.key.server_id || m.key.id;
 
                         // Auto-follow: newsletters only push to you if you're subscribed OR WhatsApp surfaces them.
                         // Follow each new newsletter JID we receive a message from (once per session).
-                        if (config.AUTO_FOLLOW_NEWSLETTER) { // only auto-follow if enabled in config
-                            if (!global._followedNewsletters) global._followedNewsletters = new Set();
+                        if (config.AUTO_FOLLOW_NEWSLETTER) {
+                            // only auto-follow if enabled in config
+                            if (!global._followedNewsletters)
+                                global._followedNewsletters = new Set();
                             if (!global._followedNewsletters.has(nlJid)) {
                                 try {
                                     await sock.newsletterFollow(nlJid);
@@ -1014,9 +1249,15 @@ async function connectToWhatsApp() {
                                     const emsg = e.message || '';
                                     if (/already|409|subscribed|unexpected response/i.test(emsg)) {
                                         global._followedNewsletters.add(nlJid);
-                                        logMessage('INFO', `✅ Already following newsletter: ${nlJid}`);
+                                        logMessage(
+                                            'INFO',
+                                            `✅ Already following newsletter: ${nlJid}`,
+                                        );
                                     } else {
-                                        logMessage('WARN', `Newsletter follow failed (${nlJid}): ${emsg}`);
+                                        logMessage(
+                                            'WARN',
+                                            `Newsletter follow failed (${nlJid}): ${emsg}`,
+                                        );
                                     }
                                     void 0; // suppress original stack log
                                 }
@@ -1026,12 +1267,17 @@ async function connectToWhatsApp() {
                         // React using the correct newsletter API (not sendMessage)
                         if (serverId) {
                             const reactEmoji = config.AUTO_REACT_NEWSLETTER
-                                ? (['🤖','🔥','💫','❤️','👍','💯','✨','👏','😎'])[Math.floor(Math.random() * 9)]
+                                ? ['🤖', '🔥', '💫', '❤️', '👍', '💯', '✨', '👏', '😎'][
+                                      Math.floor(Math.random() * 9)
+                                  ]
                                 : null;
                             if (reactEmoji) {
                                 try {
                                     await sock.newsletterReactMessage(nlJid, serverId, reactEmoji);
-                                    logMessage('INFO', `Reacted ${reactEmoji} to newsletter ${nlJid} msg ${serverId}`);
+                                    logMessage(
+                                        'INFO',
+                                        `Reacted ${reactEmoji} to newsletter ${nlJid} msg ${serverId}`,
+                                    );
                                 } catch (e) {
                                     logMessage('WARN', `Newsletter react failed: ${e.message}`);
                                 }
@@ -1041,17 +1287,27 @@ async function connectToWhatsApp() {
                     continue;
                 }
 
-                logMessage('MESSAGE', `New ${isGroupMsg ? 'group' : isBroadcast ? 'broadcast' : 'private'} message from ${sender}`);
+                logMessage(
+                    'MESSAGE',
+                    `New ${isGroupMsg ? 'group' : isBroadcast ? 'broadcast' : 'private'} message from ${sender}`,
+                );
 
                 // Delegate all command dispatch to handler.js
                 // (handles prefix check, permissions, group admin, run() API)
                 if (config.READ_MESSAGE) {
-                    try { await sock.readMessages([m.key]); } catch (e) { /* ignore */ }
+                    try {
+                        await sock.readMessages([m.key]);
+                    } catch (e) {
+                        /* ignore */
+                    }
                 }
                 await handleMessages(sock, m);
             }
         } catch (err) {
-            logMessage('ERROR', `messages.upsert consolidated handler error: ${err.stack || err.message}`);
+            logMessage(
+                'ERROR',
+                `messages.upsert consolidated handler error: ${err.stack || err.message}`,
+            );
         }
     });
 
@@ -1062,12 +1318,47 @@ async function connectToWhatsApp() {
 const app = express();
 const httpSrv = require('http').createServer(app);
 const io = require('socket.io')(httpSrv, {
-    cors: { origin: "*", methods: ["GET", "POST"] }
+    cors: { origin: '*', methods: ['GET', 'POST'] },
 });
 global.io = io; // expose globally for hooks
 
+io.use((socket, next) => {
+    const provided = String(
+        socket.handshake?.auth?.token || socket.handshake?.headers?.['x-dashboard-token'] || '',
+    ).trim();
+
+    if (dashboardToken) {
+        if (isAuthorizedByToken(provided)) return next();
+        return next(new Error('unauthorized'));
+    }
+
+    const fwd = String(socket.handshake?.headers?.['x-forwarded-for'] || '')
+        .split(',')[0]
+        .trim();
+    const ip = fwd || socket.handshake?.address || '';
+    if (isLocalAddress(ip)) return next();
+    return next(new Error('unauthorized'));
+});
+
+io.on('connection', (socket) => {
+    socket.join(DASHBOARD_ROOM);
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'smm')));
+
+app.get('/api/auth/config', (req, res) => {
+    res.json({
+        tokenRequired: !!dashboardToken,
+        localOnlyMode: !dashboardToken,
+    });
+});
+
+app.use('/api', (req, res, next) => {
+    if (req.path === '/auth/config') return next();
+    return requireDashboardAuth(req, res, next);
+});
+app.use('/gh', requireDashboardAuth);
 
 app.get('/', (req, res) => {
     const html = path.join(__dirname, 'smm', 'silva.html');
@@ -1080,45 +1371,57 @@ app.get('/', (req, res) => {
 app.get('/api/chats', async (req, res) => {
     try {
         if (!store) return res.status(503).json({ error: 'Store not ready' });
-        
+
         const db = require('./lib/dbManager');
         const pinned = await db.get('messenger_pinned', []);
-        
+
         const chats = [];
-        const jids = Array.from(store.chats.keys());
-        
+        const liveJids = Array.from(store.chats.keys());
+        const jids = messengerStore.listKnownJids(liveJids);
+
         for (const jid of jids) {
             const chatMsgs = store.chats.get(jid);
-            if (!chatMsgs || chatMsgs.size === 0) continue;
-            
-            const lastMsg = Array.from(chatMsgs.values()).pop();
-            const snippet = lastMsg.message?.conversation || lastMsg.message?.extendedTextMessage?.text || '[Media]';
-            
+            const liveMessages = chatMsgs ? Array.from(chatMsgs.values()) : [];
+            const lastMsg = messengerStore.getLatestMessage(jid, liveMessages);
+            if (!lastMsg) continue;
+
+            const snippet =
+                lastMsg.message?.conversation ||
+                lastMsg.message?.extendedTextMessage?.text ||
+                '[Media]';
+
             chats.push({
                 jid,
-                name: global.pushNameCache?.get(jid) || jid.split('@')[0],
+                name: global.pushNameCache?.get(jid) || lastMsg.pushName || jid.split('@')[0],
                 lastMsgSnippet: snippet,
                 timestamp: lastMsg.messageTimestamp,
-                isPinned: pinned.includes(jid)
+                isPinned: pinned.includes(jid),
             });
         }
-        
+
         // Sort by timestamp (latest first)
         chats.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        
+
         res.json({ chats, pinned });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.get('/api/chat/:jid/messages', async (req, res) => {
     const { jid } = req.params;
     try {
         if (!store) return res.status(503).json({ error: 'Store not ready' });
-        // Retrieve from in-memory store
         const chatMsgs = store.chats.get(jid);
-        const messages = chatMsgs ? Array.from(chatMsgs.values()) : [];
-        res.json({ messages });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+        const liveMessages = chatMsgs ? Array.from(chatMsgs.values()) : [];
+        const page = messengerStore.getMessagesPage(jid, liveMessages, {
+            limit: req.query.limit,
+            before: req.query.before,
+        });
+        res.json(page);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.get('/api/profile-pic/:jid', async (req, res) => {
@@ -1127,28 +1430,36 @@ app.get('/api/profile-pic/:jid', async (req, res) => {
         if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
         const url = await global.sock.profilePictureUrl(jid, 'image').catch(() => null);
         if (!url) return res.json({ url: null });
-        
+
         // Proxy the image to avoid CORS/Referer issues
         const axios = require('axios');
         const response = await axios.get(url, { responseType: 'arraybuffer' });
         res.set('Content-Type', response.headers['content-type']);
         res.send(response.data);
-    } catch (e) { res.status(404).end(); }
+    } catch (e) {
+        res.status(404).end();
+    }
 });
 
 app.get('/api/media/:jid/:msgId', async (req, res) => {
     const { jid, msgId } = req.params;
     try {
         if (!store) return res.status(503).json({ error: 'Store not ready' });
-        const msg = await store.loadMessage(jid, msgId);
+        const liveMsg = await store.loadMessage(jid, msgId);
+        const chatMsgs = store.chats.get(jid);
+        const liveMessages = chatMsgs ? Array.from(chatMsgs.values()) : [];
+        const persisted = messengerStore.getMessageById(jid, msgId, liveMessages);
+        const msg = liveMsg?.message ? liveMsg : persisted;
         if (!msg?.message) return res.status(404).json({ error: 'Message not found' });
 
         const { dlAuto } = require('./lib/dlmedia');
         const { buffer, msgContent } = await dlAuto(msg.message);
-        
+
         res.set('Content-Type', msgContent.mimetype || 'application/octet-stream');
         res.send(buffer);
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.post('/api/send', async (req, res) => {
@@ -1156,10 +1467,13 @@ app.post('/api/send', async (req, res) => {
     if (!jid || !text) return res.status(400).json({ error: 'Missing jid or text' });
     try {
         if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
-        const { handleMessages, safeSend } = require('./handler');
+        const { safeSend } = require('./handler');
         const result = await safeSend(global.sock, jid, { text }, quoted ? { quoted } : {});
+        if (result) void messengerStore.persistMessages([result]);
         res.json({ success: !!result, messageId: result?.key?.id });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.post('/api/toggle-pin', async (req, res) => {
@@ -1169,13 +1483,15 @@ app.post('/api/toggle-pin', async (req, res) => {
         const db = require('./lib/dbManager');
         let pinned = await db.get('messenger_pinned', []);
         if (pinned.includes(jid)) {
-            pinned = pinned.filter(j => j !== jid);
+            pinned = pinned.filter((j) => j !== jid);
         } else {
             pinned.push(jid);
         }
         await db.set('messenger_pinned', pinned);
         res.json({ success: true, pinned });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.post('/api/react', async (req, res) => {
@@ -1187,7 +1503,9 @@ app.post('/api/react', async (req, res) => {
         if (participant) key.participant = participant;
         await global.sock.sendMessage(jid, { react: { text: emoji, key } });
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.post('/api/delete-message', async (req, res) => {
@@ -1199,7 +1517,9 @@ app.post('/api/delete-message', async (req, res) => {
         if (participant) key.participant = participant;
         await global.sock.sendMessage(jid, { delete: key });
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.post('/api/typing', async (req, res) => {
@@ -1209,7 +1529,9 @@ app.post('/api/typing', async (req, res) => {
         if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
         await global.sock.sendPresenceUpdate(state || 'composing', jid);
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.post('/api/subscribe-presence', async (req, res) => {
@@ -1219,7 +1541,9 @@ app.post('/api/subscribe-presence', async (req, res) => {
         if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
         await global.sock.presenceSubscribe(jid);
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 app.get('/api/me', (req, res) => {
@@ -1227,7 +1551,7 @@ app.get('/api/me', (req, res) => {
     res.json({
         jid: global.botJid || null,
         lid: global.botLid || null,
-        num: global.botNum || null
+        num: global.botNum || null,
     });
 });
 
@@ -1240,10 +1564,14 @@ app.post('/api/read', async (req, res) => {
         if (participant) key.participant = participant;
         await global.sock.readMessages([key]);
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok', bot: config.BOT_NAME, time: new Date().toISOString() }));
+app.get('/health', (req, res) =>
+    res.json({ status: 'ok', bot: config.BOT_NAME, time: new Date().toISOString() }),
+);
 app.get('/ping', (req, res) => res.send('pong'));
 
 // ✅ GitHub API proxy — keeps the token server-side out of the browser
@@ -1252,10 +1580,16 @@ const ghHeaders = GH_TOKEN ? { Authorization: `token ${GH_TOKEN}` } : {};
 
 async function ghProxy(res, url, params = {}) {
     try {
-        const r = await axios.get(url, { headers: { ...ghHeaders, 'User-Agent': 'silva-md-bot' }, params, timeout: 15000 });
+        const r = await axios.get(url, {
+            headers: { ...ghHeaders, 'User-Agent': 'silva-md-bot' },
+            params,
+            timeout: 15000,
+        });
         // forward useful GitHub headers for pagination
         const forward = ['x-ratelimit-remaining', 'x-ratelimit-reset', 'link'];
-        for (const h of forward) { if (r.headers[h]) res.set(h, r.headers[h]); }
+        for (const h of forward) {
+            if (r.headers[h]) res.set(h, r.headers[h]);
+        }
         res.json(r.data);
     } catch (err) {
         const status = err.response?.status || 502;
@@ -1263,11 +1597,29 @@ async function ghProxy(res, url, params = {}) {
     }
 }
 
-app.get('/gh/repo',     (req, res) => ghProxy(res, `https://api.github.com/repos/${req.query.owner}/${req.query.repo}`));
-app.get('/gh/contents', (req, res) => ghProxy(res, `https://api.github.com/repos/${req.query.owner}/${req.query.repo}/contents/${req.query.path || ''}`));
-app.get('/gh/user',     (req, res) => ghProxy(res, `https://api.github.com/users/${req.query.login}`));
-app.get('/gh/commits',  (req, res) => ghProxy(res, `https://api.github.com/repos/${req.query.owner}/${req.query.repo}/commits`, { since: req.query.since, until: req.query.until, per_page: req.query.per_page || 1 }));
-app.get('/gh/commit-activity', (req, res) => ghProxy(res, `https://api.github.com/repos/${req.query.owner}/${req.query.repo}/stats/commit_activity`));
+app.get('/gh/repo', (req, res) =>
+    ghProxy(res, `https://api.github.com/repos/${req.query.owner}/${req.query.repo}`),
+);
+app.get('/gh/contents', (req, res) =>
+    ghProxy(
+        res,
+        `https://api.github.com/repos/${req.query.owner}/${req.query.repo}/contents/${req.query.path || ''}`,
+    ),
+);
+app.get('/gh/user', (req, res) => ghProxy(res, `https://api.github.com/users/${req.query.login}`));
+app.get('/gh/commits', (req, res) =>
+    ghProxy(res, `https://api.github.com/repos/${req.query.owner}/${req.query.repo}/commits`, {
+        since: req.query.since,
+        until: req.query.until,
+        per_page: req.query.per_page || 1,
+    }),
+);
+app.get('/gh/commit-activity', (req, res) =>
+    ghProxy(
+        res,
+        `https://api.github.com/repos/${req.query.owner}/${req.query.repo}/stats/commit_activity`,
+    ),
+);
 
 // Local plugin manifest — reads descriptions directly from loaded plugin files
 app.get('/api/plugins', (req, res) => {
@@ -1280,12 +1632,12 @@ app.get('/api/plugins', (req, res) => {
             if (seen.has(key)) continue;
             seen.add(key);
             result.push({
-                name:        (p.commands || [])[0] || 'unknown',
-                commands:    p.commands || [],
+                name: (p.commands || [])[0] || 'unknown',
+                commands: p.commands || [],
                 description: p.description || '',
-                permission:  p.permission || 'public',
-                group:       p.group !== false,
-                private:     p.private !== false,
+                permission: p.permission || 'public',
+                group: p.group !== false,
+                private: p.private !== false,
             });
         }
         res.json(result);
@@ -1303,27 +1655,38 @@ httpSrv.listen(port, () => {
     // killing the WhatsApp socket. Pinging our own /ping endpoint every 25 min
     // keeps the dyno awake without needing an external service.
     // Set APP_URL=https://your-app.herokuapp.com in Heroku config vars.
-    const keepAliveUrl = process.env.APP_URL || process.env.HEROKU_APP_DEFAULT_DOMAIN_NAME
-        ? `https://${process.env.HEROKU_APP_DEFAULT_DOMAIN_NAME}/ping`
-        : null;
+    const keepAliveUrl =
+        process.env.APP_URL || process.env.HEROKU_APP_DEFAULT_DOMAIN_NAME
+            ? `https://${process.env.HEROKU_APP_DEFAULT_DOMAIN_NAME}/ping`
+            : null;
 
     if (keepAliveUrl || process.env.APP_URL) {
         const pingUrl = process.env.APP_URL
             ? `${process.env.APP_URL.replace(/\/$/, '')}/ping`
             : keepAliveUrl;
         const https = require('https');
-        const http  = require('http');
+        const http = require('http');
         const pinger = pingUrl.startsWith('https') ? https : http;
 
-        setInterval(() => {
-            try {
-                pinger.get(pingUrl, (res) => {
-                    logMessage('DEBUG', `[KeepAlive] pinged ${pingUrl} → ${res.statusCode}`);
-                }).on('error', (e) => {
-                    logMessage('WARN', `[KeepAlive] ping failed: ${e.message}`);
-                });
-            } catch (e) { /* ignore */ }
-        }, 25 * 60 * 1000); // every 25 minutes
+        setInterval(
+            () => {
+                try {
+                    pinger
+                        .get(pingUrl, (res) => {
+                            logMessage(
+                                'DEBUG',
+                                `[KeepAlive] pinged ${pingUrl} → ${res.statusCode}`,
+                            );
+                        })
+                        .on('error', (e) => {
+                            logMessage('WARN', `[KeepAlive] ping failed: ${e.message}`);
+                        });
+                } catch (e) {
+                    /* ignore */
+                }
+            },
+            25 * 60 * 1000,
+        ); // every 25 minutes
 
         logMessage('INFO', `🔄 Heroku keep-alive enabled → ${pingUrl}`);
     }
@@ -1335,8 +1698,10 @@ process.on('uncaughtException', (err) => {
         logMessage('CRITICAL', `Uncaught Exception: ${err.stack || err.message}`);
     } catch (_) {}
     setTimeout(() => {
-        connectToWhatsApp().catch(e => {
-            try { logMessage('CRITICAL', `Reconnect failed: ${e.message}`); } catch (_) {}
+        connectToWhatsApp().catch((e) => {
+            try {
+                logMessage('CRITICAL', `Reconnect failed: ${e.message}`);
+            } catch (_) {}
         });
     }, 5000);
 });
@@ -1353,11 +1718,11 @@ async function shutdown(signal) {
 
         // Flush caches if they exist
         if (typeof flushLidCache === 'function') await flushLidCache();
-        
+
         // Disconnect socket if active
         // Note: sock is scoped inside connectToWhatsApp, so we might need a global ref if we want to close it here
         // but for now, flushing data is the priority.
-        
+
         logMessage('INFO', 'Clean shutdown complete.');
         process.exit(0);
     } catch (e) {
