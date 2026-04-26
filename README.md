@@ -4,9 +4,6 @@
 
 <br><br>
 
-[![Stars](https://img.shields.io/github/stars/buluma/silva-md-bot?style=for-the-badge&logo=github&logoColor=white&labelColor=0d1117&color=FF00A6)](https://github.com/buluma/silva-md-bot/stargazers)
-[![Forks](https://img.shields.io/github/forks/buluma/silva-md-bot?style=for-the-badge&logo=git&logoColor=white&labelColor=0d1117&color=6f42c1)](https://github.com/buluma/silva-md-bot/network/members)
-[![Last Commit](https://img.shields.io/github/last-commit/buluma/silva-md-bot?style=for-the-badge&logo=github&logoColor=white&labelColor=0d1117&color=00d4aa)](https://github.com/buluma/silva-md-bot/commits)
 [![License](https://img.shields.io/github/license/SilvaTechB/silva-md-bot?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=0d1117&color=3b82f6)](LICENSE)
 
 <br>
