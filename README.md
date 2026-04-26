@@ -51,18 +51,6 @@ For other platforms, see the [Installation Guide](./docs/01-INSTALLATION.md).
 
 ---
 
-## 🤝 Connect With Silva
-
-<div align="center">
-
-[![WhatsApp Channel](https://img.shields.io/badge/WhatsApp_Channel-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://whatsapp.com/channel/0029VaAkETLLY6d8qhLmZt2v)
-[![Support Group](https://img.shields.io/badge/Support_Group-25D366?style=for-the-badge&logo=whatsapp&logoColor=white)](https://chat.whatsapp.com/Ik0YpP0dM8jHVjScf1Ay5S)
-[![Instagram](https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://instagram.com/_its.silva)
-
-</div>
-
----
-
 ## 📄 License
 
 MIT License — free to use, modify, and distribute with attribution.

@@ -175,7 +175,7 @@
     "PACK_AUTHOR": {
       "description": "Sticker pack author shown in sticker info.",
       "required": false,
-      "value": "SilvaTech"
+      "value": "ShadowBot"
     },
     "GREETING": {
       "description": "Auto-greeting message for new DMs. Leave blank to disable.",
