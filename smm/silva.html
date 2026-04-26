@@ -284,6 +284,20 @@
     }
 
     footer { margin-top:20px; color:var(--muted); font-size:13px; text-align:center; }
+
+    .pill {
+      padding:5px 14px;
+      border-radius:999px;
+      border:1px solid var(--glass-border);
+      background: transparent;
+      color: var(--muted);
+      font-size:12px;
+      font-weight:600;
+      cursor:pointer;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .pill:hover { border-color: var(--primary); color: var(--primary); }
+    .pill.active { background: var(--primary); color:#fff; border-color: var(--primary); }
   </style>
 </head>
 <body>
@@ -439,9 +453,14 @@
 
         <!-- Plugins list -->
         <div class="card" style="grid-column: span 12;">
-          <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
             <h3 style="margin:0;">Plugins</h3>
-            <div class="small muted">Fetched from /plugins directory</div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button class="pill active" data-filter="all">All</button>
+              <button class="pill"        data-filter="public">Public</button>
+              <button class="pill"        data-filter="admin">Admin</button>
+              <button class="pill"        data-filter="owner">Owner</button>
+            </div>
           </div>
 
           <div id="pluginsArea" style="margin-top:12px;">
@@ -519,6 +538,76 @@
     let commitsChart = null;
     const REFRESH_MS = 5 * 60 * 1000; // 5 minutes
     let autoRefreshTimer = null;
+    let allPlugins = [];
+    let activeFilter = 'all';
+
+    function setFilter(filter) {
+      activeFilter = filter;
+      document.querySelectorAll('.pill').forEach(p => p.classList.toggle('active', p.dataset.filter === filter));
+      renderPluginCards(allPlugins.filter(p => filter === 'all' || p.permission === filter));
+    }
+
+    document.querySelectorAll('.pill[data-filter]').forEach(btn => {
+      btn.addEventListener('click', () => setFilter(btn.dataset.filter));
+    });
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function renderPluginCards(plugins) {
+      pluginsGrid.innerHTML = '';
+      plugins.forEach(p => {
+        const permColor = p.permission === 'owner' ? 'var(--error)' : p.permission === 'admin' ? 'var(--accent)' : 'var(--secondary)';
+        const card = document.createElement('article');
+        card.className = 'plugin-card';
+        card.setAttribute('role', 'article');
+
+        const header = document.createElement('div');
+        header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;';
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'name';
+        nameEl.textContent = toTitleCase(p.name);
+
+        const permEl = document.createElement('div');
+        permEl.style.cssText = `font-size:11px;color:${permColor};font-weight:600;`;
+        permEl.textContent = p.permission;
+
+        header.appendChild(nameEl);
+        header.appendChild(permEl);
+
+        const descEl = document.createElement('div');
+        descEl.className = 'desc';
+        if (p.description) {
+          descEl.textContent = p.description;
+        } else {
+          const em = document.createElement('em');
+          em.style.color = 'var(--muted)';
+          em.textContent = 'No description';
+          descEl.appendChild(em);
+        }
+
+        const cmdsEl = document.createElement('div');
+        cmdsEl.style.cssText = 'font-size:11px;color:var(--muted);margin-top:auto;';
+        (p.commands || []).forEach((c, i) => {
+          if (i > 0) cmdsEl.appendChild(document.createTextNode(' '));
+          const code = document.createElement('code');
+          code.textContent = '.' + c;
+          cmdsEl.appendChild(code);
+        });
+
+        card.appendChild(header);
+        card.appendChild(descEl);
+        card.appendChild(cmdsEl);
+        pluginsGrid.appendChild(card);
+      });
+    }
 
     // store last values to show ▲/▼
     const storageKey = 'silva_dashboard_prev';
@@ -639,49 +728,21 @@
       pluginsError.innerHTML = '';
 
       try {
-        // List contents of plugins directory
-        const res = await api.get(`/gh/contents?owner=${OWNER}&repo=${REPO}&path=${PLUGINS_PATH}`);
-        const files = res.data || [];
-        // filter for directories or files depending on structure; we assume each plugin is a file or folder
-        const plugins = files.map(f => ({
-          name: f.name.replace(/\.(js|ts|mjs)$/, ''), // remove common extensions
-          path: f.path,
-          type: f.type,
-          html_url: f.html_url
-        }));
+        const res = await api.get('/api/plugins');
+        allPlugins = res.data || [];
 
-        // Update count + indicator
-        showCountAndIndicator('pluginsCount', plugins.length, 'pluginsChange', (prev.plugins && prev.plugins.count) || 0);
-        prev.plugins = { count: plugins.length };
+        showCountAndIndicator('pluginsCount', allPlugins.length, 'pluginsChange', (prev.plugins && prev.plugins.count) || 0);
+        prev.plugins = { count: allPlugins.length };
         persistPrev();
 
-        // render plugin cards
-        pluginsGrid.innerHTML = '';
-        plugins.forEach(p => {
-          const card = document.createElement('article');
-          card.className = 'plugin-card';
-          card.setAttribute('role','article');
-          card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div class="name">${toTitleCase(p.name)}</div>
-              <div style="font-size:12px; color:var(--muted)">${p.type}</div>
-            </div>
-            <div class="desc">No description available — placeholder. Edit plugin files in <code>/${PLUGINS_PATH}</code>.</div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto;">
-              <a href="${p.html_url}" target="_blank" rel="noopener noreferrer" class="link small">Open</a>
-              <div class="small muted">${p.path}</div>
-            </div>
-          `;
-          pluginsGrid.appendChild(card);
-        });
-
+        setFilter(activeFilter);
         pluginsLoading.style.display = 'none';
         clearError(pluginsError);
-        return plugins;
+        return allPlugins;
       } catch (err) {
         console.error('fetchPlugins error', err);
         pluginsLoading.style.display = 'none';
-        friendlyError(pluginsError, 'Failed to load plugins list. Directory might be empty or API rate-limited.');
+        friendlyError(pluginsError, 'Failed to load plugins list.');
       }
     }
 

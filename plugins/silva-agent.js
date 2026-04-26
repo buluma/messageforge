@@ -761,7 +761,7 @@ module.exports = {
                 const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY || '';
                 if (apiKey) {
                     const genAI = new GoogleGenerativeAI(apiKey);
-                    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+                    const model = genAI.getGenerativeModel({ model: 'gemini-3-flash-preview' });
                     const prompt = `Write a ${contentType}${topic ? ` about: ${topic}` : ''}. Keep it concise, well-formatted, and professional. Do not use markdown headers or asterisks for bold. Sign off as "${config.OWNER_NAME}" if appropriate.`;
                     const result = await model.generateContent(prompt);
                     response = `✍️ *${contentType.charAt(0).toUpperCase() + contentType.slice(1)}*\n\n${result.response.text()}`;
@@ -1412,7 +1412,7 @@ module.exports = {
                             const { GoogleGenerativeAI } = require('@google/generative-ai');
                             const genAI = new GoogleGenerativeAI(apiKey);
                             const model = genAI.getGenerativeModel({
-                                model: 'gemini-1.5-flash',
+                                model: 'gemini-3-flash-preview',
                                 generationConfig: { temperature: 0.85, maxOutputTokens: 800 },
                             });
                             // Build Gemini conversation history from memory

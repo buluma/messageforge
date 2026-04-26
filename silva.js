@@ -1047,6 +1047,31 @@ app.get('/gh/user',     (req, res) => ghProxy(res, `https://api.github.com/users
 app.get('/gh/commits',  (req, res) => ghProxy(res, `https://api.github.com/repos/${req.query.owner}/${req.query.repo}/commits`, { since: req.query.since, until: req.query.until, per_page: req.query.per_page || 1 }));
 app.get('/gh/commit-activity', (req, res) => ghProxy(res, `https://api.github.com/repos/${req.query.owner}/${req.query.repo}/stats/commit_activity`));
 
+// Local plugin manifest — reads descriptions directly from loaded plugin files
+app.get('/api/plugins', (req, res) => {
+    try {
+        const { plugins: handlerPlugins } = require('./handler');
+        const seen = new Set();
+        const result = [];
+        for (const p of handlerPlugins) {
+            const key = (p.commands || []).join(',');
+            if (seen.has(key)) continue;
+            seen.add(key);
+            result.push({
+                name:        (p.commands || [])[0] || 'unknown',
+                commands:    p.commands || [],
+                description: p.description || '',
+                permission:  p.permission || 'public',
+                group:       p.group !== false,
+                private:     p.private !== false,
+            });
+        }
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.listen(port, () => {
     logMessage('INFO', `🌐 Server running on port ${port}`);
     logMessage('INFO', `📊 Dashboard available at http://localhost:${port}`);
