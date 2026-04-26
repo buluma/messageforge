@@ -22,13 +22,13 @@ module.exports = {
             const { data } = await axios.get(api, { responseType: 'arraybuffer', timeout: 20000 });
             await sock.sendMessage(chatId, {
                 image:   Buffer.from(data),
-                caption: `💻 *Code Image*\n_Powered by ShadowBot_`,
+                caption: `💻 *Code Image*\n_Powered by MessageForge_`,
                 contextInfo
             }, { quoted: message });
         } catch {
             const encodedUrl = `https://carbon.now.sh/?bg=rgba%28171%2C+184%2C+195%2C+1%29&t=monokai&wt=none&l=auto&code=${encodeURIComponent(code)}`;
             await sock.sendMessage(chatId, {
-                text: `💻 *Code Image*\nOpen this link to generate your code image:\n${encodedUrl}\n\n_Powered by ShadowBot_`,
+                text: `💻 *Code Image*\nOpen this link to generate your code image:\n${encodedUrl}\n\n_Powered by MessageForge_`,
                 contextInfo
             }, { quoted: message });
         }

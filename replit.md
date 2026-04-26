@@ -1,35 +1,35 @@
-# ShadowBot Bot
+# MessageForge Bot
 
 A feature-rich multi-device WhatsApp bot built with Node.js and the Baileys library, featuring 1200+ commands across 196+ plugins, an AI agent, and comprehensive admin tools.
 
 ## Architecture
 
 - **Runtime**: Node.js 20
-- **Entry point**: `silva.js`
-- **Web dashboard**: `smm/silva.html` — served via Express at port 25680
+- **Entry point**: `messageforge.js`
+- **Web dashboard**: `smm/messageforge.html` — served via Express at port 25680
 - **Plugins**: `plugins/` directory — loaded dynamically on start
 - **Config**: `config.js` reads from `config.env` (if present) or environment variables
 - **Session storage**: `session/` directory (multi-file auth state)
 
 ## Key Components
 
-| File/Dir         | Purpose                                         |
-|------------------|-------------------------------------------------|
-| `silva.js`       | Main entry — connects to WhatsApp, runs Express |
-| `handler.js`     | Message handler & command dispatcher            |
-| `config.js`      | Config reader (env vars / config.env)           |
-| `plugins/`       | Individual feature plugins (1200+ commands)     |
-| `themes/`        | Theme JSON files (19 themes — silva default)    |
-| `lib/theme.js`   | Theme loader — `getStr()`, `setActiveTheme()`   |
-| `lib/`           | Shared utilities and functions                  |
-| `utils/`         | Delay, safeSend, warmupGroup helpers            |
-| `smm/silva.html` | Admin dashboard (served as static file)         |
+| File/Dir                | Purpose                                         |
+| ----------------------- | ----------------------------------------------- |
+| `messageforge.js`       | Main entry — connects to WhatsApp, runs Express |
+| `handler.js`            | Message handler & command dispatcher            |
+| `config.js`             | Config reader (env vars / config.env)           |
+| `plugins/`              | Individual feature plugins (1200+ commands)     |
+| `themes/`               | Theme JSON files (19 themes — messageforge default)    |
+| `lib/theme.js`          | Theme loader — `getStr()`, `setActiveTheme()`   |
+| `lib/`                  | Shared utilities and functions                  |
+| `utils/`                | Delay, safeSend, warmupGroup helpers            |
+| `smm/messageforge.html` | Admin dashboard (served as static file)         |
 
 ## Environment Variables
 
 See `sample.env` for the full list. Key ones:
 
-- `SESSION_ID` — WhatsApp session (required). Format: `Silva~<base64-gzip>`
+- `SESSION_ID` — WhatsApp session (required). Format: `MessageForge~<base64-gzip>`
 - `OWNER_NUMBER` — Bot owner's WhatsApp number
 - `PREFIX` — Command prefix (default `.`)
 - `MODE` — `public`, `private`, or `both`
@@ -37,23 +37,27 @@ See `sample.env` for the full list. Key ones:
 
 ## Workflow
 
-- **Command**: `node silva.js`
+- **Command**: `node messageforge.js`
 - **Port**: 25680 (Express web dashboard)
 - **Output type**: webview
 
 ## Deployment
 
 - **Target**: VM (always-running — maintains WhatsApp connection)
-- **Run**: `node silva.js`
+- **Run**: `node messageforge.js`
 
 ## Plugin System
 
 Plugins use a unified shape (single export or array export):
+
 ```js
-{ commands, description, permission, group, private, run(sock, message, args, ctx) }
+{
+    (commands, description, permission, group, private, run(sock, message, args, ctx));
+}
 ```
 
 **Permission tiers:**
+
 - `public` — any user
 - `admin` — group admins + owner
 - `owner` — bot owner + sudo users
@@ -64,27 +68,27 @@ Plugins use a unified shape (single export or array export):
 
 ## Plugin Categories (180+ files, 1200+ commands)
 
-| Category | File(s) | Commands |
-|----------|---------|----------|
-| AI Agent | silva-agent.js | agent, do, silva, assistant, ask |
-| Text Tools | text-tools.js | reverse, upper, lower, mock, morse, binary, base64, rot13, zalgo, leet, etc. (68 cmds) |
-| Math Tools | math-tools.js | add, subtract, multiply, divide, sqrt, fibonacci, bmi, convert, roman, etc. (30+ cmds) |
-| Games | games.js, emoji-games.js | rps, hangman, ttt, trivia, riddles, slots, 8ball, scramble, flagquiz, mathquiz, etc. (70+ cmds) |
-| Utility | utility-tools.js | date, calendar, timer, timezone, qr, choose, notes, todo, uuid, lorem, speedtest, etc. (49 cmds) |
-| Fun Facts | fun-facts.js | animal, space, history, science, tech, food, math, body, country, movie, music, sport facts (26 cmds) |
-| Social | social-tools.js | tagall, hidetag, admins, groupinfo, mute, warn, rules, antiflood, antispam, report, etc. (33 cmds) |
-| Education | education.js | element, country, planet, zodiac, vocab, acronym, currency, flag, phrasebook, nato, etc. (35 cmds) |
-| Entertainment | entertainment.js | pickup lines, dad jokes, poems, memes, horoscopes, personality/mbti, ship, rate, etc. (30+ cmds) |
-| Dev Tools | dev-tools.js | json, urlencode, hash, timestamp, regex, httpcode, ipinfo, password gen, cron, chmod (35 cmds) |
-| Health/Fitness | health-fitness.js | workout, stretching, calories, water, sleep, meditation, steps, heart rate, yoga, recipe (28 cmds) |
-| Random Gen | random-generators.js | fake name/email/phone/id, superpower, nickname, excuse, advice, motivation, affirmation, dream (33 cmds) |
-| Language | language-tools.js | greetings, I love you, proverbs, slang, idioms, rhymes, synonyms, antonyms, palindrome (29 cmds) |
-| Security | security-tools.js | antiban, settings, setprefix, block, setbio, restart, leave, join, antilink, antibadword (38 cmds) |
-| Productivity | productivity.js | pomodoro, habits, goals, journal, budget, flashcards, bookmarks, schedule, gratitude (24 cmds) |
-| Info Lookup | info-lookup.js | dog/cat breeds, superheroes, programming langs, OS info, social platforms, cars, phones (20 cmds) |
-| Crypto/Finance | crypto-finance.js | crypto info, loan calc, savings calc, tax, inflation, bill split, salary, discount (26 cmds) |
-| Misc | misc-extras.js | matrix, uwuify, copypasta, border, rainbow text, bio/caption ideas, zodiac match, text art (42 cmds) |
-| Original Plugins | 160+ original plugin files | sticker, menu, music, tiktok, instagram, youtube, weather, translate, eval, etc. |
+| Category         | File(s)                    | Commands                                                                                                 |
+| ---------------- | -------------------------- | -------------------------------------------------------------------------------------------------------- |
+| AI Agent         | messageforge-agent.js      | agent, do, messageforge, assistant, ask                                                                  |
+| Text Tools       | text-tools.js              | reverse, upper, lower, mock, morse, binary, base64, rot13, zalgo, leet, etc. (68 cmds)                   |
+| Math Tools       | math-tools.js              | add, subtract, multiply, divide, sqrt, fibonacci, bmi, convert, roman, etc. (30+ cmds)                   |
+| Games            | games.js, emoji-games.js   | rps, hangman, ttt, trivia, riddles, slots, 8ball, scramble, flagquiz, mathquiz, etc. (70+ cmds)          |
+| Utility          | utility-tools.js           | date, calendar, timer, timezone, qr, choose, notes, todo, uuid, lorem, speedtest, etc. (49 cmds)         |
+| Fun Facts        | fun-facts.js               | animal, space, history, science, tech, food, math, body, country, movie, music, sport facts (26 cmds)    |
+| Social           | social-tools.js            | tagall, hidetag, admins, groupinfo, mute, warn, rules, antiflood, antispam, report, etc. (33 cmds)       |
+| Education        | education.js               | element, country, planet, zodiac, vocab, acronym, currency, flag, phrasebook, nato, etc. (35 cmds)       |
+| Entertainment    | entertainment.js           | pickup lines, dad jokes, poems, memes, horoscopes, personality/mbti, ship, rate, etc. (30+ cmds)         |
+| Dev Tools        | dev-tools.js               | json, urlencode, hash, timestamp, regex, httpcode, ipinfo, password gen, cron, chmod (35 cmds)           |
+| Health/Fitness   | health-fitness.js          | workout, stretching, calories, water, sleep, meditation, steps, heart rate, yoga, recipe (28 cmds)       |
+| Random Gen       | random-generators.js       | fake name/email/phone/id, superpower, nickname, excuse, advice, motivation, affirmation, dream (33 cmds) |
+| Language         | language-tools.js          | greetings, I love you, proverbs, slang, idioms, rhymes, synonyms, antonyms, palindrome (29 cmds)         |
+| Security         | security-tools.js          | antiban, settings, setprefix, block, setbio, restart, leave, join, antilink, antibadword (38 cmds)       |
+| Productivity     | productivity.js            | pomodoro, habits, goals, journal, budget, flashcards, bookmarks, schedule, gratitude (24 cmds)           |
+| Info Lookup      | info-lookup.js             | dog/cat breeds, superheroes, programming langs, OS info, social platforms, cars, phones (20 cmds)        |
+| Crypto/Finance   | crypto-finance.js          | crypto info, loan calc, savings calc, tax, inflation, bill split, salary, discount (26 cmds)             |
+| Misc             | misc-extras.js             | matrix, uwuify, copypasta, border, rainbow text, bio/caption ideas, zodiac match, text art (42 cmds)     |
+| Original Plugins | 160+ original plugin files | sticker, menu, music, tiktok, instagram, youtube, weather, translate, eval, etc.                         |
 
 ## Safety Features
 
@@ -96,11 +100,11 @@ Plugins use a unified shape (single export or array export):
 
 ## GitHub Packages
 
-- **npm package**: `@silvatechb/silva-md-bot` — published to GitHub Packages npm registry
-- **Docker image**: `ghcr.io/silvatechb/silva-md-v4` — published to GitHub Container Registry
+- **npm package**: `@buluma/messageforge` — published to GitHub Packages npm registry
+- **Docker image**: `ghcr.io/buluma/messageforge` — published to GitHub Container Registry
 - **Auto-publish**: GitHub Actions workflows in `.github/workflows/` auto-publish on release or manual trigger
 - **Config files**: `.npmrc` (registry), `.npmignore` (excludes session/data), `Dockerfile`, `.dockerignore`
-- **Security**: `package.json` author field must be `"Silva"` — integrity check in `silva.js` validates this on startup
+- **Security**: `package.json` name or author must include `"messageforge"` — integrity check in `messageforge.js` validates this on startup
 
 ## Notes
 

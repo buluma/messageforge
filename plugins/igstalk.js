@@ -158,7 +158,7 @@ module.exports = {
         }
 
         lines.push(`• *Profile:* https://www.instagram.com/${u.username}/`);
-        lines.push(`_Powered by ${getStr('botName') || 'ShadowBot'} · Instagram API_`);
+        lines.push(`_Powered by ${getStr('botName') || 'MessageForge'} · Instagram API_`);
 
         const picUrl = u.profile_pic_url_hd || u.profile_pic_url || null;
 

@@ -1,10 +1,10 @@
 # 🧠 Architecture & API Reference
 
-This document provides a technical overview of ShadowBot's core systems for developers who wish to contribute to the engine.
+This document provides a technical overview of MessageForge's core systems for developers who wish to contribute to the engine.
 
 ## 🏗️ Core Components
 
-### 1. `silva.js` (The Entry Point)
+### 1. `messageforge.js` (The Entry Point)
 Responsible for:
 - Initializing the Baileys connection (`@whiskeysockets/baileys`).
 - Managing authentication sessions.

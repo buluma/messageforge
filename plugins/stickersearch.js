@@ -27,7 +27,7 @@ module.exports = {
                 video:     Buffer.from(gifData),
                 gifPlayback: true,
                 mimetype:  'video/mp4',
-                caption:   `🎭 *${query}* — ShadowBot`,
+                caption:   `🎭 *${query}* — MessageForge`,
                 contextInfo
             }, { quoted: message });
         } catch (e) {

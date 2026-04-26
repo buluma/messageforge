@@ -25,7 +25,7 @@ module.exports = {
             const coverUrl = result.thumbnail || result.image;
             const name     = result.name || result.title || query;
             const artist   = result.artist || result.artists || 'Unknown';
-            const caption  = `🎵 *${name}*\n👤 ${artist}\n_Powered by ShadowBot_`;
+            const caption  = `🎵 *${name}*\n👤 ${artist}\n_Powered by MessageForge_`;
             if (audioUrl) {
                 await sock.sendMessage(sender, {
                     audio:    { url: audioUrl },

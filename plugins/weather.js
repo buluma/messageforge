@@ -45,7 +45,7 @@ module.exports = {
 💨 Wind: ${data.wind.speed} km/h
 🌤️ ${data.weather[0].description.charAt(0).toUpperCase() + data.weather[0].description.slice(1)}
 
-_Powered by ${getStr('botName') || 'ShadowBot'}_`,
+_Powered by ${getStr('botName') || 'MessageForge'}_`,
                 contextInfo
             }, { quoted: message });
         } catch (err) {

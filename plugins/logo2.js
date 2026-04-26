@@ -80,7 +80,7 @@ module.exports = {
             return send(
                 `🎨 *${cmd.toUpperCase()} Logo Maker*\n\n` +
                 `❌ *Usage:* \`.${cmd} <your text>\`\n\n` +
-                `Example: \`.${cmd} ShadowBot\`\n\n` +
+                `Example: \`.${cmd} MessageForge\`\n\n` +
                 `_Use \`.logolist\` to see all styles_`
             );
         }

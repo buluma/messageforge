@@ -1,4 +1,4 @@
-## 📖 WhatsApp Bot [ShadowBot]
+## 📖 WhatsApp Bot [MessageForge]
 
 <div align="center">
 
@@ -22,15 +22,15 @@ Explore our modular documentation for detailed guides:
 - **🔌 [Plugin Architecture](./docs/04-PLUGINS.md)**: Learn how the modular plugin system works and how to create your own.
 - **🎨 [Theming System](./docs/05-THEMES.md)**: Customize the bot's personality with built-in or custom themes.
 - **🧠 [Technical API Reference](./docs/06-API-REFERENCE.md)**: Deep dive into the core engine architecture.
-- **🤝 [Contributing Guide](./CONTRIBUTING.md)**: Learn how you can help improve ShadowBot.
+- **🤝 [Contributing Guide](./CONTRIBUTING.md)**: Learn how you can help improve MessageForge.
 
 ---
 
 ## ⚡ Quick Start (Heroku)
 
-1. **[Generate Session ID](https://silva-session-selector.vercel.app/)**
-2. **[Fork this repository](https://github.com/SilvaTechB/silva-md-bot/fork)**
-3. **[Deploy to Heroku](https://silva-md-fork-checker.vercel.app/)**
+1. **[Generate Session ID](https://messageforge-session-selector.vercel.app/)**
+2. **[Fork this repository](https://github.com/MessageForgeB/messageforge/fork)**
+3. **[Deploy to Heroku](https://messageforge-md-fork-checker.vercel.app/)**
 
 For other platforms, see the [Installation Guide](./docs/01-INSTALLATION.md).
 
@@ -46,6 +46,6 @@ MIT License — free to use, modify, and distribute with attribution.
 
 <img src="https://i.imgur.com/dBaSKWF.gif" height="20" width="100%">
 
-</sub>ShadowBot — 1200+ commands. One scan. Unlimited possibilities.</sub>
+</sub>MessageForge — 1200+ commands. One scan. Unlimited possibilities.</sub>
 
 </div>

@@ -10,7 +10,7 @@ module.exports = {
     group:       true,
     private:     true,
     run: async (sock, message, args, { sender, contextInfo }) => {
-        const botName = getStr('botName') || 'ShadowBot';
+        const botName = getStr('botName') || 'MessageForge';
         const pic     = getStr('pic1') || '';
 
         const nairobiTime = new Date().toLocaleTimeString('en-KE', {
@@ -43,12 +43,12 @@ module.exports = {
         if (sub === 'social') {
             return sock.sendMessage(sender, {
                 text:
-`📱 *Silva Tech Social Media*
+`📱 *MessageForge Team Social Media*
 
-• Facebook: https://web.facebook.com/silva.tech.inc
-• Instagram: https://instagram.com/silva.tech.inc
-• TikTok: https://www.tiktok.com/@silva.tech.inc
-• X (Twitter): https://x.com/silva_african`,
+• GitHub: https://github.com/buluma/messageforge
+• Issues: https://github.com/buluma/messageforge/issues
+• Releases: https://github.com/buluma/messageforge/releases
+• Support: https://github.com/buluma/messageforge/discussions`,
                 contextInfo
             }, { quoted: message });
         }

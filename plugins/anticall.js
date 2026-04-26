@@ -26,7 +26,7 @@ function saveSettings(s) {
 
 const settings = loadSettings();
 
-// Attach call listener to the socket once (called from silva.js connection.open)
+// Attach call listener to the socket once (called from messageforge.js connection.open)
 function initCallHandler(sock, ownerJid) {
     sock.ev.on('call', async (calls) => {
         for (const call of calls) {
@@ -44,7 +44,7 @@ function initCallHandler(sock, ownerJid) {
                         contextInfo: {
                             externalAdReply: {
                                 title:        'Call Rejected',
-                                body:         (getStr('botName') || 'ShadowBot') + ' Anti-Call',
+                                body:         (getStr('botName') || 'MessageForge') + ' Anti-Call',
                                 mediaType:    1
                             }
                         }

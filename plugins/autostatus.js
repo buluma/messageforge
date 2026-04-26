@@ -1,7 +1,7 @@
 'use strict';
 
 // Runtime toggles — override config values without editing config.env
-// Read by silva.js status handler when present
+// Read by messageforge.js status handler when present
 if (global.autoStatusFlags === undefined) {
     global.autoStatusFlags = {
         seen:  null,   // null = use config default, true/false = runtime override

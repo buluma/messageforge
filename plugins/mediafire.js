@@ -28,7 +28,7 @@ module.exports = {
                               data.match(/class="dl-btn-label[^"]*">([^<]+)<\/span>/);
             const fileName = nameMatch ? nameMatch[1].trim() : 'file';
             await sock.sendMessage(sender, {
-                text: `📁 *MediaFire Download*\n\n📄 *File:* ${fileName}\n🔗 *Link:* ${dlUrl}\n\n_Powered by ShadowBot_`,
+                text: `📁 *MediaFire Download*\n\n📄 *File:* ${fileName}\n🔗 *Link:* ${dlUrl}\n\n_Powered by MessageForge_`,
                 contextInfo
             }, { quoted: message });
         } catch (e) {

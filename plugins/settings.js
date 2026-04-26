@@ -28,10 +28,10 @@ module.exports = {
     async run(sock, message, args, ctx) {
         const { reply } = ctx;
 
-        const botName  = getStr('botName') || config.BOT_NAME  || 'ShadowBot';
+        const botName  = getStr('botName') || config.BOT_NAME  || 'MessageForge';
         const ownerNum = (config.OWNER_NUMBER || process.env.OWNER_NUMBER || '').replace(/\D/g, '');
         const prefix   = config.PREFIX || '.';
-        const theme    = config.THEME  || 'silva';
+        const theme    = config.THEME || 'messageforge';
         const mode     = config.MODE   || 'both';
 
         let greetText    = false;

@@ -27,7 +27,7 @@ module.exports = {
 💬 *Status:* ${statusText}
 🌐 *JID:* ${target}
 
-_Powered by ShadowBot_`;
+_Powered by MessageForge_`;
 
             if (pp) {
                 await sock.sendMessage(chatId, { image: { url: pp }, caption: text, contextInfo }, { quoted: message });

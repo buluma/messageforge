@@ -65,7 +65,7 @@ module.exports = {
     run: async (sock, message, args, ctx) => {
         const { jid, contextInfo } = ctx;
 
-        const text = args.join(' ').trim() || 'ShadowBot';
+        const text = args.join(' ').trim() || 'MessageForge';
 
         const lines = buildMatrix(text);
 

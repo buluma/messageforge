@@ -11,7 +11,7 @@ module.exports = {
     private:     true,
     run: async (sock, message, args, { sender, contextInfo }) => {
         try {
-            const botName = getStr('botName') || 'ShadowBot';
+            const botName = getStr('botName') || 'MessageForge';
             const pic     = getStr('pic1') || '';
 
             const uptime  = process.uptime();

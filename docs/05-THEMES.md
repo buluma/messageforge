@@ -1,13 +1,13 @@
 # 🎨 Theming System
 
-ShadowBot features a unique "Theming Engine" that allows the bot to adopt different personalities, voice styles, and visual appearances.
+MessageForge features a unique "Theming Engine" that allows the bot to adopt different personalities, voice styles, and visual appearances.
 
 ## 🎭 Available Themes
 You can switch themes instantly using the `.settheme <name>` command or by setting the `THEME` environment variable.
 
 | Theme | Character | Style |
 |-------|-----------|-------|
-| `silva` | ShadowBot | **Default** — Clean, professional, and efficient. |
+| `messageforge` | MessageForge | **Default** — Clean, professional, and efficient. |
 | `naruto`| Naruto Uzumaki | Energetic, ninja-themed responses. |
 | `gojo` | Satoru Gojo | Confident, powerful, and slightly arrogant. |
 | `batman`| The Batman | Dark, serious, and focused on justice. |
@@ -44,4 +44,4 @@ Each theme file (e.g., `gojo.json`) contains a `STRINGS` object:
 ---
 
 ## 🏗️ Theme Inheritance
-If a specific string is missing from a custom theme, the bot will automatically fall back to the default `silva` theme strings to prevent errors.
+If a specific string is missing from a custom theme, the bot will automatically fall back to the default `messageforge` theme strings to prevent errors.

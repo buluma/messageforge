@@ -11,9 +11,9 @@
             "UPDATED_LOCAL": "*Bot Successfully Updated!*"
         },  
         "global": {      
-            "botName": "SilvaGifted",
+            "botName": "MessageForge Gifted",
             "body": "whatsapp User Bot", 
-            "greet2" : "Thanks To Silva Tech",
+            "greet2" : "Thanks To MessageForge Team",
             "pic1": "https://telegra.ph/file/751eef74109e0e5c8916c.jpg", 
             "greet" : "Believe it",
             "dotbody" : "I decided being Pirate King.",

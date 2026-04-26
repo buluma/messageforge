@@ -37,7 +37,7 @@ module.exports = {
             await sock.sendMessage(
                 sender,
                 {
-                    text: `📋 *Paste Uploaded!*\n\n🔗 ${link}\n\n_Powered by paste.rs • ShadowBot_`,
+                    text: `📋 *Paste Uploaded!*\n\n🔗 ${link}\n\n_Powered by paste.rs • MessageForge_`,
                     contextInfo,
                 },
                 { quoted: message },

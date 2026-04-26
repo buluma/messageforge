@@ -19,7 +19,7 @@ module.exports = {
         // ── .theme / .themes / .theme list ───────────────────────────────────
         if (!sub || sub === 'list' || sub === 'themes') {
             const all     = listThemes();
-            const current = (getActiveTheme()?.global?.botName) || 'ShadowBot';
+            const current = (getActiveTheme()?.global?.botName) || 'MessageForge';
             const lines   = all.map((t, i) => `  ${i + 1}. *${t}*`).join('\n');
             return sock.sendMessage(jid, {
                 text: [

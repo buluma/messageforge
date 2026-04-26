@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '20.x'
           registry-url: 'https://npm.pkg.github.com'
-          scope: '@silvatechb'
+          scope: '@buluma'
 
       - name: Install dependencies
         run: npm install --ignore-scripts

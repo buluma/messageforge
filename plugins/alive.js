@@ -34,14 +34,14 @@ module.exports = {
         const mode   = (config.MODE || 'PUBLIC').toUpperCase();
         const owner  = config.OWNER_NUMBER || global.botNum || 'Unknown';
         const prefix = config.PREFIX || '.';
-        const theme  = (config.THEME || 'silva').toLowerCase();
+        const theme  = (config.THEME || 'messageforge').toLowerCase();
 
         const now    = moment().tz(TZ);
         const date   = now.format('ddd, D MMM YYYY');
         const time   = now.format('hh:mm A');
 
-        const botName  = t.botName  || 'ShadowBot';
-        const footer   = t.footer   || 'ShadowBot';
+        const botName  = t.botName  || 'MessageForge';
+        const footer   = t.footer   || 'MessageForge';
         const alive    = t.alive    || 'System online. All functions nominal.';
         const emoji    = t.aliveEmoji || '⚡';
         const modeEmoji = mode === 'PUBLIC' ? '🟢' : mode === 'PRIVATE' ? '🔒' : '🔵';

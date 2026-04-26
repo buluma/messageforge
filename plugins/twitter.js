@@ -27,7 +27,7 @@ module.exports = {
             const isVideo = /\.mp4|video/.test(mediaUrl);
             await sock.sendMessage(sender, {
                 [isVideo ? 'video' : 'image']: { url: mediaUrl },
-                caption: `🐦 *Twitter Download*\n_Powered by ShadowBot_`,
+                caption: `🐦 *Twitter Download*\n_Powered by MessageForge_`,
                 contextInfo
             }, { quoted: message });
         } catch (e) {

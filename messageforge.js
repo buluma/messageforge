@@ -1,27 +1,23 @@
-// silva.js — Updated with fixes for group functionality and error handling
+// MessageForge runtime entrypoint with WhatsApp connection and dashboard wiring
 const { File: BufferFile } = require('node:buffer');
 global.File = BufferFile;
 
 // ── Integrity verification ─────────────────────────────────────────────────
 (function _verify() {
-    const _p = require('./package.json');
-    const _k = [83, 105, 108, 118, 97]
-        .map(function (c) {
-            return String.fromCharCode(c);
-        })
-        .join('');
-    const _h = Buffer.from(_k).toString('base64');
-    const _a = Buffer.from(_p.author || '', 'utf8').toString('base64');
-    if (_a !== _h) {
+    const pkg = require('./package.json');
+    const name = String(pkg.name || '').toLowerCase();
+    const author = String(pkg.author || '').toLowerCase();
+    const ok = name.includes('messageforge') || author.includes('messageforge');
+    if (!ok) {
         process.stderr.write(
-            '\n\x1b[31m⛔  Cheap editing of ShadowBot Bot detected. Build failed.\x1b[0m\n\n',
+            '\n\x1b[31m⛔  MessageForge integrity check failed. Build stopped.\x1b[0m\n\n',
         );
         process.exit(1);
     }
-    process.stdout.write('\x1b[32m✅ Passed the Silva security check.\x1b[0m\n');
+    process.stdout.write('\x1b[32m✅ Passed the MessageForge integrity check.\x1b[0m\n');
 })();
 
-// ✅ Silva Tech Inc Property 2025
+// ✅ MessageForge property notice
 const baileys = require('@whiskeysockets/baileys');
 const {
     makeWASocket,
@@ -85,7 +81,7 @@ if (typeof global.antivvEnabled === 'undefined') global.antivvEnabled = config.A
 const store = makeInMemoryStore({ logger: P({ level: 'silent' }) });
 
 const prefix = config.PREFIX || '.';
-const tempDir = path.join(os.tmpdir(), 'silva-cache');
+const tempDir = path.join(os.tmpdir(), 'messageforge-cache');
 const port = process.env.PORT || 25680;
 const pluginsDir = path.join(__dirname, 'plugins');
 const dashboardToken = String(process.env.DASHBOARD_TOKEN || '').trim();
@@ -167,12 +163,12 @@ async function loadSession() {
         const hasTilde = sid.includes('~');
 
         if (sid && hasTilde) {
-            // SESSION_ID is provided in Silva~<b64> format.
+            // SESSION_ID is provided in MessageForge~<b64> format.
             // Only restore from SESSION_ID if creds.json is missing.
             // Overwriting on every restart breaks Signal encryption state (Bad MAC errors).
             if (!fs.existsSync(credsPath)) {
                 const [header, b64data] = sid.split('~');
-                if (header !== 'Silva' || !b64data) {
+                if (header !== 'MessageForge' || !b64data) {
                     logMessage('WARN', '⚠️ SESSION_ID format invalid — falling back to QR scan');
                     return;
                 }
@@ -345,9 +341,9 @@ function generateFancyBio() {
 
     const bios = [
         `✨ ${config.BOT_NAME} ✦ Online ✦ ${dateStr} ✦`,
-        `⚡ ShadowBot Active ✦ ${timeStr} ✦ ${dateStr} ✦`,
+        `⚡ ${config.BOT_NAME} Active ✦ ${timeStr} ✦ ${dateStr} ✦`,
         `💫 ${config.BOT_NAME} Operational ✦ ${dateStr} ✦`,
-        `🚀 ShadowBot Live ✦ ${dateStr} ✦ ${timeStr} ✦`,
+        `🚀 ${config.BOT_NAME} Live ✦ ${dateStr} ✦ ${timeStr} ✦`,
         `🌟 ${config.BOT_NAME} Running ✦ ${dateStr} ✦`,
     ];
 
@@ -716,7 +712,7 @@ async function connectToWhatsApp() {
             // } catch (e) { /* ignored */ }
             // }
 
-            // ── Auto-follow Silva Tech Nexus newsletter on startup (disabled) ────────────
+            // ── Auto-follow newsletter on startup (disabled) ─────────────────────────────
             // setTimeout(async () => {
             //     const nlJid = '120363200367779016@newsletter';
             //     if (!global._followedNewsletters) global._followedNewsletters = new Set();
@@ -1361,7 +1357,7 @@ app.use('/api', (req, res, next) => {
 app.use('/gh', requireDashboardAuth);
 
 app.get('/', (req, res) => {
-    const html = path.join(__dirname, 'smm', 'silva.html');
+    const html = path.join(__dirname, 'smm', 'messageforge.html');
     if (fs.existsSync(html)) return res.sendFile(html);
     res.send(`<h2>✅ ${config.BOT_NAME} is Running!</h2>`);
 });
@@ -1581,7 +1577,7 @@ const ghHeaders = GH_TOKEN ? { Authorization: `token ${GH_TOKEN}` } : {};
 async function ghProxy(res, url, params = {}) {
     try {
         const r = await axios.get(url, {
-            headers: { ...ghHeaders, 'User-Agent': 'silva-md-bot' },
+            headers: { ...ghHeaders, 'User-Agent': 'messageforge' },
             params,
             timeout: 15000,
         });
@@ -1752,10 +1748,10 @@ process.on('unhandledRejection', (reason, promise) => {
         console.log('║ |____/|_|_| \\_/ \\__,_|    |_|  |_|____/  ║');
         console.log('║                                            ║');
         console.log('║        WhatsApp Bot  •  Node.js           ║');
-        console.log('║     github.com/SilvaMD  •  v2.0           ║');
+        console.log('║  github.com/buluma/messageforge • v2.0    ║');
         console.log('╚══════════════════════════════════════════╝');
         console.log('\x1b[0m');
-        logMessage('INFO', 'Booting ShadowBot Bot...');
+        logMessage('INFO', `Booting ${config.BOT_NAME} Bot...`);
 
         // ── Load global state ───────────────────────────────────────────────
         try {

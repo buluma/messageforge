@@ -24,7 +24,7 @@ function buildMessages(query) {
         {
             role: 'system',
             content:
-                'You are Silva, a concise and helpful WhatsApp assistant. Keep answers clear and practical.',
+                'You are MessageForge, a concise and helpful WhatsApp assistant. Keep answers clear and practical.',
         },
         { role: 'user', content: query },
     ];

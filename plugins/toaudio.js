@@ -34,8 +34,8 @@ module.exports = {
 
         await sock.sendMessage(jid, { text: fmt('⏳ Converting to audio…'), contextInfo }, { quoted: message });
 
-        const inputPath  = path.join(os.tmpdir(), `silva_in_${Date.now()}`);
-        const outputPath = path.join(os.tmpdir(), `silva_out_${Date.now()}.mp3`);
+        const inputPath  = path.join(os.tmpdir(), `messageforge_in_${Date.now()}`);
+        const outputPath = path.join(os.tmpdir(), `messageforge_out_${Date.now()}.mp3`);
 
         try {
             await sock.sendPresenceUpdate('composing', jid);

@@ -1,6 +1,6 @@
 'use strict';
 
-// Groups where anti-demote is enabled — read by silva.js event handler
+// Groups where anti-demote is enabled — read by messageforge.js event handler
 const enabledGroups = new Set();
 global.antiDemoteGroups = enabledGroups;
 

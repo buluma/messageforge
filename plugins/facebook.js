@@ -47,7 +47,7 @@ module.exports = {
                     ...contextInfo,
                     externalAdReply: {
                         title:               'Facebook Downloader',
-                        body:                'Powered by ' + (getStr('botName') || 'ShadowBot'),
+                        body:                'Powered by ' + (getStr('botName') || 'MessageForge'),
                         sourceUrl:           url,
                         mediaType:           1,
                         renderLargerThumbnail: true

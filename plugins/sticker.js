@@ -33,7 +33,7 @@ module.exports = {
 
             const buffer = await dlBuffer(target, mediaType);
 
-            const packName = config.BOT_NAME || getStr('botName') || 'ShadowBot';
+            const packName = config.BOT_NAME || getStr('botName') || 'MessageForge';
             const sticker  = new Sticker(buffer, {
                 pack:     packName,
                 author:   packName,

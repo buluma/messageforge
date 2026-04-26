@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-ShadowBot — a multi-device WhatsApp bot built on Node.js and `@whiskeysockets/baileys` (aliased to `gifted-baileys`). The bot connects to WhatsApp via QR scan or a `SESSION_ID` environment variable, then dispatches commands to ~200 plugin files.
+MessageForge — a multi-device WhatsApp bot built on Node.js and `@whiskeysockets/baileys` (aliased to `gifted-baileys`). The bot connects to WhatsApp via QR scan or a `SESSION_ID` environment variable, then dispatches commands to ~200 plugin files.
 
 ## Commands
 
 ```bash
 # Run the bot
-node silva.js
+node messageforge.js
 # or
 npm start
 
@@ -18,7 +18,7 @@ npm start
 npm install
 
 # Docker
-docker build -t silva-md . && docker run -p 25680:25680 --env-file config.env silva-md
+docker build -t messageforge-md . && docker run -p 25680:25680 --env-file config.env messageforge-md
 ```
 
 No test runner is configured. No lint script exists.
@@ -27,7 +27,7 @@ No test runner is configured. No lint script exists.
 
 ### Boot flow
 
-`silva.js` → loads session → calls `connectToWhatsApp()` → creates Baileys socket → registers event handlers → delegates command dispatch to `handler.js`.
+`messageforge.js` → loads session → calls `connectToWhatsApp()` → creates Baileys socket → registers event handlers → delegates command dispatch to `handler.js`.
 
 ### Configuration
 
@@ -35,7 +35,7 @@ All runtime settings live in `config.js`, which reads from environment variables
 
 | Var | Purpose |
 |-----|---------|
-| `SESSION_ID` | Compressed base64 session (`Silva~<b64>` format). Omit to use QR. |
+| `SESSION_ID` | Compressed base64 session (`MessageForge~<b64>` format). Omit to use QR. |
 | `OWNER_NUMBER` | Phone number (digits only) of the bot owner |
 | `PREFIX` | Command prefix (default `.`). Supports comma-list, `any`, or empty |
 | `MODE` | `public` / `private` / `both` — who can use the bot |
@@ -77,7 +77,7 @@ The `ctx` object passed to `run` contains:
 
 | File | Role |
 |------|------|
-| `silva.js` | Entry point, Baileys socket, event wiring, anti-delete, anti-VV, status saver |
+| `messageforge.js` | Entry point, Baileys socket, event wiring, anti-delete, anti-VV, status saver |
 | `handler.js` | Plugin loader, command dispatch, permission checks, LID resolution |
 | `config.js` | Config with env-var defaults |
 | `lib/theme.js` | Theme loader (`themes/*.json`) and `getStr()` helper |
@@ -87,7 +87,7 @@ The `ctx` object passed to `run` contains:
 
 ### Themes (`themes/`)
 
-JSON files keyed by theme name (e.g. `silva.json`, `friday.json`). Each contains a `STRINGS` object with a `global` section (botName, footer, greeting strings, error text). Active theme set via `THEME` env var. Switch at runtime with the `settheme` command.
+JSON files keyed by theme name (e.g. `messageforge.json`, `friday.json`). Each contains a `STRINGS` object with a `global` section (botName, footer, greeting strings, error text). Active theme set via `THEME` env var. Switch at runtime with the `settheme` command.
 
 ### Persistent data (`data/`)
 
@@ -102,7 +102,7 @@ Baileys multi-file auth state. Do not commit. Restored from `SESSION_ID` env var
 
 ### LID handling
 
-Modern WhatsApp uses `@lid` identifiers instead of phone numbers in groups. `silva.js` maintains `global.lidJidMap` and `global.lidPhoneCache`; `handler.js` resolves `@lid` senders against group participant lists before permission checks. Always use `jidToNum()` / `sameNumber()` from `handler.js` rather than splitting JIDs manually.
+Modern WhatsApp uses `@lid` identifiers instead of phone numbers in groups. `messageforge.js` maintains `global.lidJidMap` and `global.lidPhoneCache`; `handler.js` resolves `@lid` senders against group participant lists before permission checks. Always use `jidToNum()` / `sameNumber()` from `handler.js` rather than splitting JIDs manually.
 
 ### Anti-ban protection
 
@@ -110,4 +110,4 @@ Modern WhatsApp uses `@lid` identifiers instead of phone numbers in groups. `sil
 
 ### Express server
 
-`silva.js` starts an Express server on port `25680` (or `PORT` env). Routes: `/` (dashboard), `/health`, `/ping`. The `/ping` endpoint is hit every 25 min for Heroku keep-alive when `APP_URL` is set.
+`messageforge.js` starts an Express server on port `25680` (or `PORT` env). Routes: `/` (dashboard), `/health`, `/ping`. The `/ping` endpoint is hit every 25 min for Heroku keep-alive when `APP_URL` is set.

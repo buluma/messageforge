@@ -1,19 +1,19 @@
 'use strict';
 
-const axios  = require('axios');
+const axios = require('axios');
 const moment = require('moment-timezone');
 
-const REPO_URL    = 'https://github.com/SilvaTechB/silva-md-bot';
-const WEBSITE_URL = 'https://silvatech.co.ke';
-const WA_CHANNEL  = 'https://whatsapp.com/channel/0029VaksrRh6GcGnT0J05n0j';
+const REPO_URL = 'https://github.com/buluma/messageforge';
+const WEBSITE_URL = 'https://github.com/buluma/messageforge';
+const WA_CHANNEL = 'https://whatsapp.com/channel/0029VaksrRh6GcGnT0J05n0j';
 const SUPPORT_URL = 'https://chat.whatsapp.com/GzCZZxVnAHMINWdPQkGwJR';
 
 module.exports = {
-    commands:    ['repo', 'repository', 'github'],
-    description: 'Show ShadowBot repository info',
-    permission:  'public',
-    group:       true,
-    private:     true,
+    commands: ['repo', 'repository', 'github'],
+    description: 'Show MessageForge repository info',
+    permission: 'public',
+    group: true,
+    private: true,
 
     run: async (sock, message, args, ctx) => {
         const { contextInfo } = ctx;
@@ -21,15 +21,16 @@ module.exports = {
 
         let data = null;
         try {
-            const res = await axios.get(
-                'https://api.github.com/repos/SilvaTechB/silva-md-bot',
-                { timeout: 10000 }
-            );
+            const res = await axios.get('https://api.github.com/repos/buluma/messageforge', {
+                timeout: 10000,
+            });
             data = res.data;
-        } catch { /* use fallback */ }
+        } catch {
+            /* use fallback */
+        }
 
         const caption = data
-            ? `*✨ ShadowBot — REPOSITORY INFO*\n\n` +
+            ? `*✨ MessageForge — REPOSITORY INFO*\n\n` +
               `📦 *Repo:* ${data.name}\n` +
               `📝 *About:* ${data.description || 'WhatsApp MD Bot'}\n\n` +
               `⭐ *Stars:* ${data.stargazers_count.toLocaleString()}\n` +
@@ -43,17 +44,17 @@ module.exports = {
               `🌐 *Website:* ${WEBSITE_URL}\n` +
               `📢 *Newsletter:* ${WA_CHANNEL}\n` +
               `💬 *Support:* ${SUPPORT_URL}\n\n` +
-              `⚡ _Powered by Silva Tech Inc_`
-            : `*✨ ShadowBot — REPOSITORY*\n\n` +
-              `📦 *Repo:* silva-md-bot\n` +
+              `⚡ _Powered by MessageForge_`
+            : `*✨ MessageForge — REPOSITORY*\n\n` +
+              `📦 *Repo:* messageforge\n` +
               `💻 *Language:* JavaScript\n` +
               `📜 *License:* MIT\n\n` +
               `🔗 *GitHub:* ${REPO_URL}\n` +
               `🌐 *Website:* ${WEBSITE_URL}\n` +
               `📢 *Newsletter:* ${WA_CHANNEL}\n` +
               `💬 *Support:* ${SUPPORT_URL}\n\n` +
-              `⚡ _Powered by Silva Tech Inc_`;
+              `⚡ _Powered by MessageForge_`;
 
         await sock.sendMessage(jid, { text: caption, contextInfo }, { quoted: message });
-    }
+    },
 };

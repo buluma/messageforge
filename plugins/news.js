@@ -65,7 +65,7 @@ module.exports = {
             const { data: xml } = await axios.get(feedUrl, {
                 timeout: 12000,
                 responseType: 'text',
-                headers: { 'User-Agent': 'silva-md-bot-news/1.0' },
+                headers: { 'User-Agent': 'messageforge-news/1.0' },
             });
             const items = parseRssItems(xml, 5);
             if (!items?.length) throw new Error('No news found.');
@@ -79,7 +79,7 @@ module.exports = {
             await sock.sendMessage(
                 chatId,
                 {
-                    text: `📰 *Latest News — ${category.toUpperCase()}*\n\n${lines}\n\n_Categories: ${cats}_\n_Powered by BBC • ShadowBot_`,
+                    text: `📰 *Latest News — ${category.toUpperCase()}*\n\n${lines}\n\n_Categories: ${cats}_\n_Powered by BBC • MessageForge_`,
                     contextInfo,
                 },
                 { quoted: message },

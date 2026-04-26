@@ -24,7 +24,7 @@ module.exports = {
             if (!videoUrl) throw new Error('No video found.');
             await sock.sendMessage(sender, {
                 video:   { url: videoUrl },
-                caption: `✂️ *CapCut Download*\n_Powered by ShadowBot_`,
+                caption: `✂️ *CapCut Download*\n_Powered by MessageForge_`,
                 contextInfo
             }, { quoted: message });
         } catch (e) {

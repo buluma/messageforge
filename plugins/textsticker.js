@@ -82,8 +82,8 @@ module.exports = {
         try {
             const svgBuffer = createTextImage(text, styleName);
             const sticker = new Sticker(svgBuffer, {
-                pack: ctx.pushName || 'ShadowBot',
-                author: 'Silva Bot',
+                pack: ctx.pushName || 'MessageForge',
+                author: 'MessageForge Bot',
                 type: StickerTypes.FULL,
                 quality: 80
             });

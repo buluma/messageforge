@@ -1,6 +1,6 @@
-# 🤝 Contributing to ShadowBot
+# 🤝 Contributing to MessageForge
 
-First off, thank you for considering contributing to ShadowBot! It's people like you who make this bot better for everyone.
+First off, thank you for considering contributing to MessageForge! It's people like you who make this bot better for everyone.
 
 ## 📜 Code of Conduct
 By participating in this project, you agree to abide by our code of conduct:
@@ -11,7 +11,7 @@ By participating in this project, you agree to abide by our code of conduct:
 ## 🚀 How Can I Contribute?
 
 ### Reporting Bugs
-- Check the [Issues](https://github.com/SilvaTechB/silva-md-bot/issues) to see if the bug has already been reported.
+- Check the [Issues](https://github.com/MessageForgeB/messageforge/issues) to see if the bug has already been reported.
 - If not, create a new issue. Include a clear title, description, and steps to reproduce.
 
 ### Suggesting Enhancements
@@ -33,4 +33,4 @@ If you're interested in writing new features, check out the [Plugin Architecture
 
 ---
 
-*Built with ❤️ by Silva Tech Inc*
+*Built with ❤️ by MessageForge Team*

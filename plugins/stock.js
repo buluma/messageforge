@@ -40,7 +40,7 @@ ${emoji} *Change:* ${change >= 0 ? '+' : ''}${change} (${pct}%)
 💱 *Currency:* ${meta.currency}
 🏛️ *Exchange:* ${meta.exchangeName}
 
-_Powered by Yahoo Finance • ShadowBot_`,
+_Powered by Yahoo Finance • MessageForge_`,
                 contextInfo
             }, { quoted: message });
         } catch (e) {

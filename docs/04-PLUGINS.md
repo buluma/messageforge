@@ -1,6 +1,6 @@
 # 🔌 Plugin Architecture
 
-ShadowBot is built on a highly modular plugin system, making it easy to add or modify functionality without touching the core logic.
+MessageForge is built on a highly modular plugin system, making it easy to add or modify functionality without touching the core logic.
 
 ## 📂 Location
 All command plugins are located in the `/plugins` directory. Every `.js` file in this folder is automatically loaded at startup.
@@ -49,7 +49,7 @@ module.exports = {
     commands: ['hello'],
     description: 'Says hi!',
     run: async (sock, message, args, ctx) => {
-        await ctx.reply('Hi there! I am ShadowBot.');
+        await ctx.reply('Hi there! I am MessageForge.');
     }
 };
 ```

@@ -32,7 +32,7 @@ module.exports = {
             const buffer = await dlBuffer(msgContent, mediaType);
 
             const caption = msgContent.caption
-                || `📥 *Status saved by ${getStr('botName') || 'ShadowBot'}*`;
+                || `📥 *Status saved by ${getStr('botName') || 'MessageForge'}*`;
 
             await sock.sendMessage(sender, {
                 [mediaType]: buffer,
@@ -41,7 +41,7 @@ module.exports = {
                     ...contextInfo,
                     externalAdReply: {
                         title:        'Status Saved ✅',
-                        body:         (getStr('botName') || 'ShadowBot') + ' · Status Downloader',
+                        body:         (getStr('botName') || 'MessageForge') + ' · Status Downloader',
                         mediaType:    1
                     }
                 }

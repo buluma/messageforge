@@ -57,7 +57,7 @@ module.exports = {
 
     async run(sock, message, args, ctx) {
         const { reply, jid } = ctx;
-        const botName = getStr('botName') || 'ShadowBot';
+        const botName = getStr('botName') || 'MessageForge';
         const footer  = getStr('footer')  || '';
 
         const cfg = getGroupConfig(jid);
@@ -108,7 +108,7 @@ module.exports = {
             const cfg = getGroupConfig(jid);
             if (!cfg.enabled) return;
 
-            const botName = getStr('botName') || 'ShadowBot';
+            const botName = getStr('botName') || 'MessageForge';
             const fakeUsers = participants.filter(p => {
                 const num = p.split('@')[0].replace(/\D/g, '');
                 return num && !hasValidCode(num);

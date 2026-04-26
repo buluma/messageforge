@@ -1,8 +1,8 @@
 module.exports = {
     apps: [
         {
-            name: 'silva-bot',
-            script: 'silva.js',
+            name: 'messageforge',
+            script: 'messageforge.js',
             cwd: __dirname,
             instances: 1,
             exec_mode: 'fork',

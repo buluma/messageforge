@@ -1,11 +1,11 @@
 # 🚀 Installation & Deployment
 
-ShadowBot is designed to be easily deployed on various platforms. Below are step-by-step instructions for the most popular hosting providers.
+MessageForge is designed to be easily deployed on various platforms. Below are step-by-step instructions for the most popular hosting providers.
 
 ## 🔗 Prerequisites
 Before you deploy, you **must** generate a `SESSION_ID`. This allows the bot to link to your WhatsApp account without needing to scan a QR code every time the server restarts.
 
-[Generate Session ID Here](https://silva-session-selector.vercel.app/)
+[Generate Session ID Here](https://messageforge-session-selector.vercel.app/)
 
 ---
 
@@ -13,7 +13,7 @@ Before you deploy, you **must** generate a `SESSION_ID`. This allows the bot to 
 *24/7 uptime · Auto-restart on crash · Industry standard*
 
 1. **Fork the repository** to your own GitHub account.
-2. Visit the [Silva MD Fork Checker](https://silva-md-fork-checker.vercel.app/) and click **Deploy to Heroku**.
+2. Visit the [MessageForge Fork Checker](https://messageforge-md-fork-checker.vercel.app/) and click **Deploy to Heroku**.
 3. Log in to your Heroku account.
 4. Fill in the required Environment Variables:
    - `SESSION_ID`: Your generated ID.
@@ -31,7 +31,7 @@ Before you deploy, you **must** generate a `SESSION_ID`. This allows the bot to 
 1. **Fork the repository** on GitHub.
 2. Log in to [Railway.app](https://railway.app).
 3. Click **New Project → Deploy from GitHub repo**.
-4. Select your `silva-md-bot` fork.
+4. Select your `messageforge` fork.
 5. Go to the **Variables** tab and add:
    - `SESSION_ID`
    - `OWNER_NUMBER`
@@ -47,7 +47,7 @@ Before you deploy, you **must** generate a `SESSION_ID`. This allows the bot to 
 2. Log in to [Koyeb](https://app.koyeb.com).
 3. Create a new **App** and select **GitHub** as the source.
 4. Choose your fork and branch.
-5. Set the **Run command** to `node silva.js`.
+5. Set the **Run command** to `node messageforge.js`.
 6. Add your Environment Variables (`SESSION_ID`, `OWNER_NUMBER`, etc.).
 7. Pick a region and click **Deploy**.
 
@@ -75,8 +75,8 @@ Before you deploy, you **must** generate a `SESSION_ID`. This allows the bot to 
 ### Setup
 ```bash
 # Clone the repository
-git clone https://github.com/SilvaTechB/silva-md-bot.git
-cd silva-md-bot
+git clone https://github.com/MessageForgeB/messageforge.git
+cd messageforge
 
 # Install dependencies
 npm install
@@ -86,12 +86,12 @@ cp sample.env .env
 # Edit .env with your variables
 
 # Start the bot
-node silva.js
+node messageforge.js
 ```
 
 ### Keep it running with PM2
 ```bash
 npm install -g pm2
-pm2 start silva.js --name silva-bot
+pm2 start messageforge.js --name messageforge-bot
 pm2 save && pm2 startup
 ```

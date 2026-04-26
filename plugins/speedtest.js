@@ -41,7 +41,7 @@ module.exports = {
 📦 *Data:*      ${(bytes / 1024 / 1024).toFixed(2)} MB in ${elapsed.toFixed(2)}s
 🖥️ *Server:*   ${detectPlatform()} (${process.platform})
 
-_Powered by Cloudflare • ShadowBot_`,
+_Powered by Cloudflare • MessageForge_`,
                 contextInfo
             }, { quoted: message });
         } catch (e) {

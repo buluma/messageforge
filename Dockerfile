@@ -1,7 +1,7 @@
 FROM node:20-slim
 
-LABEL org.opencontainers.image.source="https://github.com/SilvaTechB/silva-md-v4"
-LABEL org.opencontainers.image.description="ShadowBot — Multi-device WhatsApp Bot with 1200+ commands"
+LABEL org.opencontainers.image.source="https://github.com/buluma/messageforge"
+LABEL org.opencontainers.image.description="MessageForge — Multi-device WhatsApp bot"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 WORKDIR /app
@@ -21,4 +21,4 @@ RUN mkdir -p session data
 
 EXPOSE 25680
 
-CMD ["node", "silva.js"]
+CMD ["node", "messageforge.js"]

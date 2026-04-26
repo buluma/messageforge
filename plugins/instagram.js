@@ -130,7 +130,7 @@ module.exports = {
             return reply(`📸 Please provide a valid Instagram URL.\nExample: \`.ig https://www.instagram.com/p/xyz/\``);
         }
 
-        const botName = getStr('botName') || 'ShadowBot';
+        const botName = getStr('botName') || 'MessageForge';
 
         const loading = await safeSend({
             text: '⏳ Fetching Instagram content…',

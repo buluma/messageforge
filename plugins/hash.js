@@ -22,7 +22,7 @@ module.exports = {
             return `*${alg.toUpperCase()}:*\n${h}`;
         });
         await sock.sendMessage(sender, {
-            text: `🔐 *Hash Generator*\n\n📝 Input: \`${text}\`\n\n${results.join('\n\n')}\n\n_Powered by ShadowBot_`,
+            text: `🔐 *Hash Generator*\n\n📝 Input: \`${text}\`\n\n${results.join('\n\n')}\n\n_Powered by MessageForge_`,
             contextInfo
         }, { quoted: message });
     }

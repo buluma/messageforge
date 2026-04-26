@@ -23,8 +23,10 @@ function getMemory(jid) {
 function buildContextPrompt(jid, currentQuery) {
     const mem = getMemory(jid).slice(-6); // last 6 turns
     if (!mem.length) return currentQuery;
-    const history = mem.map((m) => `${m.role === 'user' ? 'User' : 'Silva'}: ${m.text}`).join('\n');
-    return `You are Silva, a smart, friendly WhatsApp AI assistant. Stay in character. Be concise and helpful.\n\nConversation so far:\n${history}\n\nUser: ${currentQuery}\nSilva:`;
+    const history = mem
+        .map((m) => `${m.role === 'user' ? 'User' : 'MessageForge'}: ${m.text}`)
+        .join('\n');
+    return `You are MessageForge, a smart, friendly WhatsApp AI assistant. Stay in character. Be concise and helpful.\n\nConversation so far:\n${history}\n\nUser: ${currentQuery}\nMessageForge:`;
 }
 const os = require('os');
 
@@ -41,17 +43,17 @@ function detectPlatform() {
 }
 
 const BOT_IDENTITY = {
-    name: 'ShadowBot',
+    name: 'MessageForge',
     version: '2.0',
     language: 'Node.js',
     library: 'Baileys (gifted-baileys)',
-    repo: 'https://github.com/SilvaTechB/silva-md-v4',
-    website: 'https://silvatech.co.ke',
+    repo: 'https://github.com/buluma/messageforge',
+    website: 'https://github.com/buluma/messageforge',
     get platform() {
         return detectPlatform();
     },
-    developer: 'SilvaTech',
-    ownerName: config.OWNER_NAME || 'ShadowBot',
+    developer: 'MessageForge Team',
+    ownerName: config.OWNER_NAME || 'MessageForge',
     ownerNumber: config.OWNER_NUMBER || '',
     features: [
         'Auto View Status',
@@ -378,7 +380,7 @@ const smartResponses = [
         r: [
             `Hey! 👋 What can I do for you today?`,
             `Hello! 😊 How can I help you?`,
-            `Hey there! I'm Silva, your WhatsApp assistant. What do you need? 🤖`,
+            `Hey there! I'm MessageForge, your WhatsApp assistant. What do you need? 🤖`,
         ],
     },
     {
@@ -408,7 +410,7 @@ const smartResponses = [
     {
         p: /i('?m| am) bored|bored\b/i,
         r: [
-            `Let's fix that! 🎮 Try:\n• \`silva play <your fav song>\`\n• \`.joke\` for a laugh\n• \`.wyr\` for Would You Rather\n• \`.8ball will today be fun?\``,
+            `Let's fix that! 🎮 Try:\n• \`messageforge play <your fav song>\`\n• \`.joke\` for a laugh\n• \`.wyr\` for Would You Rather\n• \`.8ball will today be fun?\``,
         ],
     },
     {
@@ -435,13 +437,13 @@ const smartResponses = [
     {
         p: /what('?s| is) your name|your name\b|who are you\b/i,
         r: [
-            `I'm *Silva* 🤖 — your intelligent WhatsApp assistant! Built on ${BOT_IDENTITY.name} v${BOT_IDENTITY.version}.`,
+            `I'm *MessageForge* 🤖 — your intelligent WhatsApp assistant! Built on ${BOT_IDENTITY.name} v${BOT_IDENTITY.version}.`,
         ],
     },
     {
         p: /what can you do|your (capabilities|powers|features|abilities)\b/i,
         r: [
-            `I can: 🎵 play music, 📸 make stickers, ⬇️ download from TikTok/Instagram/YouTube, 🌤️ check weather, 📚 search Wikipedia, 🌐 translate text, 👥 manage groups, and 1400+ commands! Type \`silva help\` to see everything.`,
+            `I can: 🎵 play music, 📸 make stickers, ⬇️ download from TikTok/Instagram/YouTube, 🌤️ check weather, 📚 search Wikipedia, 🌐 translate text, 👥 manage groups, and 1400+ commands! Type \`messageforge help\` to see everything.`,
         ],
     },
     {
@@ -479,7 +481,7 @@ const smartResponses = [
     {
         p: /help\b/i,
         r: [
-            `Type \`silva\` (no prefix needed) to see everything I can do! Or try:\n• \`silva play <song name>\`\n• \`silva weather <city>\`\n• \`silva wiki <topic>\`\n• \`silva sticker\` (reply to a photo)`,
+            `Type \`messageforge\` (no prefix needed) to see everything I can do! Or try:\n• \`messageforge play <song name>\`\n• \`messageforge weather <city>\`\n• \`messageforge wiki <topic>\`\n• \`messageforge sticker\` (reply to a photo)`,
         ],
     },
 ];
@@ -501,7 +503,7 @@ async function askFreeAI(query, jid) {
             {
                 role: 'system',
                 content:
-                    `You are Silva, an intelligent WhatsApp assistant built on ${BOT_IDENTITY.name} v${BOT_IDENTITY.version}. ` +
+                    `You are MessageForge, an intelligent WhatsApp assistant built on ${BOT_IDENTITY.name} v${BOT_IDENTITY.version}. ` +
                     `Created by ${BOT_IDENTITY.developer}. Be concise, friendly, and practical. ` +
                     `Use WhatsApp formatting sparingly (*bold* where helpful).`,
             },
@@ -577,12 +579,13 @@ const agentActions = {
     // ── Info ─────────────────────────────────────────────────────────────────
     menu: /^(show\s+)?(menu|commands|help|list\s+commands)/i,
     about_bot:
-        /about\s*(the\s*)?(bot|silva|yourself)|who\s*are\s*you|what\s*are\s*you|tell\s*me\s*about\s*(yourself|silva|this\s*bot)/i,
+        /about\s*(the\s*)?(bot|messageforge|yourself)|who\s*are\s*you|what\s*are\s*you|tell\s*me\s*about\s*(yourself|messageforge|this\s*bot)/i,
     about_platform:
-        /platform|server|hosting|where\s*(are\s*you|is\s*(the\s*bot|silva))\s*(running|hosted)|system\s*info|server\s*info|specs/i,
+        /platform|server|hosting|where\s*(are\s*you|is\s*(the\s*bot|messageforge))\s*(running|hosted)|system\s*info|server\s*info|specs/i,
     about_owner:
         /who\s*(is\s*)?(the\s*)?(owner|creator|developer|made|built|coded)|your\s*(owner|creator|dev)/i,
-    features: /features|what\s*can\s*(you|the\s*bot|silva)\s*do|capabilities|abilities|powers/i,
+    features:
+        /features|what\s*can\s*(you|the\s*bot|messageforge)\s*do|capabilities|abilities|powers/i,
     settings: /settings|config|current\s*settings|bot\s*settings|show\s*settings/i,
     plugin_list: /list\s*plugins|how\s*many\s*(commands|plugins)|plugin\s*count|total\s*commands/i,
     sudo: /sudo\s*(list|users|info)|who\s*(are|is)\s*(the\s*)?sudo/i,
@@ -620,9 +623,9 @@ const agentActions = {
 };
 
 module.exports = {
-    commands: ['silva', 'agent', 'do', 'assistant', 'ask'],
+    commands: ['messageforge', 'agent', 'do', 'assistant', 'ask'],
     description:
-        'Silva - AI assistant that runs commands, creates content, searches the web, and knows everything about the bot',
+        'MessageForge - AI assistant that runs commands, creates content, searches the web, and knows everything about the bot',
     permission: 'public',
     run: async (sock, message, args, ctx) => {
         const { jid, reply, safeSend, isOwner, isGroup, isAdmin, isBotAdmin } = ctx;
@@ -632,44 +635,44 @@ module.exports = {
                 `🤖 *${BOT_IDENTITY.name} Agent v${BOT_IDENTITY.version}*\n\n` +
                     `Your intelligent WhatsApp assistant — just talk naturally!\n\n` +
                     `🎵 *Music & Media*\n` +
-                    `• "silva play <song>" • "silva lyrics <song>"\n` +
-                    `• "silva tiktok <url>" • "silva youtube video <name>"\n` +
-                    `• "silva speak Hello world" _(text-to-speech)_\n\n` +
+                    `• "messageforge play <song>" • "messageforge lyrics <song>"\n` +
+                    `• "messageforge tiktok <url>" • "messageforge youtube video <name>"\n` +
+                    `• "messageforge speak Hello world" _(text-to-speech)_\n\n` +
                     `🎨 *AI & Images*\n` +
-                    `• "silva generate image of a lion in space"\n` +
-                    `• "silva describe" _(reply to any photo)_\n` +
-                    `• "silva summarize" _(reply to a long message)_\n` +
-                    `• "silva quotly" _(reply to a message → quote sticker)_\n\n` +
+                    `• "messageforge generate image of a lion in space"\n` +
+                    `• "messageforge describe" _(reply to any photo)_\n` +
+                    `• "messageforge summarize" _(reply to a long message)_\n` +
+                    `• "messageforge quotly" _(reply to a message → quote sticker)_\n\n` +
                     `📲 *Downloads*\n` +
-                    `• "silva instagram <url>" • "silva facebook <url>"\n` +
-                    `• "silva spotify <name>" • "silva pinterest <query>"\n\n` +
+                    `• "messageforge instagram <url>" • "messageforge facebook <url>"\n` +
+                    `• "messageforge spotify <name>" • "messageforge pinterest <query>"\n\n` +
                     `⏰ *Productivity*\n` +
-                    `• "silva remind me in 30m to call mom"\n` +
-                    `• "silva save note shopping: milk, eggs"\n` +
-                    `• "silva get my notes"\n` +
-                    `• "silva create a poll: Question | A | B | C"\n` +
-                    `• "silva schedule message at 9pm: team meeting"\n\n` +
+                    `• "messageforge remind me in 30m to call mom"\n` +
+                    `• "messageforge save note shopping: milk, eggs"\n` +
+                    `• "messageforge get my notes"\n` +
+                    `• "messageforge create a poll: Question | A | B | C"\n` +
+                    `• "messageforge schedule message at 9pm: team meeting"\n\n` +
                     `🛠️ *Tools*\n` +
-                    `• "silva sticker" _(reply to photo)_\n` +
-                    `• "silva translate hello to french"\n` +
-                    `• "silva wiki artificial intelligence"\n` +
-                    `• "silva weather Nairobi"\n` +
-                    `• "silva qr code https://example.com"\n\n` +
+                    `• "messageforge sticker" _(reply to photo)_\n` +
+                    `• "messageforge translate hello to french"\n` +
+                    `• "messageforge wiki artificial intelligence"\n` +
+                    `• "messageforge weather Nairobi"\n` +
+                    `• "messageforge qr code https://example.com"\n\n` +
                     `👥 *Group Management*\n` +
-                    `• "silva change group name to X"\n` +
-                    `• "silva mute/unmute group"\n` +
-                    `• "silva tag all members"\n` +
-                    `• "silva kick @user" • "silva promote @user"\n` +
-                    `• "silva create a poll: Vote | Yes | No"\n\n` +
+                    `• "messageforge change group name to X"\n` +
+                    `• "messageforge mute/unmute group"\n` +
+                    `• "messageforge tag all members"\n` +
+                    `• "messageforge kick @user" • "messageforge promote @user"\n` +
+                    `• "messageforge create a poll: Vote | Yes | No"\n\n` +
                     `✍️ *Content Creation*\n` +
-                    `• "silva create a bio / welcome / rules / poem"\n` +
-                    `• "silva write an email about X"\n\n` +
+                    `• "messageforge create a bio / welcome / rules / poem"\n` +
+                    `• "messageforge write an email about X"\n\n` +
                     `🌐 *Info & Web*\n` +
-                    `• "silva weather / news / search / ip info"\n` +
-                    `• "silva about bot / platform / owner / settings"\n\n` +
+                    `• "messageforge weather / news / search / ip info"\n` +
+                    `• "messageforge about bot / platform / owner / settings"\n\n` +
                     `🧠 *AI Chat* — Ask me anything! I remember our conversation.\n` +
-                    `• "silva forget" — clears chat memory\n\n` +
-                    `📋 *Run Any Command:* "silva run <command>"\n\n` +
+                    `• "messageforge forget" — clears chat memory\n\n` +
+                    `📋 *Run Any Command:* "messageforge run <command>"\n\n` +
                     `_${pluginMap().size}+ commands available • Platform: ${BOT_IDENTITY.platform}_`,
             );
 
@@ -752,9 +755,9 @@ module.exports = {
             const sudoCount = global.sudoUsers?.size || 0;
             response =
                 `👑 *Bot Owner*\n\n` +
-                `• Name: *${config.OWNER_NAME || 'ShadowBot'}*\n` +
+                `• Name: *${config.OWNER_NAME || 'MessageForge'}*\n` +
                 `• Number: *+${(config.OWNER_NUMBER || '').replace(/\D/g, '')}*\n` +
-                `• Bot: *${config.BOT_NAME || 'ShadowBot'}*\n` +
+                `• Bot: *${config.BOT_NAME || 'MessageForge'}*\n` +
                 `• Developer: *${BOT_IDENTITY.developer}*\n` +
                 `• Website: ${BOT_IDENTITY.website}\n` +
                 `• GitHub: ${BOT_IDENTITY.repo}\n` +
@@ -1214,7 +1217,7 @@ module.exports = {
         } else if (agentActions.help.test(query)) {
             const pm = pluginMap();
             response =
-                `🤖 *Silva — Full Capabilities*\n\n` +
+                `🤖 *MessageForge — Full Capabilities*\n\n` +
                 `📋 *Run Commands* (${pm.size} available)\n` +
                 `• "run menu" • "do alive" • "use sticker"\n` +
                 `• "run <any command name>"\n\n` +
@@ -1225,14 +1228,14 @@ module.exports = {
                 `• Jokes • Quotes • Captions\n` +
                 `• Letters • Emails • Essays\n\n` +
                 `👥 *Group Management*\n` +
-                `• "silva change group name to X"\n` +
-                `• "silva set group description to X"\n` +
-                `• "silva mute/unmute group"\n` +
-                `• "silva lock/unlock group"\n` +
-                `• "silva get group link"\n` +
-                `• "silva tag all members"\n` +
-                `• "silva list admins"\n` +
-                `• "silva kick/add/promote/demote"\n\n` +
+                `• "messageforge change group name to X"\n` +
+                `• "messageforge set group description to X"\n` +
+                `• "messageforge mute/unmute group"\n` +
+                `• "messageforge lock/unlock group"\n` +
+                `• "messageforge get group link"\n` +
+                `• "messageforge tag all members"\n` +
+                `• "messageforge list admins"\n` +
+                `• "messageforge kick/add/promote/demote"\n\n` +
                 `🌐 *Web Access*\n` +
                 `• Search • News • Weather • IP lookup\n\n` +
                 `ℹ️ *Bot Knowledge*\n` +
@@ -1259,7 +1262,7 @@ module.exports = {
             const newName = query.replace(agentActions.group_rename, '').trim();
             if (!newName)
                 return reply(
-                    `❓ What should I rename the group to?\n\nExample: _silva change group name to Study Squad_`,
+                    `❓ What should I rename the group to?\n\nExample: _messageforge change group name to Study Squad_`,
                 );
             if (newName.length > 100) return reply(`❌ Group name cannot exceed 100 characters.`);
             try {
@@ -1280,7 +1283,7 @@ module.exports = {
             const newDesc = query.replace(agentActions.group_desc, '').trim();
             if (!newDesc)
                 return reply(
-                    `❓ What should the group description say?\n\nExample: _silva set group description to Welcome to our group!_`,
+                    `❓ What should the group description say?\n\nExample: _messageforge set group description to Welcome to our group!_`,
                 );
             if (newDesc.length > 512) return reply(`❌ Description cannot exceed 512 characters.`);
             try {
@@ -1365,7 +1368,7 @@ module.exports = {
                 message.message?.extendedTextMessage?.contextInfo?.participant;
             if (!mentioned)
                 return reply(
-                    `💡 Reply to a member's message and say: _silva kick_\n\nOr tag them: _silva kick @member_`,
+                    `💡 Reply to a member's message and say: _messageforge kick_\n\nOr tag them: _messageforge kick @member_`,
                 );
             try {
                 await sock.groupParticipantsUpdate(jid, [mentioned], 'remove');
@@ -1380,7 +1383,9 @@ module.exports = {
             if (!isBotAdmin) return reply(`⛔ I need to be an admin to add members.`);
             const numMatch = query.match(/(\+?[\d]{7,15})/);
             if (!numMatch)
-                return reply(`💡 Provide a phone number.\n\nExample: _silva add +254712345678_`);
+                return reply(
+                    `💡 Provide a phone number.\n\nExample: _messageforge add +254712345678_`,
+                );
             const phone = numMatch[1].replace(/\D/g, '');
             try {
                 await sock.groupParticipantsUpdate(jid, [`${phone}@s.whatsapp.net`], 'add');
@@ -1398,7 +1403,7 @@ module.exports = {
                 message.message?.extendedTextMessage?.contextInfo?.participant;
             if (!mentioned)
                 return reply(
-                    `💡 Reply to a member's message and say: _silva promote_\n\nOr tag them: _silva promote @member_`,
+                    `💡 Reply to a member's message and say: _messageforge promote_\n\nOr tag them: _messageforge promote @member_`,
                 );
             try {
                 await sock.groupParticipantsUpdate(jid, [mentioned], 'promote');
@@ -1416,7 +1421,7 @@ module.exports = {
                 message.message?.extendedTextMessage?.contextInfo?.participant;
             if (!mentioned)
                 return reply(
-                    `💡 Reply to a member's message and say: _silva demote_\n\nOr tag them: _silva demote @member_`,
+                    `💡 Reply to a member's message and say: _messageforge demote_\n\nOr tag them: _messageforge demote @member_`,
                 );
             try {
                 await sock.groupParticipantsUpdate(jid, [mentioned], 'demote');
@@ -1496,7 +1501,7 @@ module.exports = {
 
             // ── Productivity handlers ─────────────────────────────────────────────
         } else if (agentActions.remind.test(query)) {
-            // "silva remind me in 30 minutes to check email"
+            // "messageforge remind me in 30 minutes to check email"
             const pm = pluginMap();
             const plugin = pm.get('remind') || pm.get('reminder');
             const cleaned = query.replace(agentActions.remind, '').trim();
@@ -1520,7 +1525,7 @@ module.exports = {
             const noteContent = query.replace(agentActions.note_save, '').trim();
             if (!noteContent)
                 return reply(
-                    `❓ What should I save?\n\nExample: _silva save note shopping list: milk, eggs, bread_`,
+                    `❓ What should I save?\n\nExample: _messageforge save note shopping list: milk, eggs, bread_`,
                 );
             if (plugin) {
                 try {
@@ -1551,7 +1556,7 @@ module.exports = {
         } else if (agentActions.poll.test(query)) {
             const pm = pluginMap();
             const plugin = pm.get('poll');
-            // Parse "silva create a poll: Question | Option A | Option B | Option C"
+            // Parse "messageforge create a poll: Question | Option A | Option B | Option C"
             const pollContent = query
                 .replace(agentActions.poll, '')
                 .replace(/^[:\-\s]+/, '')
@@ -1559,8 +1564,8 @@ module.exports = {
             if (!pollContent) {
                 return reply(
                     `📊 *Create a Poll*\n\n` +
-                        `Format: _silva create a poll: Question | Option 1 | Option 2 | Option 3_\n\n` +
-                        `Example: _silva create a poll: Favorite color? | Red | Blue | Green_`,
+                        `Format: _messageforge create a poll: Question | Option 1 | Option 2 | Option 3_\n\n` +
+                        `Example: _messageforge create a poll: Favorite color? | Red | Blue | Green_`,
                 );
             }
             if (plugin) {
@@ -1618,7 +1623,7 @@ module.exports = {
                 .trim();
             if (!prompt)
                 return reply(
-                    `🎨 What image should I generate?\n\nExample: _silva generate an image of a lion wearing a gold crown in a forest_`,
+                    `🎨 What image should I generate?\n\nExample: _messageforge generate an image of a lion wearing a gold crown in a forest_`,
                 );
             await safeSend({ text: `🎨 _Generating: "${prompt}"..._` }, { quoted: message });
             if (plugin) {
@@ -1658,7 +1663,9 @@ module.exports = {
                 '';
             const speakText = text || quotedText;
             if (!speakText)
-                return reply(`🔊 What should I say?\n\nExample: _silva speak Hello everyone!_`);
+                return reply(
+                    `🔊 What should I say?\n\nExample: _messageforge speak Hello everyone!_`,
+                );
             if (plugin) {
                 try {
                     await plugin.run(sock, message, speakText.split(/\s+/), ctx);
@@ -1801,7 +1808,7 @@ module.exports = {
             // ── 1. Built-in smart response (instant, no API) ─────────────────
             const smart = getSmartResponse(query);
             if (smart) {
-                response = `🤖 *Silva*\n\n${smart}`;
+                response = `🤖 *MessageForge*\n\n${smart}`;
                 rememberMessage(jid, 'user', query);
                 rememberMessage(jid, 'bot', smart);
             } else {
@@ -1812,28 +1819,28 @@ module.exports = {
                 let aiReply = await askFreeAI(query, jid);
 
                 if (aiReply) {
-                    response = `🤖 *Silva*\n\n${aiReply}`;
+                    response = `🤖 *MessageForge*\n\n${aiReply}`;
                     rememberMessage(jid, 'bot', aiReply.slice(0, 300)); // store condensed
                 } else {
                     // ── 4. Graceful fallback with suggestions ─────────────────
                     const suggestions = [
-                        `🎵 \`silva play <song>\` — play music`,
-                        `🎨 \`silva generate image of <anything>\` — AI art`,
-                        `🌤️ \`silva weather <city>\` — weather`,
-                        `📚 \`silva wiki <topic>\` — Wikipedia`,
-                        `🌐 \`silva translate <text>\` — translate`,
-                        `📝 \`silva summarize\` — summarize a message`,
-                        `⏰ \`silva remind me in 30m to <task>\` — reminder`,
-                        `📊 \`silva create a poll: Q | A | B\` — poll`,
-                        `👁️ \`silva describe\` — describe an image`,
-                        `👥 \`silva change group name to X\` — group management`,
-                        `📋 \`silva help\` — see all ${pluginMap().size}+ commands`,
+                        `🎵 \`messageforge play <song>\` — play music`,
+                        `🎨 \`messageforge generate image of <anything>\` — AI art`,
+                        `🌤️ \`messageforge weather <city>\` — weather`,
+                        `📚 \`messageforge wiki <topic>\` — Wikipedia`,
+                        `🌐 \`messageforge translate <text>\` — translate`,
+                        `📝 \`messageforge summarize\` — summarize a message`,
+                        `⏰ \`messageforge remind me in 30m to <task>\` — reminder`,
+                        `📊 \`messageforge create a poll: Q | A | B\` — poll`,
+                        `👁️ \`messageforge describe\` — describe an image`,
+                        `👥 \`messageforge change group name to X\` — group management`,
+                        `📋 \`messageforge help\` — see all ${pluginMap().size}+ commands`,
                     ];
                     response =
-                        `🤖 *Silva*\n\n` +
+                        `🤖 *MessageForge*\n\n` +
                         `Hmm, I'm not sure about that one. Try one of these:\n\n` +
                         suggestions.slice(0, 6).join('\n') +
-                        `\n\n_💡 Tip: \`silva forget\` clears our chat memory for a fresh start._`;
+                        `\n\n_💡 Tip: \`messageforge forget\` clears our chat memory for a fresh start._`;
                 }
             }
         }

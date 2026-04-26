@@ -35,7 +35,7 @@ module.exports = {
 🌐 *NS:*        ${nsR}
 📋 *TXT:*       ${txtR}
 
-_Powered by ShadowBot_`,
+_Powered by MessageForge_`,
                 contextInfo
             }, { quoted: message });
         } catch (e) {

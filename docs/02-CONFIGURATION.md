@@ -1,14 +1,14 @@
 # ⚙️ Configuration Guide
 
-ShadowBot uses environment variables for configuration. You can set these in your hosting platform's dashboard or in a `.env` file (local development).
+MessageForge uses environment variables for configuration. You can set these in your hosting platform's dashboard or in a `.env` file (local development).
 
 ## 🔑 Essential Variables
 
 | Variable       | Description                                            | Example           |
 | -------------- | ------------------------------------------------------ | ----------------- |
-| `SESSION_ID`   | The authentication string for your WhatsApp session.   | `Silva~abc123...` |
+| `SESSION_ID`   | The authentication string for your WhatsApp session.   | `MessageForge~abc123...` |
 | `OWNER_NUMBER` | Your WhatsApp number (with country code, digits only). | `254712345678`    |
-| `BOT_NAME`     | The name the bot uses to refer to itself.              | `ShadowBot`       |
+| `BOT_NAME`     | The name the bot uses to refer to itself.              | `MessageForge`       |
 
 ---
 
@@ -29,9 +29,9 @@ ShadowBot uses environment variables for configuration. You can set these in you
 
 | Variable     | Description                                                        | Default  |
 | ------------ | ------------------------------------------------------------------ | -------- |
-| `THEME`      | The visual theme for the bot (see [Themes Guide](./05-THEMES.md)). | `silva`  |
+| `THEME`      | The visual theme for the bot (see [Themes Guide](./05-THEMES.md)). | `messageforge`  |
 | `PREFIX`     | The character(s) used to trigger commands.                         | `.`      |
-| `OWNER_NAME` | Your name displayed in the bot's about section.                    | `Silva`  |
+| `OWNER_NAME` | Your name displayed in the bot's about section.                    | `MessageForge Team`  |
 | `MODE`       | Who can use the bot: `public`, `private`, or `groups`.             | `public` |
 
 ---

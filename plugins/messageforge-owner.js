@@ -10,13 +10,13 @@ module.exports = {
     private:     true,
     run: async (sock, message, args, { sender, jid, contextInfo }) => {
         const ownerNumber = (config.OWNER_NUMBER || '').replace(/\D/g, '');
-        const ownerName   = config.OWNER_NAME || '✦ ShadowBot ✦';
+        const ownerName   = config.OWNER_NAME || '✦ MessageForge ✦';
 
         const vcard = [
             'BEGIN:VCARD',
             'VERSION:3.0',
             `FN:${ownerName}`,
-            'ORG:Silva Tech Inc',
+            'ORG:MessageForge Team',
             `TEL;type=CELL;type=VOICE;waid=${ownerNumber}:+${ownerNumber}`,
             'END:VCARD'
         ].join('\n');
@@ -31,7 +31,7 @@ module.exports = {
                 externalAdReply: {
                     title: '👑 Bot Owner',
                     body: 'Tap to view contact details',
-                    sourceUrl: 'https://github.com/SilvaTechB/silva-md-bot',
+                    sourceUrl: 'https://github.com/buluma/messageforge',
                     mediaType: 1,
                     renderLargerThumbnail: false
                 }
