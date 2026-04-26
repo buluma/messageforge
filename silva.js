@@ -80,7 +80,10 @@ const pluginsDir = path.join(__dirname, 'plugins');
 const sessionDir = path.join(__dirname, 'session');
 const credsPath = path.join(sessionDir, 'creds.json');
 
-// ✅ Create session directory if not exists
+/**
+ * Ensures a directory exists, creating it recursively if necessary.
+ * @param {string} dir - Absolute path to the directory.
+ */
 function createDirIfNotExist(dir) {
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
@@ -88,7 +91,10 @@ function createDirIfNotExist(dir) {
 }
 createDirIfNotExist(sessionDir);
 
-// ✅ Load session from compressed base64 (or reuse existing session on disk)
+/**
+ * Loads the WhatsApp session from the SESSION_ID environment variable.
+ * Decompresses and writes the credentials to the session/ directory.
+ */
 async function loadSession() {
     try {
         const sid = (config.SESSION_ID || '').trim();

@@ -41,6 +41,12 @@ const PERM = {
 const groupCache = new Map();
 const GROUP_CACHE_TTL = 5 * 60 * 1000;
 
+/**
+ * Retrieves group metadata with a 5-minute in-memory cache.
+ * @param {object} sock - The Baileys socket instance.
+ * @param {string} jid - The group JID.
+ * @returns {Promise<object|null>} The group metadata or null if request fails.
+ */
 async function getCachedGroupMetadata(sock, jid) {
     const hit = groupCache.get(jid);
     if (hit && Date.now() < hit.expiry) return hit.metadata;
@@ -53,7 +59,10 @@ async function getCachedGroupMetadata(sock, jid) {
     }
 }
 
-// Invalidate cache when group membership changes
+/**
+ * Invalidate group cache when participants change.
+ * @param {object} sock - The Baileys socket instance.
+ */
 function bindGroupCacheInvalidation(sock) {
     sock.ev.on('group-participants.update', ({ id }) => groupCache.delete(id));
 }
@@ -61,6 +70,14 @@ function bindGroupCacheInvalidation(sock) {
 const sendTimestamps = [];
 const MAX_SENDS_PER_MIN = 30;
 
+/**
+ * Sends a message with built-in rate limiting and random jitter to prevent bans.
+ * @param {object} sock - The Baileys socket instance.
+ * @param {string} jid - Destination JID.
+ * @param {object} content - Message content object.
+ * @param {object} [opts={}] - Additional Baileys message options.
+ * @returns {Promise<object|null>} The sent message object or null on failure.
+ */
 async function safeSend(sock, jid, content, opts = {}) {
     if (!jid || !sock?.sendMessage) return null;
     try {
@@ -189,6 +206,12 @@ function formatDuration(ms) {
     return `${s}s`;
 }
 
+/**
+ * Main message handler. Parses incoming WhatsApp messages, checks permissions,
+ * and dispatches them to the appropriate plugin commands.
+ * @param {object} sock - The Baileys socket instance.
+ * @param {object} message - The raw Baileys message object.
+ */
 async function handleMessages(sock, message) {
     try {
         const msg = message.message;
