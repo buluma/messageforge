@@ -9,16 +9,16 @@
 - [x] Default bot identity and env defaults switched to MessageForge (`config.js`, `sample.env`, `app.json`)
 - [x] Core user-facing strings updated across menu, status, owner, profile, and utility plugins
 - [x] Website/release/support links migrated to `github.com/buluma/messageforge`
+- [x] Docs + Developer Assets updated (docs/*.md, CONTRIBUTING.md, CLAUDE.md, etc.)
 
 ## In Progress
-- [ ] Final global sweep for any remaining legacy tokens in tracked files
-- [ ] Remove deprecated legacy-only theme artifacts no longer needed
+- [ ] (None - sweep complete)
 
 ## Validation Checklist
-- [ ] Legacy-branding grep check returns no matches in tracked project files
-- [ ] PM2 process `messageforge` restarts cleanly
-- [ ] Bot reconnects and responds to menu/owner/ai commands
-- [ ] No regressions in date/time formatting responses
+- [x] Legacy-branding grep check returns no matches in tracked project files
+- [x] PM2 process `messageforge` restarts cleanly
+- [x] Bot reconnects and responds to menu/owner/ai commands
+- [x] No regressions in date/time formatting responses
 
 ## Release
 - [ ] Commit rebrand sweep changes
