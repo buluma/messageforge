@@ -2,14 +2,6 @@
 
 <img src="https://i.imgur.com/dBaSKWF.gif" height="20" width="100%">
 
-<br>
-
-[![Typing SVG](https://readme-typing-svg.demolab.com?font=JetBrains+Mono&weight=800&size=45&duration=3000&pause=800&color=FF00A6&center=true&vCenter=true&width=900&height=80&lines=SILVA+MD+BOT;Next-Gen+WhatsApp+Bot)](https://git.io/typing-svg)
-
-<br>
-
-<img src="https://i.imgur.com/RvEKtPJ.jpeg" alt="ShadowBot Bot" width="280" style="border-radius: 20px;">
-
 <br><br>
 
 [![Stars](https://img.shields.io/github/stars/buluma/silva-md-bot?style=for-the-badge&logo=github&logoColor=white&labelColor=0d1117&color=FF00A6)](https://github.com/buluma/silva-md-bot/stargazers)
