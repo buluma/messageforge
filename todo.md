@@ -19,6 +19,7 @@
 - [x] PM2 process `messageforge` restarts cleanly
 - [x] Bot reconnects and responds to menu/owner/ai commands
 - [x] No regressions in date/time formatting responses
+- [x] PM2 process now runs from messageforge/ (not silva-md-bot/)
 
 ## Release
 - [ ] Commit rebrand sweep changes
