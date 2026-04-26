@@ -1,4 +1,4 @@
-# Silva MD Bot
+# ShadowBot Bot
 
 A feature-rich multi-device WhatsApp bot built with Node.js and the Baileys library, featuring 1200+ commands across 196+ plugins, an AI agent, and comprehensive admin tools.
 

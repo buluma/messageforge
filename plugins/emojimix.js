@@ -25,7 +25,7 @@ module.exports = {
             const { data } = await axios.get(url, { responseType: 'arraybuffer', timeout: 10000 });
             await sock.sendMessage(chatId, {
                 image:   Buffer.from(data),
-                caption: `🎨 *Emoji Mix: ${e1} + ${e2}*\n_Powered by Silva MD_`,
+                caption: `🎨 *Emoji Mix: ${e1} + ${e2}*\n_Powered by ShadowBot_`,
                 contextInfo
             }, { quoted: message });
         } catch {

@@ -30,7 +30,7 @@ module.exports = {
                 contextInfo
             }, { quoted: message });
             await sock.sendMessage(sender, {
-                text: `🎵 *${result.title || 'SoundCloud Track'}*\n👤 ${result.author || 'Unknown'}\n_Powered by Silva MD_`,
+                text: `🎵 *${result.title || 'SoundCloud Track'}*\n👤 ${result.author || 'Unknown'}\n_Powered by ShadowBot_`,
                 contextInfo
             }, { quoted: message });
         } catch (e) {

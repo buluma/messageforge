@@ -10,7 +10,7 @@ const SUPPORT_URL = 'https://chat.whatsapp.com/GzCZZxVnAHMINWdPQkGwJR';
 
 module.exports = {
     commands:    ['repo', 'repository', 'github'],
-    description: 'Show Silva MD repository info',
+    description: 'Show ShadowBot repository info',
     permission:  'public',
     group:       true,
     private:     true,
@@ -29,7 +29,7 @@ module.exports = {
         } catch { /* use fallback */ }
 
         const caption = data
-            ? `*✨ SILVA MD — REPOSITORY INFO*\n\n` +
+            ? `*✨ ShadowBot — REPOSITORY INFO*\n\n` +
               `📦 *Repo:* ${data.name}\n` +
               `📝 *About:* ${data.description || 'WhatsApp MD Bot'}\n\n` +
               `⭐ *Stars:* ${data.stargazers_count.toLocaleString()}\n` +
@@ -44,7 +44,7 @@ module.exports = {
               `📢 *Newsletter:* ${WA_CHANNEL}\n` +
               `💬 *Support:* ${SUPPORT_URL}\n\n` +
               `⚡ _Powered by Silva Tech Inc_`
-            : `*✨ SILVA MD — REPOSITORY*\n\n` +
+            : `*✨ ShadowBot — REPOSITORY*\n\n` +
               `📦 *Repo:* silva-md-bot\n` +
               `💻 *Language:* JavaScript\n` +
               `📜 *License:* MIT\n\n` +
@@ -62,7 +62,7 @@ module.exports = {
             contextInfo: {
                 ...contextInfo,
                 externalAdReply: {
-                    title:                 'Silva MD — Open Source Bot',
+                    title:                 'ShadowBot — Open Source Bot',
                     body:                  'Star us on GitHub!',
                     thumbnailUrl:          imgUrl,
                     sourceUrl:             REPO_URL,

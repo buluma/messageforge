@@ -136,7 +136,7 @@ module.exports = {
         }
 
         lines.push(`• *Profile:* https://github.com/${user.login}`);
-        lines.push(`_Powered by ${getStr('botName') || 'Silva MD'} · GitHub API_`);
+        lines.push(`_Powered by ${getStr('botName') || 'ShadowBot'} · GitHub API_`);
 
         try {
             await sock.sendMessage(jid, {

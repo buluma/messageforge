@@ -10,7 +10,7 @@ module.exports = {
     group:       true,
     private:     true,
     run: async (sock, message, args, { sender, contextInfo }) => {
-        const botName = getStr('botName') || 'Silva MD';
+        const botName = getStr('botName') || 'ShadowBot';
         const pic     = getStr('pic1') || 'https://files.catbox.moe/5uli5p.jpeg';
 
         const nairobiTime = new Date().toLocaleTimeString('en-KE', {

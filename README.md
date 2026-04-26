@@ -8,7 +8,7 @@
 
 <br>
 
-<img src="https://i.imgur.com/RvEKtPJ.jpeg" alt="Silva MD Bot" width="280" style="border-radius: 20px;">
+<img src="https://i.imgur.com/RvEKtPJ.jpeg" alt="ShadowBot Bot" width="280" style="border-radius: 20px;">
 
 <br><br>
 
@@ -27,7 +27,7 @@
 
 ---
 
-## ⚡ Deploy Silva MD Bot
+## ⚡ Deploy ShadowBot Bot
 
 <div align="center">
 
@@ -302,7 +302,7 @@
 
 | Step | Action |
 |:----:|--------|
-| **1** | Click the button above to open the Silva MD bot page on Talkdrove |
+| **1** | Click the button above to open the ShadowBot bot page on Talkdrove |
 | **2** | Click **Host This Bot** |
 | **3** | Enter your `SESSION_ID` and `OWNER_NUMBER` |
 | **4** | Click **Deploy** — your bot goes live instantly ✅ |
@@ -530,17 +530,17 @@ You need a Session ID so the bot can connect to your WhatsApp account without sc
 |----------|-------------|---------|
 | `SESSION_ID` | WhatsApp session credentials | **required** |
 | `PREFIX` | Command prefix character | `.` |
-| `BOT_NAME` | Display name for the bot | `Silva MD` |
+| `BOT_NAME` | Display name for the bot | `ShadowBot` |
 | `OWNER_NUMBER` | Your WhatsApp number with country code | **required** |
-| `OWNER_NAME` | Your name shown in bot info | `Silva MD` |
-| `DESCRIPTION` | Caption for the bot menu | `Silva MD Bot` |
+| `OWNER_NAME` | Your name shown in bot info | `ShadowBot` |
+| `DESCRIPTION` | Caption for the bot menu | `ShadowBot Bot` |
 | `THEME` | Bot theme — `silva`, `naruto`, `gojo`, `batman`, [more](#-themes) | `silva` |
 | `MODE` | Who can use the bot: `public`, `private`, `group`, `inbox` | `public` |
 | `GREETING` | Auto-greeting for DMs (sent once per day) | *(blank = off)* |
 | `AUTO_STATUS_SEEN` | Auto-view all statuses | `true` |
 | `AUTO_STATUS_REACT` | Auto-react to statuses | `true` |
 | `AUTO_STATUS_REPLY` | Auto-reply to statuses | `false` |
-| `AUTO_STATUS_MSG` | Message used for auto status reply | `Seen by Silva MD` |
+| `AUTO_STATUS_MSG` | Message used for auto status reply | `Seen by ShadowBot` |
 | `AUTO_REACT_NEWSLETTER` | React to newsletter/channel messages | `true` |
 | `CUSTOM_REACT_EMOJIS` | Comma-separated emojis for status reactions | `❤️,🔥,💯,😍,👏` |
 | `ANTIDELETE_GROUP` | Restore deleted messages in groups | `true` |
@@ -552,7 +552,7 @@ You need a Session ID so the bot can connect to your WhatsApp account without sc
 | `AUTO_RECORDING` | Show recording indicator for media commands | `false` |
 | `READ_MESSAGE` | Auto blue-tick all messages | `false` |
 | `ALIVE_IMG` | Image URL shown in `.alive` command | *(default)* |
-| `LIVE_MSG` | Message shown in `.alive` command | `Silva MD is active` |
+| `LIVE_MSG` | Message shown in `.alive` command | `ShadowBot is active` |
 | `DEBUG` | Enable verbose logging | `false` |
 
 </details>
@@ -570,7 +570,7 @@ Each theme gives the bot a different personality, name, and response style.
 
 | Theme | Character | Style |
 |-------|-----------|-------|
-| `silva` | Silva MD | Default — clean and professional |
+| `silva` | ShadowBot | Default — clean and professional |
 | `naruto` | Naruto Uzumaki | Energetic, ninja spirit |
 | `gojo` | Satoru Gojo | Confident, Jujutsu Kaisen |
 | `itachi` | Itachi Uchiha | Calm, powerful |
@@ -727,6 +727,6 @@ MIT License — free to use, modify, and distribute with attribution.
 
 <img src="https://i.imgur.com/dBaSKWF.gif" height="20" width="100%">
 
-<sub>Silva MD Bot — 90 commands. One scan. Unlimited possibilities.</sub>
+<sub>ShadowBot Bot — 90 commands. One scan. Unlimited possibilities.</sub>
 
 </div>

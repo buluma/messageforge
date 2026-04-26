@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Silva MD — Admin Dashboard</title>
+  <title>ShadowBot — Admin Dashboard</title>
 
   <!-- Inter font -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -288,7 +288,7 @@
 </head>
 <body>
   <div class="app" id="app">
-    <header class="app-header" role="banner" aria-label="Silva MD dashboard header">
+    <header class="app-header" role="banner" aria-label="ShadowBot dashboard header">
       <div class="brand">
         <div class="logo" aria-hidden="true">
           <!-- minimal bot icon -->
@@ -300,7 +300,7 @@
           </svg>
         </div>
         <div class="title">
-          <h1>Silva MD</h1>
+          <h1>ShadowBot</h1>
           <p>Advanced modular WhatsApp bot</p>
         </div>
       </div>
@@ -406,7 +406,7 @@
           <div style="display:flex; justify-content:space-between; align-items:flex-start;">
             <div>
               <h3 id="devInfoHeading" style="margin:0 0 6px 0;">Developer</h3>
-              <div class="small muted">SilvaTechB</div>
+              <div class="small muted">buluma</div>
             </div>
             <div id="devAction" class="small muted">—</div>
           </div>
@@ -428,7 +428,7 @@
             </div>
 
             <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
-              <a id="devProfile" class="link" href="https://github.com/SilvaTechB" target="_blank" rel="noopener noreferrer">
+              <a id="devProfile" class="link" href="https://github.com/buluma" target="_blank" rel="noopener noreferrer">
                 View profile
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M14 3l7 7-11 11-7-7L14 3zM14 3h7v7"/></svg>
               </a>
@@ -460,14 +460,14 @@
       </section>
 
       <footer>
-        Silva MD dashboard • Auto-refresh every 5 minutes • Data from GitHub API
+        ShadowBot dashboard • Auto-refresh every 5 minutes • Data from GitHub API
       </footer>
     </main>
   </div>
 
   <script>
   /*****************************************************************
-   * Silva MD Dashboard
+   * ShadowBot Dashboard
    *
    * Single-file dashboard that fetches data from:
    *  - Repo: https://github.com/SilvaTechB/silva-md-bot
@@ -487,14 +487,10 @@
     const REPO = 'silva-md-bot';
     const PLUGINS_PATH = 'plugins';
 
-    // Optional: add a GitHub token here (RECOMMENDED for many requests). If left empty, unauthenticated requests are used.
-    // IMPORTANT: Never push a real token into public code. For production, proxy requests via a server that injects token.
-    const GITHUB_TOKEN = ''; // <-- paste token here if you want (not recommended in public)
-
-    // API helpers
+    // All GitHub API calls go through the local server proxy (/gh/*).
+    // The token lives in the GITHUB_TOKEN env var on the server — never in client code.
     const api = axios.create({
-      baseURL: 'https://api.github.com',
-      headers: GITHUB_TOKEN ? { Authorization: 'token ' + GITHUB_TOKEN } : undefined,
+      baseURL: '',
       timeout: 15000
     });
 
@@ -603,7 +599,7 @@
     async function fetchRepoInfo(){
       const targetErr = document.getElementById('pluginsError'); // generic area for repo errors
       try {
-        const res = await api.get(`/repos/${OWNER}/${REPO}`);
+        const res = await api.get(`/gh/repo?owner=${OWNER}&repo=${REPO}`);
         const data = res.data;
         // update DOM
         const stars = data.stargazers_count || 0;
@@ -644,7 +640,7 @@
 
       try {
         // List contents of plugins directory
-        const res = await api.get(`/repos/${OWNER}/${REPO}/contents/${PLUGINS_PATH}`);
+        const res = await api.get(`/gh/contents?owner=${OWNER}&repo=${REPO}&path=${PLUGINS_PATH}`);
         const files = res.data || [];
         // filter for directories or files depending on structure; we assume each plugin is a file or folder
         const plugins = files.map(f => ({
@@ -693,7 +689,7 @@
     async function fetchDeveloper(){
       const userErr = devError;
       try {
-        const res = await api.get(`/users/${OWNER}`);
+        const res = await api.get(`/gh/user?login=${OWNER}`);
         const d = res.data;
         devAvatar.innerHTML = `<img src="${d.avatar_url}" alt="${d.login}" style="width:100%;height:100%;object-fit:cover">`;
         devName.textContent = d.name || d.login;
@@ -720,7 +716,7 @@
     async function fetchCommitActivity(lastWeeks = 12){
       chartStatus.innerHTML = '<span class="spinner"></span> loading';
       try {
-        const res = await api.get(`/repos/${OWNER}/${REPO}/stats/commit_activity`);
+        const res = await api.get(`/gh/commit-activity?owner=${OWNER}&repo=${REPO}`);
         if (res.status === 202 || !Array.isArray(res.data)) {
           // stats are being generated; fallback
           console.warn('Commit activity endpoint returned 202 or non-array — falling back');
@@ -749,7 +745,7 @@
           weeks.push({ start: start.toISOString(), end: end.toISOString(), label: start.format('MMM D') });
         }
         // For each week, run a commits list request with since & until
-        const promises = weeks.map(w => api.get(`/repos/${OWNER}/${REPO}/commits`, { params: { since: w.start, until: w.end, per_page: 1 } })
+        const promises = weeks.map(w => api.get(`/gh/commits?owner=${OWNER}&repo=${REPO}&since=${encodeURIComponent(w.start)}&until=${encodeURIComponent(w.end)}&per_page=1`)
           .then(r => {
             // GitHub will return Link header if more pages exist; best guess: count via headers 'link' is not reliable here.
             // Instead we'll use the 'x-total-count' isn't present either. So a robust approach is to request per_page=1 and inspect 'link' header to estimate pages.

@@ -24,7 +24,7 @@ module.exports = {
             if (!data?.key) throw new Error('No key returned');
             const link = `https://hastebin.com/${data.key}`;
             await sock.sendMessage(sender, {
-                text: `📋 *Paste Uploaded!*\n\n🔗 ${link}\n\n_Expires in 30 days • Powered by Silva MD_`,
+                text: `📋 *Paste Uploaded!*\n\n🔗 ${link}\n\n_Expires in 30 days • Powered by ShadowBot_`,
                 contextInfo
             }, { quoted: message });
         } catch (e) {

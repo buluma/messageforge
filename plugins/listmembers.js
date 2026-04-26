@@ -24,7 +24,7 @@ module.exports = {
 ${list}
 
 📊 Total: ${total} | 🛡️ Admins: ${admins} | 👤 Members: ${total - admins}
-_Powered by Silva MD_`,
+_Powered by ShadowBot_`,
                 contextInfo
             }, { quoted: message });
         } catch (e) {

@@ -130,7 +130,7 @@ module.exports = {
             return reply(fmt(`📸 Please provide a valid Instagram URL.\nExample: \`.ig https://www.instagram.com/p/xyz/\``));
         }
 
-        const botName = getStr('botName') || 'Silva MD';
+        const botName = getStr('botName') || 'ShadowBot';
 
         const loading = await sock.sendMessage(jid, {
             text: fmt('⏳ Fetching Instagram content…'),

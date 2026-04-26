@@ -129,7 +129,7 @@ async function sendCallLogMenu(sock, jid, menuText, imgUrl) {
         participant:    botJid,
         quotedMessage:  quotedCallContent,
         externalAdReply: {
-            title:                 `${getStr('botName') || 'Silva MD'} — Command Menu`,
+            title:                 `${getStr('botName') || 'ShadowBot'} — Command Menu`,
             body:                  `Tap to view all commands`,
             thumbnailUrl:          imgUrl,
             sourceUrl:             WEBSITE,
@@ -164,7 +164,7 @@ module.exports = {
         const jid = message.key.remoteJid;
 
         const plugins  = loadPlugins();
-        const botName  = getStr('botName') || config.BOT_NAME || 'Silva MD';
+        const botName  = getStr('botName') || config.BOT_NAME || 'ShadowBot';
         const ownerNum = `+${(config.OWNER_NUMBER || '').replace(/\D/g, '')}`;
         const mode     = (config.MODE || 'public').toUpperCase();
         const pfx      = prefix || '.';

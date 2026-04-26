@@ -9,7 +9,7 @@ global.File = BufferFile;
     const _h = Buffer.from(_k).toString('base64');
     const _a = Buffer.from((_p.author||''), 'utf8').toString('base64');
     if (_a !== _h) {
-        process.stderr.write('\n\x1b[31m⛔  Cheap editing of Silva MD Bot detected. Build failed.\x1b[0m\n\n');
+        process.stderr.write('\n\x1b[31m⛔  Cheap editing of ShadowBot Bot detected. Build failed.\x1b[0m\n\n');
         process.exit(1);
     }
     process.stdout.write('\x1b[32m✅ Passed the Silva security check.\x1b[0m\n');
@@ -279,9 +279,9 @@ function generateFancyBio() {
 
     const bios = [
         `✨ ${config.BOT_NAME} ✦ Online ✦ ${dateStr} ✦`,
-        `⚡ Silva MD Active ✦ ${timeStr} ✦ ${dateStr} ✦`,
+        `⚡ ShadowBot Active ✦ ${timeStr} ✦ ${dateStr} ✦`,
         `💫 ${config.BOT_NAME} Operational ✦ ${dateStr} ✦`,
-        `🚀 Silva MD Live ✦ ${dateStr} ✦ ${timeStr} ✦`,
+        `🚀 ShadowBot Live ✦ ${dateStr} ✦ ${timeStr} ✦`,
         `🌟 ${config.BOT_NAME} Running ✦ ${dateStr} ✦`
     ];
 
@@ -1031,6 +1031,30 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => res.json({ status: 'ok', bot: config.BOT_NAME, time: new Date().toISOString() }));
 app.get('/ping', (req, res) => res.send('pong'));
 
+// ✅ GitHub API proxy — keeps the token server-side out of the browser
+const axios = require('axios');
+const GH_TOKEN = process.env.GITHUB_TOKEN || '';
+const ghHeaders = GH_TOKEN ? { Authorization: `token ${GH_TOKEN}` } : {};
+
+async function ghProxy(res, url, params = {}) {
+    try {
+        const r = await axios.get(url, { headers: { ...ghHeaders, 'User-Agent': 'silva-md-bot' }, params, timeout: 15000 });
+        // forward useful GitHub headers for pagination
+        const forward = ['x-ratelimit-remaining', 'x-ratelimit-reset', 'link'];
+        for (const h of forward) { if (r.headers[h]) res.set(h, r.headers[h]); }
+        res.json(r.data);
+    } catch (err) {
+        const status = err.response?.status || 502;
+        res.status(status).json({ error: err.message });
+    }
+}
+
+app.get('/gh/repo',     (req, res) => ghProxy(res, `https://api.github.com/repos/${req.query.owner}/${req.query.repo}`));
+app.get('/gh/contents', (req, res) => ghProxy(res, `https://api.github.com/repos/${req.query.owner}/${req.query.repo}/contents/${req.query.path || ''}`));
+app.get('/gh/user',     (req, res) => ghProxy(res, `https://api.github.com/users/${req.query.login}`));
+app.get('/gh/commits',  (req, res) => ghProxy(res, `https://api.github.com/repos/${req.query.owner}/${req.query.repo}/commits`, { since: req.query.since, until: req.query.until, per_page: req.query.per_page || 1 }));
+app.get('/gh/commit-activity', (req, res) => ghProxy(res, `https://api.github.com/repos/${req.query.owner}/${req.query.repo}/stats/commit_activity`));
+
 app.listen(port, () => {
     logMessage('INFO', `🌐 Server running on port ${port}`);
     logMessage('INFO', `📊 Dashboard available at http://localhost:${port}`);
@@ -1098,7 +1122,7 @@ process.on('unhandledRejection', (reason, promise) => {
         console.log('║     github.com/SilvaMD  •  v2.0           ║');
         console.log('╚══════════════════════════════════════════╝');
         console.log('\x1b[0m');
-        logMessage('INFO', 'Booting Silva MD Bot...');
+        logMessage('INFO', 'Booting ShadowBot Bot...');
 
         // ── Load sudo users from disk ───────────────────────────────────────
         try {

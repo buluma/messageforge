@@ -29,13 +29,13 @@ module.exports = {
                 const videoUrl = post.media.reddit_video.fallback_url.split('?')[0];
                 await sock.sendMessage(sender, {
                     video: { url: videoUrl },
-                    caption: `📤 *${title}*\n👍 ${post.ups} upvotes\n_Powered by Silva MD_`,
+                    caption: `📤 *${title}*\n👍 ${post.ups} upvotes\n_Powered by ShadowBot_`,
                     contextInfo
                 }, { quoted: message });
             } else if (post.url && /\.(jpg|jpeg|png|gif|webp)$/i.test(post.url)) {
                 await sock.sendMessage(sender, {
                     image: { url: post.url },
-                    caption: `📤 *${title}*\n👍 ${post.ups} upvotes\n_Powered by Silva MD_`,
+                    caption: `📤 *${title}*\n👍 ${post.ups} upvotes\n_Powered by ShadowBot_`,
                     contextInfo
                 }, { quoted: message });
             } else {

@@ -1,7 +1,7 @@
 FROM node:20-slim
 
 LABEL org.opencontainers.image.source="https://github.com/SilvaTechB/silva-md-v4"
-LABEL org.opencontainers.image.description="Silva MD — Multi-device WhatsApp Bot with 1200+ commands"
+LABEL org.opencontainers.image.description="ShadowBot — Multi-device WhatsApp Bot with 1200+ commands"
 LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 WORKDIR /app

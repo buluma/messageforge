@@ -10,7 +10,7 @@ module.exports = {
     private:     true,
     run: async (sock, message, args, { sender, jid, contextInfo }) => {
         const ownerNumber = (config.OWNER_NUMBER || '').replace(/\D/g, '');
-        const ownerName   = config.OWNER_NAME || '✦ Silva ✦ MD ✦';
+        const ownerName   = config.OWNER_NAME || '✦ ShadowBot ✦';
 
         const vcard = [
             'BEGIN:VCARD',

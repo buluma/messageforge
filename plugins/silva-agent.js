@@ -40,7 +40,7 @@ function detectPlatform() {
 }
 
 const BOT_IDENTITY = {
-    name: 'Silva MD',
+    name: 'ShadowBot',
     version: '2.0',
     language: 'Node.js',
     library: 'Baileys (gifted-baileys)',
@@ -48,7 +48,7 @@ const BOT_IDENTITY = {
     website: 'https://silvatech.co.ke',
     get platform() { return detectPlatform(); },
     developer: 'SilvaTech',
-    ownerName: config.OWNER_NAME || 'Silva MD',
+    ownerName: config.OWNER_NAME || 'ShadowBot',
     ownerNumber: config.OWNER_NUMBER || '',
     features: [
         'Auto View Status', 'Anti-Delete Messages', 'Download Songs & Videos',
@@ -502,9 +502,9 @@ module.exports = {
             const sudoCount = global.sudoUsers?.size || 0;
             response =
                 `👑 *Bot Owner*\n\n` +
-                `• Name: *${config.OWNER_NAME || 'Silva MD'}*\n` +
+                `• Name: *${config.OWNER_NAME || 'ShadowBot'}*\n` +
                 `• Number: *+${(config.OWNER_NUMBER || '').replace(/\D/g, '')}*\n` +
-                `• Bot: *${config.BOT_NAME || 'Silva MD'}*\n` +
+                `• Bot: *${config.BOT_NAME || 'ShadowBot'}*\n` +
                 `• Developer: *${BOT_IDENTITY.developer}*\n` +
                 `• Website: ${BOT_IDENTITY.website}\n` +
                 `• GitHub: ${BOT_IDENTITY.repo}\n` +

@@ -43,7 +43,7 @@ module.exports = {
                 document: { url },
                 fileName: filename,
                 mimetype: 'application/zip',
-                caption:  `📦 *${user}/${cleanRepo}*\n_Downloaded via ${getStr('botName') || 'Silva MD'}_`,
+                caption:  `📦 *${user}/${cleanRepo}*\n_Downloaded via ${getStr('botName') || 'ShadowBot'}_`,
                 contextInfo
             }, { quoted: message });
         } catch (err) {
