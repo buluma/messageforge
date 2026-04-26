@@ -121,6 +121,7 @@ function loadPlugins() {
                 if (!mod) continue;
                 if (!mod.commands && mod.name) mod.commands = [mod.name];
                 if (!mod.run && typeof mod.handler === 'function') mod.run = mod.handler;
+                if (!mod.__pluginFile) mod.__pluginFile = file;
 
                 if (Array.isArray(mod.commands) && mod.commands.length && typeof mod.run === 'function') {
                     plugins.push(mod);
@@ -136,6 +137,17 @@ function loadPlugins() {
 }
 
 loadPlugins();
+
+async function emitCommandExecuted(event) {
+    for (const p of plugins) {
+        if (typeof p.onCommandExecuted !== 'function') continue;
+        try {
+            await p.onCommandExecuted(event);
+        } catch (err) {
+            console.error(`[PluginHook:onCommandExecuted] ${err.message}`);
+        }
+    }
+}
 
 // ─── Connection handlers ─────────────────────────────────────────────────────
 function setupConnectionHandlers(sock) {
@@ -649,8 +661,24 @@ async function handleMessages(sock, message) {
                 try { await sock.sendPresenceUpdate('composing', jid); } catch { /* ok */ }
             }
 
+            const startedAt = Date.now();
             try {
                 await plugin.run(sock, message, args, ctx);
+                await emitCommandExecuted({
+                    sock,
+                    command: resolvedCommand,
+                    inputCommand: command,
+                    plugin: plugin.commands?.[0] || 'unknown',
+                    pluginFile: plugin.__pluginFile || null,
+                    success: true,
+                    durationMs: Date.now() - startedAt,
+                    jid,
+                    from: resolvedFrom,
+                    isGroup,
+                    argsCount: args.length,
+                    usedPrefix,
+                    timestamp: new Date().toISOString(),
+                });
                 executed = true;
             } catch (err) {
                 console.error(`[Plugin:${command}] ${err.stack || err.message}`);
@@ -664,6 +692,22 @@ async function handleMessages(sock, message) {
                         th.footer ? `_${th.footer}_` : ''
                     ].filter(Boolean).join('\n')
                 }, { quoted: message });
+                await emitCommandExecuted({
+                    sock,
+                    command: resolvedCommand,
+                    inputCommand: command,
+                    plugin: plugin.commands?.[0] || 'unknown',
+                    pluginFile: plugin.__pluginFile || null,
+                    success: false,
+                    durationMs: Date.now() - startedAt,
+                    jid,
+                    from: resolvedFrom,
+                    isGroup,
+                    argsCount: args.length,
+                    usedPrefix,
+                    error: err?.message || 'unknown error',
+                    timestamp: new Date().toISOString(),
+                });
                 executed = true;
             }
 
