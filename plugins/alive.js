@@ -44,8 +44,6 @@ module.exports = {
         const footer   = t.footer   || 'ShadowBot';
         const alive    = t.alive    || 'System online. All functions nominal.';
         const emoji    = t.aliveEmoji || '⚡';
-        const imageUrl = config.ALIVE_IMG || t.pic1 || 'https://files.catbox.moe/5uli5p.jpeg';
-
         const modeEmoji = mode === 'PUBLIC' ? '🟢' : mode === 'PRIVATE' ? '🔒' : '🔵';
 
         const caption =
@@ -68,14 +66,6 @@ module.exports = {
 
 ✦ ${footer}`;
 
-        try {
-            await sock.sendMessage(sender, {
-                image:   { url: imageUrl },
-                caption,
-                contextInfo
-            }, { quoted: message });
-        } catch {
-            await sock.sendMessage(sender, { text: caption, contextInfo }, { quoted: message });
-        }
+        await sock.sendMessage(sender, { text: caption, contextInfo }, { quoted: message });
     }
 };

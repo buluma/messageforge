@@ -31,10 +31,9 @@ module.exports = {
                 externalAdReply: {
                     title: '👑 Bot Owner',
                     body: 'Tap to view contact details',
-                    thumbnailUrl: config.ALIVE_IMG || 'https://files.catbox.moe/5uli5p.jpeg',
                     sourceUrl: 'https://github.com/SilvaTechB/silva-md-bot',
                     mediaType: 1,
-                    renderLargerThumbnail: true
+                    renderLargerThumbnail: false
                 }
             }
         }, { quoted: message });

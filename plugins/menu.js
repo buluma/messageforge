@@ -94,7 +94,7 @@ function buildMenuText(plugins, pfx, botName, ownerNum, mode) {
 }
 
 // ── Send call log then menu text quoting it ───────────────────────────────────
-async function sendCallLogMenu(sock, jid, menuText, imgUrl) {
+async function sendCallLogMenu(sock, jid, menuText) {
     const CallOutcome = proto.Message.CallLogMessage.CallOutcome;
     const callMsgId   = generateMessageIDV2(sock.user?.id);
     const botJid      = sock.user?.id || '';
@@ -103,53 +103,31 @@ async function sendCallLogMenu(sock, jid, menuText, imgUrl) {
     const callContent = proto.Message.fromObject({
         callLogMesssage: {
             isVideo:      false,
-            callOutcome:  CallOutcome.MISSED,   // 1 — "Missed voice call"
+            callOutcome:  CallOutcome.MISSED,
             durationSecs: 0,
-            callType:     0                     // REGULAR
+            callType:     0
         }
     });
 
     await sock.relayMessage(jid, callContent, { messageId: callMsgId });
 
-    // Brief pause so the call bubble lands before the menu
     await new Promise(r => setTimeout(r, 400));
 
     // Step 2: send the menu as a reply quoting the call log bubble
-    const quotedCallContent = {
-        callLogMesssage: {
-            isVideo:      false,
-            callOutcome:  CallOutcome.MISSED,
-            durationSecs: 0,
-            callType:     0
-        }
-    };
-
     const quotedCtx = {
-        stanzaId:       callMsgId,
-        participant:    botJid,
-        quotedMessage:  quotedCallContent,
-        externalAdReply: {
-            title:                 `${getStr('botName') || 'ShadowBot'} — Command Menu`,
-            body:                  `Tap to view all commands`,
-            thumbnailUrl:          imgUrl,
-            sourceUrl:             WEBSITE,
-            mediaType:             1,
-            renderLargerThumbnail: false
+        stanzaId:      callMsgId,
+        participant:   botJid,
+        quotedMessage: {
+            callLogMesssage: {
+                isVideo:      false,
+                callOutcome:  CallOutcome.MISSED,
+                durationSecs: 0,
+                callType:     0
+            }
         }
     };
 
-    try {
-        await sock.sendMessage(jid, {
-            image:       { url: imgUrl },
-            caption:     menuText,
-            contextInfo: quotedCtx
-        });
-    } catch {
-        await sock.sendMessage(jid, {
-            text:        menuText,
-            contextInfo: quotedCtx
-        });
-    }
+    await sock.sendMessage(jid, { text: menuText, contextInfo: quotedCtx });
 }
 
 module.exports = {
@@ -168,40 +146,18 @@ module.exports = {
         const ownerNum = `+${(config.OWNER_NUMBER || '').replace(/\D/g, '')}`;
         const mode     = (config.MODE || 'public').toUpperCase();
         const pfx      = prefix || '.';
-        const imgUrl   = getStr('pic1') || config.ALIVE_IMG || 'https://files.catbox.moe/5uli5p.jpeg';
-
         const menuText = buildMenuText(plugins, pfx, botName, ownerNum, mode);
 
         // ── Primary: call log bubble → menu reply ──────────────────────────────
         try {
-            await sendCallLogMenu(sock, jid, menuText, imgUrl);
+            await sendCallLogMenu(sock, jid, menuText);
             return;
         } catch (err) {
             console.error('[Menu] callLogMesssage send failed:', err.message);
         }
 
-        // ── Fallback: image + caption with rich card ───────────────────────────
-        const fallbackCtx = {
-            ...contextInfo,
-            externalAdReply: {
-                title:                 `${botName} — Official Command Menu`,
-                body:                  `${plugins.length} plugins  •  Prefix: ${pfx}  •  ${mode} mode`,
-                thumbnailUrl:          imgUrl,
-                sourceUrl:             WEBSITE,
-                mediaType:             1,
-                renderLargerThumbnail: true
-            }
-        };
-
-        try {
-            await sock.sendMessage(jid, {
-                image:       { url: imgUrl },
-                caption:     menuText,
-                contextInfo: fallbackCtx
-            }, { quoted: message });
-        } catch {
-            await sock.sendMessage(jid, { text: menuText, contextInfo }, { quoted: message });
-        }
+        // ── Fallback: text only ────────────────────────────────────────────────
+        await sock.sendMessage(jid, { text: menuText, contextInfo }, { quoted: message });
     }
 };
 

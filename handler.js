@@ -81,15 +81,7 @@ async function safeSend(sock, jid, content, opts = {}) {
 }
 
 // Newsletter watermark — only safe in private chats; groups get an empty object
-const GLOBAL_CONTEXT_INFO = {
-    forwardingScore: 999,
-    isForwarded: true,
-    forwardedNewsletterMessageInfo: {
-        newsletterJid: '120363200367779016@newsletter',
-        newsletterName: '◢◤ Silva Tech Nexus ◢◤',
-        serverMessageId: 144
-    }
-};
+const GLOBAL_CONTEXT_INFO = {};
 
 // ─── Plugin loader ───────────────────────────────────────────────────────────
 const plugins = [];

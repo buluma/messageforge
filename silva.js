@@ -155,15 +155,7 @@ function logMessage(type, message) {
     }
 }
 
-const globalContextInfo = {
-    forwardingScore: 999,
-    isForwarded: true,
-    forwardedNewsletterMessageInfo: {
-        newsletterJid: '120363200367779016@newsletter',
-        newsletterName: '◢◤ Silva Tech Nexus ◢◤',
-        serverMessageId: 144
-    }
-};
+const globalContextInfo = {};
 
 // ✅ Safe Get User JID
 function safeGetUserJid(sock) {
