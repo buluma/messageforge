@@ -2,7 +2,6 @@
   "name": "silva-md",
   "description": "ShadowBot — A feature-rich multi-device WhatsApp bot with 1200+ commands, AI agent, auto-status, anti-delete, sudo system, and 19 smart features. Built with Node.js and Baileys.",
   "keywords": ["silva-md", "whatsapp", "baileys", "bot", "multi-device", "ai", "chatbot", "whatsapp-bot", "nodejs"],
-  "logo": "https://files.catbox.moe/5uli5p.jpeg",
   "repository": "https://github.com/SilvaTechB/silva-md-v4",
   "website": "https://silvatech.co.ke",
   "success_url": "/",
@@ -47,11 +46,6 @@
       "description": "Bot theme/voice. Options: silva, adam, ayanokoji, edith, friday, genos, gideon, gojo, goku, luffy, naruto, nezuko, parker, secktor, suhail, zerotwo, itachi, batman, thanos.",
       "required": false,
       "value": "silva"
-    },
-    "ALIVE_IMG": {
-      "description": "Image URL shown with the alive/menu command.",
-      "required": false,
-      "value": "https://files.catbox.moe/5uli5p.jpeg"
     },
     "LIVE_MSG": {
       "description": "Custom alive message text.",

@@ -54,22 +54,6 @@ module.exports = {
               `💬 *Support:* ${SUPPORT_URL}\n\n` +
               `⚡ _Powered by Silva Tech Inc_`;
 
-        const imgUrl = 'https://files.catbox.moe/5uli5p.jpeg';
-
-        await sock.sendMessage(jid, {
-            image:   { url: imgUrl },
-            caption,
-            contextInfo: {
-                ...contextInfo,
-                externalAdReply: {
-                    title:                 'ShadowBot — Open Source Bot',
-                    body:                  'Star us on GitHub!',
-                    thumbnailUrl:          imgUrl,
-                    sourceUrl:             REPO_URL,
-                    mediaType:             1,
-                    renderLargerThumbnail: true
-                }
-            }
-        }, { quoted: message });
+        await sock.sendMessage(jid, { text: caption, contextInfo }, { quoted: message });
     }
 };

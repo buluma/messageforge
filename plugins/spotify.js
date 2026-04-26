@@ -34,11 +34,11 @@ module.exports = {
                     contextInfo
                 }, { quoted: message });
             }
-            await sock.sendMessage(sender, {
-                image:   { url: coverUrl || 'https://files.catbox.moe/5uli5p.jpeg' },
-                caption,
-                contextInfo
-            }, { quoted: message });
+            if (coverUrl) {
+                await sock.sendMessage(sender, { image: { url: coverUrl }, caption, contextInfo }, { quoted: message });
+            } else {
+                await sock.sendMessage(sender, { text: caption, contextInfo }, { quoted: message });
+            }
         } catch (e) {
             await sock.sendMessage(sender, { text: `❌ Spotify search failed: ${e.message}`, contextInfo }, { quoted: message });
         }

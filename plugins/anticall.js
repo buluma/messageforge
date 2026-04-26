@@ -45,7 +45,6 @@ function initCallHandler(sock, ownerJid) {
                             externalAdReply: {
                                 title:        'Call Rejected',
                                 body:         (getStr('botName') || 'ShadowBot') + ' Anti-Call',
-                                thumbnailUrl: getStr('pic1') || 'https://files.catbox.moe/5uli5p.jpeg',
                                 mediaType:    1
                             }
                         }

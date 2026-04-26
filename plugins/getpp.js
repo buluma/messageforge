@@ -18,17 +18,14 @@ module.exports = {
                 }
             }
 
-            const pp = await sock.profilePictureUrl(user, 'image').catch(() =>
-                'https://files.catbox.moe/5uli5p.jpeg'
-            );
+            const pp = await sock.profilePictureUrl(user, 'image').catch(() => null);
 
             const name = user.split('@')[0];
 
-            await sock.sendMessage(sender, {
-                image:   { url: pp },
-                caption: `🖼️ *Profile Picture*\n\n📱 *User:* +${name}`,
-                contextInfo
-            }, { quoted: message });
+            if (!pp) {
+                return sock.sendMessage(sender, { text: `❌ No profile picture set for +${name}.`, contextInfo }, { quoted: message });
+            }
+            await sock.sendMessage(sender, { image: { url: pp }, caption: `🖼️ *Profile Picture*\n\n📱 *User:* +${name}`, contextInfo }, { quoted: message });
         } catch (err) {
             console.error('[GetPP]', err.message);
             await sock.sendMessage(sender, {

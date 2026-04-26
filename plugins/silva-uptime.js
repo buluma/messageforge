@@ -12,7 +12,7 @@ module.exports = {
     run: async (sock, message, args, { sender, contextInfo }) => {
         try {
             const botName = getStr('botName') || 'ShadowBot';
-            const pic     = getStr('pic1') || 'https://files.catbox.moe/5uli5p.jpeg';
+            const pic     = getStr('pic1') || '';
 
             const uptime  = process.uptime();
             const h = Math.floor(uptime / 3600);
@@ -39,11 +39,11 @@ module.exports = {
 
 ✨ _Powered by ${botName}_`;
 
-            await sock.sendMessage(sender, {
-                image:   { url: pic },
-                caption,
-                contextInfo
-            }, { quoted: message });
+            if (pic) {
+                await sock.sendMessage(sender, { image: { url: pic }, caption, contextInfo }, { quoted: message });
+            } else {
+                await sock.sendMessage(sender, { text: caption, contextInfo }, { quoted: message });
+            }
         } catch (err) {
             console.error('[Uptime]', err.message);
             await sock.sendMessage(sender, {

@@ -11,7 +11,7 @@ module.exports = {
     private:     true,
     run: async (sock, message, args, { sender, contextInfo }) => {
         const botName = getStr('botName') || 'ShadowBot';
-        const pic     = getStr('pic1') || 'https://files.catbox.moe/5uli5p.jpeg';
+        const pic     = getStr('pic1') || '';
 
         const nairobiTime = new Date().toLocaleTimeString('en-KE', {
             hour: 'numeric', minute: 'numeric', hour12: true, timeZone: 'Africa/Nairobi'
@@ -53,29 +53,15 @@ module.exports = {
             }, { quoted: message });
         }
 
-        await sock.sendMessage(sender, {
-            image:   { url: pic },
-            caption:
+        const callCaption =
 `『 *${botName}* 』
-© 2025 *Silvatech Inc*
 
 ⏰ *${nairobiTime}*
 📅 *${nairobiDate}*
 
 *Support Options:*
 • .call status — System status
-• .call social — Social media links
-• WhatsApp: https://wa.me/254700143167`,
-            contextInfo: {
-                ...contextInfo,
-                externalAdReply: {
-                    title:        `${botName} Support`,
-                    body:         'Available 24/7',
-                    thumbnailUrl: pic,
-                    sourceUrl:    'https://wa.me/254700143167',
-                    mediaType:    1
-                }
-            }
-        }, { quoted: message });
+• .call social — Social media links`;
+        await sock.sendMessage(sender, { text: callCaption, contextInfo }, { quoted: message });
     }
 };

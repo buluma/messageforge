@@ -190,7 +190,6 @@ module.exports = {
                         externalAdReply: {
                             title:                 'Instagram',
                             body:                  `Powered by ${botName}`,
-                            thumbnailUrl:          getStr('pic1') || 'https://files.catbox.moe/5uli5p.jpeg',
                             sourceUrl:             url,
                             mediaType:             1,
                             renderLargerThumbnail: true,

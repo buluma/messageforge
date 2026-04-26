@@ -57,15 +57,12 @@ module.exports = {
             }
 
             // ── Step 2: send info card ────────────────────────────────────
-            await sock.sendMessage(sender, {
-                image:   { url: thumbnail || 'https://files.catbox.moe/5uli5p.jpeg' },
-                caption:
-                    `🎵 *${title}*\n` +
-                    `🎤 *Artist:* ${artist}\n` +
-                    `⏱ *Duration:* ${duration}\n\n` +
-                    `_Downloading audio..._`,
-                contextInfo
-            }, { quoted: message });
+            const infoCaption = `🎵 *${title}*\n🎤 *Artist:* ${artist}\n⏱ *Duration:* ${duration}\n\n_Downloading audio..._`;
+            if (thumbnail) {
+                await sock.sendMessage(sender, { image: { url: thumbnail }, caption: infoCaption, contextInfo }, { quoted: message });
+            } else {
+                await sock.sendMessage(sender, { text: infoCaption, contextInfo }, { quoted: message });
+            }
 
             // ── Step 3: try play-dl stream first ─────────────────────────
             let audioBuffer = null;
