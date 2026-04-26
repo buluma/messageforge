@@ -42,10 +42,10 @@ MIT License — free to use, modify, and distribute with attribution.
 
 <div align="center">
 
-**Built with purpose by [Silva Tech Inc](https://github.com/SilvaTechB)**
+**Built with purpose by [ShadowNet Inc](https://github.com/buluma)**
 
 <img src="https://i.imgur.com/dBaSKWF.gif" height="20" width="100%">
 
-</sub>ShadowBot Bot — 1200+ commands. One scan. Unlimited possibilities.</sub>
+</sub>ShadowBot — 1200+ commands. One scan. Unlimited possibilities.</sub>
 
 </div>
