@@ -509,6 +509,7 @@ async function askFreeAI(query, jid) {
         ],
         maxTokens: 800,
         temperature: 0.85,
+        trace: 'agent:chat',
     });
     if (!ai?.text) return null;
     const text = String(ai.text).trim();
@@ -1001,6 +1002,7 @@ module.exports = {
                     ],
                     maxTokens: 700,
                     temperature: 0.75,
+                    trace: 'agent:write',
                 });
 
                 if (ai?.text) {

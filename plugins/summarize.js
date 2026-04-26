@@ -54,6 +54,7 @@ module.exports = {
                 ],
                 maxTokens: 700,
                 temperature: 0.4,
+                trace: 'summarize',
             });
             if (ai?.text) return reply(`📝 *Summary*\n\n${String(ai.text).trim()}`);
         } catch {

@@ -81,6 +81,7 @@ function buildPlugin(cmds, label, key) {
                 openRouterModels: preferredModels(key),
                 maxTokens: 700,
                 temperature: 0.75,
+                trace: `ai2:${cmds[0]}`,
             });
 
             let answer = ai?.text || null;
