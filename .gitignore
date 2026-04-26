@@ -11,3 +11,8 @@ data/lid-phone-cache.json
 data/push-names.json
 .local/
 config.env
+/plans
+/data
+/.gemini-tasks
+/.claude
+/.gemini-tasks

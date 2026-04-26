@@ -220,7 +220,13 @@ async function handleMessages(sock, message) {
         // jid  = the chat to respond to (group JID or private JID)
         // from = the individual who typed the command
         const jid    = message.key.remoteJid;
-        const from   = message.key.participant || jid;
+        let from     = message.key.participant || jid;
+        
+        // Correct author identification for self-sent messages (e.g. from dashboard)
+        if (message.key.fromMe) {
+            from = jidNormalizedUser(sock.user?.id || global.botJid || jid);
+        }
+
         // sender = chat JID for responses (matches legacy plugin expectation of m.key.remoteJid)
         const sender = jid;
         if (!jid || !from) return;

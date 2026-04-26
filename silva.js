@@ -55,7 +55,8 @@ function makeInMemoryStore() {
         },
         loadMessage(jid, id) {
             return messages.get(jid)?.get(id) || null;
-        }
+        },
+        get chats() { return messages; }
     };
 }
 
@@ -64,6 +65,7 @@ const path = require('path');
 const os = require('os');
 const zlib = require('zlib'); // Added for session decompression
 const express = require('express');
+const axios = require('axios');
 const P = require('pino');
 const { handleMessages } = require('./handler');
 const { handleStatusBroadcast } = require('./lib/statusManager');
@@ -382,12 +384,34 @@ async function connectToWhatsApp() {
         ...cryptoOptions
     });
 
+    global.sock = sock;
+
+    // ── Real-time Dashboard Sync ─────────────────────────────────────────────
+    sock.ev.on('messages.upsert', async ({ messages: newMsgs, type }) => {
+        if (type !== 'notify') return;
+        for (const m of newMsgs) {
+            if (global.io) {
+                const clientCount = global.io.engine?.clientsCount || 0;
+                logMessage('INFO', `[Dashboard] emit new-message jid=${m.key.remoteJid} clients=${clientCount}`);
+                global.io.emit('new-message', {
+                    jid: m.key.remoteJid,
+                    message: m,
+                    pushName: m.pushName || global.pushNameCache?.get(m.key.remoteJid) || 'User'
+                });
+            }
+        }
+    });
+
     // bind the store so store.loadMessage works
     try {
         store.bind(sock.ev);
     } catch (e) {
         logMessage('WARN', `store.bind failed: ${e.message}`);
     }
+
+    sock.ev.on('presence.update', ({ id, presences }) => {
+        if (global.io) global.io.emit('presence-update', { jid: id, presences });
+    });
 
     // On fully LID-migrated accounts the contact id IS the LID — no phone JID is provided.
     // We keep a map in case partial data arrives via messaging-history.set on other accounts.
@@ -588,6 +612,23 @@ async function connectToWhatsApp() {
     });
 
     // ✅ Anti-delete/anti-edit handler (messages.update)
+    // Forward reactions to dashboard via the proper Baileys event
+    sock.ev.on('messages.reaction', (reactions) => {
+        if (!global.io) return;
+        for (const r of reactions) {
+            const reactorJid = r.reaction?.key?.participant
+                || r.reaction?.key?.remoteJid
+                || r.key?.remoteJid;
+            global.io.emit('reaction-update', {
+                jid: r.key?.remoteJid,
+                msgId: r.key?.id,
+                emoji: r.reaction?.text || '',
+                sender: r.reaction?.key?.fromMe ? 'me' : reactorJid,
+                fromMe: !!r.reaction?.key?.fromMe
+            });
+        }
+    });
+
     sock.ev.on("messages.update", async (updates) => {
         for (const { key, update } of updates) {
             if (key.remoteJid === "status@broadcast") continue;
@@ -984,12 +1025,9 @@ async function connectToWhatsApp() {
 
                         // React using the correct newsletter API (not sendMessage)
                         if (serverId) {
-                            const isOwnNewsletter = nlJid === '120363200367779016@newsletter';
-                            const reactEmoji = isOwnNewsletter
-                                ? '❤️'
-                                : config.AUTO_REACT_NEWSLETTER
-                                    ? (['🤖','🔥','💫','❤️','👍','💯','✨','👏','😎'])[Math.floor(Math.random() * 9)]
-                                    : null;
+                            const reactEmoji = config.AUTO_REACT_NEWSLETTER
+                                ? (['🤖','🔥','💫','❤️','👍','💯','✨','👏','😎'])[Math.floor(Math.random() * 9)]
+                                : null;
                             if (reactEmoji) {
                                 try {
                                     await sock.newsletterReactMessage(nlJid, serverId, reactEmoji);
@@ -1022,17 +1060,193 @@ async function connectToWhatsApp() {
 
 // ✅ Express Web API
 const app = express();
+const httpSrv = require('http').createServer(app);
+const io = require('socket.io')(httpSrv, {
+    cors: { origin: "*", methods: ["GET", "POST"] }
+});
+global.io = io; // expose globally for hooks
+
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'smm')));
+
 app.get('/', (req, res) => {
     const html = path.join(__dirname, 'smm', 'silva.html');
     if (fs.existsSync(html)) return res.sendFile(html);
     res.send(`<h2>✅ ${config.BOT_NAME} is Running!</h2>`);
 });
+
+// ── Messenger API Endpoints ───────────────────────────────────────────────
+
+app.get('/api/chats', async (req, res) => {
+    try {
+        if (!store) return res.status(503).json({ error: 'Store not ready' });
+        
+        const db = require('./lib/dbManager');
+        const pinned = await db.get('messenger_pinned', []);
+        
+        const chats = [];
+        const jids = Array.from(store.chats.keys());
+        
+        for (const jid of jids) {
+            const chatMsgs = store.chats.get(jid);
+            if (!chatMsgs || chatMsgs.size === 0) continue;
+            
+            const lastMsg = Array.from(chatMsgs.values()).pop();
+            const snippet = lastMsg.message?.conversation || lastMsg.message?.extendedTextMessage?.text || '[Media]';
+            
+            chats.push({
+                jid,
+                name: global.pushNameCache?.get(jid) || jid.split('@')[0],
+                lastMsgSnippet: snippet,
+                timestamp: lastMsg.messageTimestamp,
+                isPinned: pinned.includes(jid)
+            });
+        }
+        
+        // Sort by timestamp (latest first)
+        chats.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        
+        res.json({ chats, pinned });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/chat/:jid/messages', async (req, res) => {
+    const { jid } = req.params;
+    try {
+        if (!store) return res.status(503).json({ error: 'Store not ready' });
+        // Retrieve from in-memory store
+        const chatMsgs = store.chats.get(jid);
+        const messages = chatMsgs ? Array.from(chatMsgs.values()) : [];
+        res.json({ messages });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/profile-pic/:jid', async (req, res) => {
+    const { jid } = req.params;
+    try {
+        if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
+        const url = await global.sock.profilePictureUrl(jid, 'image').catch(() => null);
+        if (!url) return res.json({ url: null });
+        
+        // Proxy the image to avoid CORS/Referer issues
+        const axios = require('axios');
+        const response = await axios.get(url, { responseType: 'arraybuffer' });
+        res.set('Content-Type', response.headers['content-type']);
+        res.send(response.data);
+    } catch (e) { res.status(404).end(); }
+});
+
+app.get('/api/media/:jid/:msgId', async (req, res) => {
+    const { jid, msgId } = req.params;
+    try {
+        if (!store) return res.status(503).json({ error: 'Store not ready' });
+        const msg = await store.loadMessage(jid, msgId);
+        if (!msg?.message) return res.status(404).json({ error: 'Message not found' });
+
+        const { dlAuto } = require('./lib/dlmedia');
+        const { buffer, msgContent } = await dlAuto(msg.message);
+        
+        res.set('Content-Type', msgContent.mimetype || 'application/octet-stream');
+        res.send(buffer);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/send', async (req, res) => {
+    const { jid, text, quoted } = req.body;
+    if (!jid || !text) return res.status(400).json({ error: 'Missing jid or text' });
+    try {
+        if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
+        const { handleMessages, safeSend } = require('./handler');
+        const result = await safeSend(global.sock, jid, { text }, quoted ? { quoted } : {});
+        res.json({ success: !!result, messageId: result?.key?.id });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/toggle-pin', async (req, res) => {
+    const { jid } = req.body;
+    if (!jid) return res.status(400).json({ error: 'Missing jid' });
+    try {
+        const db = require('./lib/dbManager');
+        let pinned = await db.get('messenger_pinned', []);
+        if (pinned.includes(jid)) {
+            pinned = pinned.filter(j => j !== jid);
+        } else {
+            pinned.push(jid);
+        }
+        await db.set('messenger_pinned', pinned);
+        res.json({ success: true, pinned });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/react', async (req, res) => {
+    const { jid, msgId, fromMe, participant, emoji } = req.body;
+    if (!jid || !msgId || !emoji) return res.status(400).json({ error: 'Missing params' });
+    try {
+        if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
+        const key = { remoteJid: jid, id: msgId, fromMe: !!fromMe };
+        if (participant) key.participant = participant;
+        await global.sock.sendMessage(jid, { react: { text: emoji, key } });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/delete-message', async (req, res) => {
+    const { jid, msgId, fromMe, participant } = req.body;
+    if (!jid || !msgId) return res.status(400).json({ error: 'Missing params' });
+    try {
+        if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
+        const key = { remoteJid: jid, id: msgId, fromMe: !!fromMe };
+        if (participant) key.participant = participant;
+        await global.sock.sendMessage(jid, { delete: key });
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/typing', async (req, res) => {
+    const { jid, state } = req.body;
+    if (!jid) return res.status(400).json({ error: 'Missing jid' });
+    try {
+        if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
+        await global.sock.sendPresenceUpdate(state || 'composing', jid);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/subscribe-presence', async (req, res) => {
+    const { jid } = req.body;
+    if (!jid) return res.status(400).json({ error: 'Missing jid' });
+    try {
+        if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
+        await global.sock.presenceSubscribe(jid);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/me', (req, res) => {
+    if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
+    res.json({
+        jid: global.botJid || null,
+        lid: global.botLid || null,
+        num: global.botNum || null
+    });
+});
+
+app.post('/api/read', async (req, res) => {
+    const { jid, msgId, fromMe, participant } = req.body;
+    if (!jid || !msgId) return res.status(400).json({ error: 'Missing params' });
+    try {
+        if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
+        const key = { remoteJid: jid, id: msgId, fromMe: !!fromMe };
+        if (participant) key.participant = participant;
+        await global.sock.readMessages([key]);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 app.get('/health', (req, res) => res.json({ status: 'ok', bot: config.BOT_NAME, time: new Date().toISOString() }));
 app.get('/ping', (req, res) => res.send('pong'));
 
 // ✅ GitHub API proxy — keeps the token server-side out of the browser
-const axios = require('axios');
 const GH_TOKEN = process.env.GITHUB_TOKEN || '';
 const ghHeaders = GH_TOKEN ? { Authorization: `token ${GH_TOKEN}` } : {};
 
@@ -1080,7 +1294,7 @@ app.get('/api/plugins', (req, res) => {
     }
 });
 
-app.listen(port, () => {
+httpSrv.listen(port, () => {
     logMessage('INFO', `🌐 Server running on port ${port}`);
     logMessage('INFO', `📊 Dashboard available at http://localhost:${port}`);
 
