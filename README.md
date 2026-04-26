@@ -2,12 +2,6 @@
 
 <img src="https://i.imgur.com/dBaSKWF.gif" height="20" width="100%">
 
-<br><br>
-
-[![License](https://img.shields.io/github/license/SilvaTechB/silva-md-bot?style=for-the-badge&logo=opensourceinitiative&logoColor=white&labelColor=0d1117&color=3b82f6)](LICENSE)
-
-<br>
-
 **A powerful, feature-rich WhatsApp bot with 1200+ commands, AI integration, media tools, group management, and themed responses — built on Node.js and the Baileys library.**
 
 <img src="https://i.imgur.com/dBaSKWF.gif" height="20" width="100%">
