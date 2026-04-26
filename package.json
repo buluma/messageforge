@@ -59,7 +59,7 @@
     "api-dylux": "^1.8.5",
     "aptoide-scraper": "^1.0.1",
     "awesome-phonenumber": "^3.4.0",
-    "axios": "^1.13.6",
+    "axios": "^1.15.0",
     "btch-downloader": "^4.1.26",
     "chalk": "^5.6.2",
     "cheerio": "^1.2.0",
