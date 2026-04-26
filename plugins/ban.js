@@ -1,6 +1,7 @@
 'use strict';
 
 const { fmt } = require('../lib/theme');
+const db = require('../lib/dbManager');
 
 if (!global.bannedUsers) global.bannedUsers = new Set();
 
@@ -56,6 +57,8 @@ module.exports = {
             }
 
             toBan.forEach(t => global.bannedUsers.add(t));
+            require('../lib/state').save().catch(() => {});
+            
             const names = toBan.map(j => `@${j.split('@')[0]}`).join(', ');
             await sock.sendMessage(jid, {
                 text: fmt(`🔨 *Banned:* ${names}\n\nThey can no longer use bot commands.`),
@@ -66,6 +69,10 @@ module.exports = {
         } else if (rawCmd === 'unban') {
             const wasKnown = targets.filter(t => global.bannedUsers.has(t));
             targets.forEach(t => global.bannedUsers.delete(t));
+            
+            if (wasKnown.length) {
+                require('../lib/state').save().catch(() => {});
+            }
 
             if (!wasKnown.length) {
                 return sock.sendMessage(jid, { text: fmt('⚠️ None of the mentioned users are currently banned.'), contextInfo }, { quoted: message });

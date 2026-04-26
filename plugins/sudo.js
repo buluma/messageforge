@@ -1,12 +1,7 @@
 'use strict';
-const fs = require('fs');
-const path = require('path');
 const { jidNormalizedUser } = require('@whiskeysockets/baileys');
 const config = require('../config');
-
-const SUDO_FILE = path.join(__dirname, '../data/sudo.json');
-function loadSudo() { try { return JSON.parse(fs.readFileSync(SUDO_FILE, 'utf8')); } catch { return []; } }
-function saveSudo(list) { fs.mkdirSync(path.dirname(SUDO_FILE), { recursive: true }); fs.writeFileSync(SUDO_FILE, JSON.stringify(list, null, 2)); }
+const db = require('../lib/dbManager');
 
 function isRealOwner(ctx) {
     if (ctx.m?.key?.fromMe) return true;
@@ -54,12 +49,13 @@ module.exports = {
                 || (args[1] ? `${args[1].replace(/\D/g, '')}@s.whatsapp.net` : null);
             if (!target) return reply('❌ Usage: .sudo add @user or .sudo add <number>');
 
-            const list = loadSudo();
+            const list = await db.get('sudo', []);
             if (list.includes(target)) return reply(`ℹ️ @${target.split('@')[0]} is already a sudo user.`);
             list.push(target);
-            saveSudo(list);
+            await db.set('sudo', list);
             if (!global.sudoUsers) global.sudoUsers = new Set();
             global.sudoUsers.add(target);
+            require('../lib/state').save().catch(() => {});
 
             await sock.sendMessage(jid, {
                 text: `✅ *Sudo Added*\n\n@${target.split('@')[0]} now has owner-level access to all bot commands.`,
@@ -72,8 +68,8 @@ module.exports = {
                 || (args[1] ? `${args[1].replace(/\D/g, '')}@s.whatsapp.net` : null);
             if (!target) return reply('❌ Usage: .sudo del @user or .sudo del <number>');
 
-            const list = loadSudo().filter(j => j !== target);
-            saveSudo(list);
+            const list = (await db.get('sudo', [])).filter(j => j !== target);
+            await db.set('sudo', list);
             if (global.sudoUsers) global.sudoUsers.delete(target);
 
             await sock.sendMessage(jid, {
@@ -83,7 +79,7 @@ module.exports = {
         }
 
         else if (sub === 'list' || sub === 'ls') {
-            const list = loadSudo();
+            const list = await db.get('sudo', []);
             if (!list.length) return reply('👤 *Sudo Users*\n\nNo sudo users configured.\n\nAdd one: .sudo add @user');
             const out = list.map((j, i) => `*${i + 1}.* @${j.split('@')[0]}`).join('\n');
             await sock.sendMessage(jid, {
@@ -93,7 +89,7 @@ module.exports = {
         }
 
         else if (sub === 'reset' || sub === 'clear') {
-            saveSudo([]);
+            await db.set('sudo', []);
             if (global.sudoUsers) global.sudoUsers.clear();
             reply('✅ All sudo users have been cleared.');
         }

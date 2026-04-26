@@ -68,6 +68,8 @@ const P = require('pino');
 const { handleMessages } = require('./handler');
 const { handleStatusBroadcast } = require('./lib/statusManager');
 const config = require('./config.js');
+const { connectDB } = require('./lib/database');
+
 if (typeof global.antivvEnabled === 'undefined') global.antivvEnabled = config.ANTIVV !== false;
 const store = makeInMemoryStore({ logger: P({ level: 'silent' }) });
 
@@ -1124,6 +1126,35 @@ process.on('uncaughtException', (err) => {
         });
     }, 5000);
 });
+
+// ✅ Graceful Shutdown
+async function shutdown(signal) {
+    logMessage('INFO', `Received ${signal}. Shutting down gracefully...`);
+    try {
+        // Persist state
+        try {
+            const state = require('./lib/state');
+            await state.save();
+        } catch {}
+
+        // Flush caches if they exist
+        if (typeof flushLidCache === 'function') await flushLidCache();
+        
+        // Disconnect socket if active
+        // Note: sock is scoped inside connectToWhatsApp, so we might need a global ref if we want to close it here
+        // but for now, flushing data is the priority.
+        
+        logMessage('INFO', 'Clean shutdown complete.');
+        process.exit(0);
+    } catch (e) {
+        logMessage('ERROR', `Shutdown error: ${e.message}`);
+        process.exit(1);
+    }
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
 process.on('unhandledRejection', (reason, promise) => {
     try {
         logMessage('WARN', `Unhandled Rejection: ${reason}`);
@@ -1147,23 +1178,18 @@ process.on('unhandledRejection', (reason, promise) => {
         console.log('\x1b[0m');
         logMessage('INFO', 'Booting ShadowBot Bot...');
 
-        // ── Load sudo users from disk ───────────────────────────────────────
+        // ── Load global state ───────────────────────────────────────────────
         try {
-            const sudoPath = require('path').join(__dirname, 'data', 'sudo.json');
-            if (require('fs').existsSync(sudoPath)) {
-                const sudoList = JSON.parse(require('fs').readFileSync(sudoPath, 'utf8'));
-                global.sudoUsers = new Set(Array.isArray(sudoList) ? sudoList : []);
-                logMessage('INFO', `Loaded ${global.sudoUsers.size} sudo user(s)`);
-            } else {
-                global.sudoUsers = new Set();
-            }
+            const state = require('./lib/state');
+            await state.init();
+            state.startAutoSave();
         } catch (e) {
-            global.sudoUsers = new Set();
-            logMessage('WARN', `Could not load sudo list: ${e.message}`);
+            logMessage('WARN', `State initialization failed: ${e.message}`);
         }
 
         // loadSession is called ONCE here at startup.
         // connectToWhatsApp() and all reconnects reuse the saved state on disk.
+        await connectDB();
         await loadSession();
         await connectToWhatsApp();
     } catch (e) {
