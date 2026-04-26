@@ -1,91 +1,119 @@
 'use strict';
 
-const axios = require('axios');
+const config = require('../config');
 const { fmt } = require('../lib/theme');
+const { askTextAI } = require('../lib/aiClient');
 
-const AI_ENDPOINTS = {
-    chatai:   [
-        q => `https://api.siputzx.my.id/api/ai/chatgpt?content=${encodeURIComponent(q)}`,
-        q => `https://lance-frank-asta.onrender.com/api/gpt?q=${encodeURIComponent(q)}`
-    ],
-    gemini:   [
-        q => `https://api.siputzx.my.id/api/ai/gemini-pro?content=${encodeURIComponent(q)}`,
-        q => `https://api.ryzendesu.vip/api/ai/gemini?text=${encodeURIComponent(q)}`
-    ],
-    giftedai: [
-        q => `https://giftedtech.my.id/api/ai/gpt4o?query=${encodeURIComponent(q)}&apikey=gifted`
-    ],
-    gpt4:     [
-        q => `https://api.siputzx.my.id/api/ai/gpt4?content=${encodeURIComponent(q)}`,
-        q => `https://api.ryzendesu.vip/api/ai/chatgpt?text=${encodeURIComponent(q)}`
-    ],
-    venice:   [
-        q => `https://api.ryzendesu.vip/api/ai/meta-llama?text=${encodeURIComponent(q)}`
-    ],
-    letmegpt: [
-        q => `https://letmegpt.com/api?q=${encodeURIComponent(q)}`
-    ]
-};
+function preferredModels(key) {
+    const map = {
+        gemini: ['google/gemini-2.5-flash-preview'],
+        gpt4: ['openai/gpt-4o', 'openai/gpt-4o-mini'],
+        venice: ['meta-llama/llama-3.3-8b-instruct:free'],
+    };
+    const base = Array.isArray(map[key]) ? map[key] : [];
+    const fromEnv = String(config.OPENROUTER_MODELS || '')
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean);
+    if (config.OPENROUTER_MODEL) fromEnv.unshift(config.OPENROUTER_MODEL);
+    return [...new Set([...base, ...fromEnv])].filter(Boolean);
+}
 
-async function queryAI(endpoints, query) {
-    for (const buildUrl of endpoints) {
-        try {
-            const res = await axios.get(buildUrl(query), { timeout: 20000 });
-            const d = res.data;
-            const answer =
-                d?.result || d?.message || d?.response || d?.answer ||
-                d?.data?.result || d?.data?.message || d?.data?.answer ||
-                (typeof d === 'string' ? d : null);
-            if (answer && typeof answer === 'string' && answer.trim().length > 2) return answer.trim();
-        } catch {}
+function buildMessages(query) {
+    return [
+        {
+            role: 'system',
+            content:
+                'You are Silva, a concise and helpful WhatsApp assistant. Keep answers clear and practical.',
+        },
+        { role: 'user', content: query },
+    ];
+}
+
+async function fallbackWebAnswer(query) {
+    try {
+        const axios = require('axios');
+        const res = await axios.get(
+            `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1`,
+            { timeout: 7000 },
+        );
+        const d = res.data || {};
+        const abstract = String(d.AbstractText || '').trim();
+        if (abstract.length > 10) return abstract;
+        const related = d.RelatedTopics?.find((x) => x?.Text)?.Text;
+        if (related && related.length > 10) return related.trim();
+    } catch {
+        return null;
     }
     return null;
 }
 
-function buildPlugin(cmds, label, endpointKey, fallbackKey = 'chatai') {
+function buildPlugin(cmds, label, key) {
     return {
-        commands:    cmds,
+        commands: cmds,
         description: `Ask ${label} a question`,
-        usage:       `.${cmds[0]} <question>`,
-        permission:  'public',
-        group:       true,
-        private:     true,
+        usage: `.${cmds[0]} <question>`,
+        permission: 'public',
+        group: true,
+        private: true,
 
         run: async (sock, message, args, ctx) => {
             const { jid, contextInfo } = ctx;
             const query = args.join(' ').trim();
 
             if (!query) {
-                return sock.sendMessage(jid, {
-                    text: fmt(`❌ *Usage:* \`.${cmds[0]} <question>\`\n\nExample: \`.${cmds[0]} What is quantum computing?\``),
-                    contextInfo
-                }, { quoted: message });
+                return sock.sendMessage(
+                    jid,
+                    {
+                        text: fmt(
+                            `❌ *Usage:* \`.${cmds[0]} <question>\`\n\nExample: \`.${cmds[0]} What is quantum computing?\``,
+                        ),
+                        contextInfo,
+                    },
+                    { quoted: message },
+                );
             }
 
             await sock.sendPresenceUpdate('composing', jid);
 
-            const eps = AI_ENDPOINTS[endpointKey] || AI_ENDPOINTS[fallbackKey];
-            let answer = await queryAI(eps, query);
+            const ai = await askTextAI({
+                messages: buildMessages(query),
+                openRouterModels: preferredModels(key),
+                maxTokens: 700,
+                temperature: 0.75,
+            });
 
-            if (!answer) answer = await queryAI(AI_ENDPOINTS.chatai, query);
-            if (!answer) answer = '⚠️ All AI servers are currently busy. Please try again later.';
+            let answer = ai?.text || null;
+            if (!answer) answer = await fallbackWebAnswer(query);
+            if (!answer)
+                answer = '⚠️ AI providers unavailable (OpenRouter + Ollama). Try again later.';
 
-            await sock.sendMessage(jid, {
-                text: fmt(`🤖 *${label}*\n\n❓ *Q:* ${query}\n\n💬 *A:* ${answer}`),
-                contextInfo
-            }, { quoted: message });
-        }
+            await sock.sendMessage(
+                jid,
+                {
+                    text: fmt(
+                        `🤖 *${label}*\n\n❓ *Q:* ${query}\n\n💬 *A:* ${answer}${
+                            ai
+                                ? `\n\n_⚙️ via ${ai.provider}${ai.model ? ` (${ai.model})` : ''}_`
+                                : ''
+                        }`,
+                    ),
+                    contextInfo,
+                },
+                { quoted: message },
+            );
+        },
     };
 }
 
-const chatai  = buildPlugin(['chatai'],             'ChatAI',    'chatai');
-const gemini  = buildPlugin(['gemini', 'bard'],     'Gemini AI', 'gemini');
-const giftedai = buildPlugin(['giftedai'],          'Gifted AI', 'giftedai');
-const gpt4    = buildPlugin(['gpt4', 'gpt-4'],      'GPT-4',     'gpt4');
-const gpt4o   = buildPlugin(['gpt4o', 'gpt-4o'],    'GPT-4o',    'gpt4');
-const gpt4omini = buildPlugin(['gpt4o-mini'],       'GPT-4o Mini','gpt4');
-const openai  = buildPlugin(['openai'],             'OpenAI',    'gpt4');
-const venice  = buildPlugin(['venice'],             'Venice AI', 'venice');
-const letmegpt = buildPlugin(['letmegpt'],          'LetMeGPT',  'letmegpt');
+const chatai = buildPlugin(['chatai'], 'ChatAI', 'chatai');
+const gemini = buildPlugin(['gemini', 'bard'], 'Gemini AI', 'gemini');
+const giftedai = buildPlugin(['giftedai'], 'Gifted AI', 'chatai');
+const gpt4 = buildPlugin(['gpt4', 'gpt-4'], 'GPT-4', 'gpt4');
+const gpt4o = buildPlugin(['gpt4o', 'gpt-4o'], 'GPT-4o', 'gpt4');
+const gpt4omini = buildPlugin(['gpt4o-mini'], 'GPT-4o Mini', 'gpt4');
+const openai = buildPlugin(['openai'], 'OpenAI', 'gpt4');
+const venice = buildPlugin(['venice'], 'Venice AI', 'venice');
+const letmegpt = buildPlugin(['letmegpt'], 'LetMeGPT', 'chatai');
 
 module.exports = [chatai, gemini, giftedai, gpt4, gpt4o, gpt4omini, openai, venice, letmegpt];

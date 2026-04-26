@@ -106,6 +106,11 @@ function cleanError(err) {
     return String(err).replace(/\s+/g, ' ').trim().slice(0, MAX_ERROR_LEN);
 }
 
+function fmtDate(input) {
+    const d = new Date(input);
+    return Number.isNaN(d.getTime()) ? 'N/A' : d.toLocaleString();
+}
+
 function toPct(part, whole) {
     if (!whole) return '0.0';
     return ((part / whole) * 100).toFixed(1);
@@ -319,7 +324,7 @@ async function maybeSendFailureAlert(event, rec) {
         `Unique groups affected: ${groups.length}\n` +
         `Private failures: ${privateCount}\n` +
         `Cooldown: ${settings.cooldownMinutes}m per command+plugin\n` +
-        `Time: ${new Date(nowMs).toLocaleString()}\n\n` +
+        `Time: ${fmtDate(nowMs)}\n\n` +
         '*Affected groups:*\n' +
         groupPreview +
         '\n\nUse `.usage failures 20` for details.';
@@ -491,7 +496,7 @@ module.exports = {
                         text:
                             '🧪 *Failure Alert Test*\n\n' +
                             'This is a test alert from usage analytics.\n' +
-                            `Time: ${new Date().toLocaleString()}`,
+                            `Time: ${fmtDate(Date.now())}`,
                     });
                     return send('✅ Test alert sent.');
                 } catch (err) {
@@ -523,7 +528,7 @@ module.exports = {
                     `Tracked plugins: ${pluginCount}\n` +
                     `Active groups: ${groupCount}\n` +
                     `Alerts: ${alerting.enabled ? 'ON' : 'OFF'} (${alerting.thresholdCount}/${alerting.windowMinutes}m, cooldown ${alerting.cooldownMinutes}m)\n` +
-                    `Updated: ${new Date(analytics.updatedAt).toLocaleString()}\n\n` +
+                    `Updated: ${fmtDate(analytics.updatedAt)}\n\n` +
                     '*Top commands:*\n' +
                     (topCommands.length ? topCommands.join('\n') : 'No data yet.') +
                     '\n\n*Top plugins:*\n' +
@@ -587,7 +592,7 @@ module.exports = {
                     `Avg runtime: ~${avgMs}ms\n` +
                     `Groups used in: ${groupCount}\n` +
                     `Distinct commands: ${Object.keys(rec.commands || {}).length}\n` +
-                    `Last used: ${new Date(rec.lastUsedAt).toLocaleString()}\n\n` +
+                    `Last used: ${fmtDate(rec.lastUsedAt)}\n\n` +
                     '*Top commands in this plugin:*\n' +
                     (topCommands.length ? topCommands.join('\n') : 'No command data.') +
                     '\n\n*Top groups for this plugin:*\n' +
@@ -616,7 +621,7 @@ module.exports = {
                     `Success: ${group.success} (${toPct(group.success, group.count)}%)\n` +
                     `Failures: ${group.failure} (${toPct(group.failure, group.count)}%)\n` +
                     `Distinct commands: ${Object.keys(group.commands || {}).length}\n` +
-                    `Last activity: ${new Date(group.lastUsedAt).toLocaleString()}\n\n` +
+                    `Last activity: ${fmtDate(group.lastUsedAt)}\n\n` +
                     '*Top group commands:*\n' +
                     (top.length ? top.join('\n') : 'No command data.'),
             );
@@ -642,7 +647,7 @@ module.exports = {
                     `Failures: ${rec.failure} (${toPct(rec.failure, rec.count)}%)\n` +
                     `Avg runtime: ~${avgMs}ms\n` +
                     `Groups used in: ${groupCount}\n` +
-                    `Last used: ${new Date(rec.lastUsedAt).toLocaleString()}\n\n` +
+                    `Last used: ${fmtDate(rec.lastUsedAt)}\n\n` +
                     '*Top groups for this command:*\n' +
                     (topGroups.length ? topGroups.join('\n') : 'No group usage yet.'),
             );
@@ -652,7 +657,7 @@ module.exports = {
             const limit = Math.min(Math.max(parseInt(args[1], 10) || 10, 1), 50);
             const rows = analytics.failures.slice(0, limit).map((f, i) => {
                 const scope = f.jid?.endsWith('@g.us') ? shortJid(f.jid) : 'private';
-                return `${i + 1}. [${new Date(f.ts).toLocaleString()}] .${f.command} [${f.plugin || 'unknown'}] (${scope})\n   ${f.error}`;
+                return `${i + 1}. [${fmtDate(f.ts)}] .${f.command} [${f.plugin || 'unknown'}] (${scope})\n   ${f.error}`;
             });
             return send(
                 `🚨 *Recent Failures* (max ${limit})\n\n` +

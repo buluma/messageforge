@@ -89,7 +89,7 @@ module.exports = {
 
         const lines = [];
         lines.push(`┌──────────────────────┐`);
-        lines.push(`   🎵 *TikTok Profile Report*`);
+        lines.push(` 🎵 *Profile Report*`);
         lines.push(`└──────────────────────┘`);
         lines.push('');
 
