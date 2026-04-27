@@ -130,5 +130,8 @@ export const ghRepo = (owner, repo) =>
 export const ghUser = (login) => api.get(`/gh/user?login=${login}`).then((r) => r.data);
 export const ghCommitActivity = (owner, repo) =>
     api.get(`/gh/commit-activity?owner=${owner}&repo=${repo}`).then((r) => r.data);
-export const ghCommits = (owner, repo, perPage = 100) =>
-    api.get(`/gh/commits?owner=${owner}&repo=${repo}&per_page=${perPage}`).then((r) => r.data);
+export const ghCommits = (owner, repo, perPage = 100, since = '') => {
+    const q = new URLSearchParams({ owner, repo, per_page: perPage });
+    if (since) q.set('since', since);
+    return api.get(`/gh/commits?${q}`).then((r) => r.data);
+};
