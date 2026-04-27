@@ -87,10 +87,17 @@ function refreshChatTimes() {
 }
 
 // ── Chat list ─────────────────────────────────────────────────────
+function sortedChats(chats) {
+    return [...chats].sort((a, b) => {
+        if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+        return (b.timestamp || 0) - (a.timestamp || 0);
+    });
+}
+
 async function fetchChats() {
     try {
         const data = await api.fetchChats();
-        state.chats = data.chats || [];
+        state.chats = sortedChats(data.chats || []);
         state.filteredChats = state.chats;
         renderChatList();
     } catch (e) {
@@ -193,12 +200,14 @@ function renderChatList() {
 
 function handleSearch(e) {
     const q = e.target.value.trim().toLowerCase();
-    state.filteredChats = !q
-        ? state.chats
-        : state.chats.filter((c) => {
-              const name = (c.name || jidShort(c.jid)).toLowerCase();
-              return name.includes(q) || (c.lastMsgSnippet || '').toLowerCase().includes(q);
-          });
+    state.filteredChats = sortedChats(
+        !q
+            ? state.chats
+            : state.chats.filter((c) => {
+                  const name = (c.name || jidShort(c.jid)).toLowerCase();
+                  return name.includes(q) || (c.lastMsgSnippet || '').toLowerCase().includes(q);
+              })
+    );
     renderChatList();
 }
 
@@ -244,14 +253,17 @@ function updateChatInList(data) {
     if (existing) {
         existing.lastMsgSnippet = snippet;
         existing.timestamp = incomingTs;
-        state.chats = [existing, ...state.chats.filter((c) => c.jid !== data.jid)];
+        state.chats = sortedChats(state.chats);
     } else {
-        state.chats.unshift({
-            jid: data.jid,
-            name: data.pushName,
-            lastMsgSnippet: snippet,
-            timestamp: incomingTs,
-        });
+        state.chats = sortedChats([
+            {
+                jid: data.jid,
+                name: data.pushName,
+                lastMsgSnippet: snippet,
+                timestamp: incomingTs,
+            },
+            ...state.chats,
+        ]);
     }
     state.filteredChats = state.chats;
     renderChatList();
