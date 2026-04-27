@@ -4,6 +4,13 @@ import { on } from './socket.js';
 import { escapeHtml, getInitials, getAvatarColor, jidShort, safeMomentFormat } from './utils.js';
 
 const PAGE_SIZE = 60;
+let chatTimeTicker = null;
+let activeChatRequest = null;
+
+// jid -> 'loaded' | 'failed'. Avoids re-issuing profile-pic requests per render.
+const avatarStatus = new Map();
+// jid -> DOM node. Lets renderChatList reuse nodes instead of rebuilding.
+const chatItemNodes = new Map();
 
 // ── Bootstrap ────────────────────────────────────────────────────
 export function mountMessenger() {
@@ -55,6 +62,28 @@ export function mountMessenger() {
     document.getElementById('loadOlderBtn').onclick = loadOlderMessages;
 
     fetchChats();
+
+    if (!chatTimeTicker) {
+        chatTimeTicker = setInterval(() => {
+            if (state.filteredChats?.length) refreshChatTimes();
+        }, 30 * 1000);
+    }
+}
+
+function refreshChatTimes() {
+    for (const chat of state.filteredChats) {
+        const node = chatItemNodes.get(chat.jid);
+        if (!node) continue;
+        const timeEl = node.querySelector('.chat-item-time');
+        const newLabel = formatChatTimeLabel(chat.timestamp);
+        if (!timeEl) continue;
+        if (newLabel) {
+            timeEl.textContent = newLabel;
+            timeEl.title = formatChatAbsolute(chat.timestamp);
+        } else {
+            timeEl.textContent = '';
+        }
+    }
 }
 
 // ── Chat list ─────────────────────────────────────────────────────
@@ -69,32 +98,97 @@ async function fetchChats() {
     }
 }
 
+function avatarElId(jid) {
+    return `av-${jid.replace(/\W/g, '')}`;
+}
+
+function buildChatItemNode(chat) {
+    const item = document.createElement('div');
+    item.dataset.jid = chat.jid;
+    const avId = avatarElId(chat.jid);
+    item.innerHTML = `
+      <div class="avatar avatar-md" id="${avId}"></div>
+      <div class="chat-item-body">
+        <div class="chat-item-name">
+          <span class="chat-item-title"></span>
+          <div class="chat-item-meta">
+            <span class="chat-item-time"></span>
+            <span class="pin-icon" hidden>⭐</span>
+          </div>
+        </div>
+        <div class="chat-item-snippet"></div>
+      </div>`;
+    item.onclick = () => selectChat(chat);
+    return item;
+}
+
+function applyChatItem(node, chat) {
+    const name = chat.name || jidShort(chat.jid);
+    node.className = `chat-item ${state.activeJid === chat.jid ? 'active' : ''}`;
+    node.onclick = () => selectChat(chat);
+
+    const av = node.querySelector('.avatar');
+    if (av && avatarStatus.get(chat.jid) !== 'loaded') {
+        av.style.backgroundColor = getAvatarColor(chat.jid);
+        if (!av.textContent) av.textContent = getInitials(name);
+    }
+
+    const titleEl = node.querySelector('.chat-item-title');
+    if (titleEl && titleEl.textContent !== name) titleEl.textContent = name;
+
+    const timeEl = node.querySelector('.chat-item-time');
+    const timeLabel = formatChatTimeLabel(chat.timestamp);
+    if (timeEl) {
+        if (timeLabel) {
+            timeEl.textContent = timeLabel;
+            timeEl.title = formatChatAbsolute(chat.timestamp);
+        } else {
+            timeEl.textContent = '';
+        }
+    }
+
+    const pinEl = node.querySelector('.pin-icon');
+    if (pinEl) pinEl.hidden = !chat.isPinned;
+
+    const snippetEl = node.querySelector('.chat-item-snippet');
+    const snippet = chat.lastMsgSnippet || '';
+    if (snippetEl && snippetEl.textContent !== snippet) snippetEl.textContent = snippet;
+}
+
 function renderChatList() {
     const list = document.getElementById('chatList');
     if (!state.filteredChats.length) {
         list.innerHTML = '<div class="empty-state">No conversations</div>';
+        chatItemNodes.clear();
         return;
     }
-    list.innerHTML = '';
+
+    const desired = new Set();
+    const fragment = document.createDocumentFragment();
+    const newJids = [];
+
     for (const chat of state.filteredChats) {
-        const name = chat.name || jidShort(chat.jid);
-        const item = document.createElement('div');
-        item.className = `chat-item ${state.activeJid === chat.jid ? 'active' : ''}`;
-        item.dataset.jid = chat.jid;
-        const avId = `av-${chat.jid.replace(/\W/g, '')}`;
-        item.innerHTML = `
-      <div class="avatar avatar-md" id="${avId}" style="background-color:${getAvatarColor(chat.jid)}">${escapeHtml(getInitials(name))}</div>
-      <div class="chat-item-body">
-        <div class="chat-item-name">
-          <span>${escapeHtml(name)}</span>
-          ${chat.isPinned ? '<span class="pin-icon">⭐</span>' : ''}
-        </div>
-        <div class="chat-item-snippet">${escapeHtml(chat.lastMsgSnippet || '')}</div>
-      </div>`;
-        item.onclick = () => selectChat(chat);
-        list.appendChild(item);
-        fetchProfilePic(chat.jid, avId);
+        desired.add(chat.jid);
+        let node = chatItemNodes.get(chat.jid);
+        if (!node) {
+            node = buildChatItemNode(chat);
+            chatItemNodes.set(chat.jid, node);
+            newJids.push(chat.jid);
+        }
+        applyChatItem(node, chat);
+        fragment.appendChild(node);
     }
+
+    for (const [jid, node] of chatItemNodes) {
+        if (!desired.has(jid)) {
+            node.remove();
+            chatItemNodes.delete(jid);
+        }
+    }
+
+    list.replaceChildren(fragment);
+
+    for (const jid of newJids) fetchProfilePic(jid, avatarElId(jid));
 }
 
 function handleSearch(e) {
@@ -108,15 +202,34 @@ function handleSearch(e) {
     renderChatList();
 }
 
+const NO_AVATAR_SUFFIXES = ['@newsletter', '@broadcast'];
+
 function fetchProfilePic(jid, elId) {
+    if (NO_AVATAR_SUFFIXES.some((s) => jid.endsWith(s))) {
+        avatarStatus.set(jid, 'failed');
+        return;
+    }
+    if (avatarStatus.get(jid) === 'failed') return;
     const url = `/api/profile-pic/${encodeURIComponent(jid)}`;
-    const img = new Image();
-    img.onload = () => {
+    if (avatarStatus.get(jid) === 'loaded') {
         const el = document.getElementById(elId);
         if (el) {
             el.style.backgroundImage = `url(${url})`;
             el.innerHTML = '';
         }
+        return;
+    }
+    const img = new Image();
+    img.onload = () => {
+        avatarStatus.set(jid, 'loaded');
+        const el = document.getElementById(elId);
+        if (el) {
+            el.style.backgroundImage = `url(${url})`;
+            el.innerHTML = '';
+        }
+    };
+    img.onerror = () => {
+        avatarStatus.set(jid, 'failed');
     };
     img.src = url;
 }
@@ -126,15 +239,58 @@ function updateChatInList(data) {
         data.message?.message?.conversation ||
         data.message?.message?.extendedTextMessage?.text ||
         '[Media]';
+    const incomingTs = data.message?.messageTimestamp || Math.floor(Date.now() / 1000);
     const existing = state.chats.find((c) => c.jid === data.jid);
     if (existing) {
         existing.lastMsgSnippet = snippet;
+        existing.timestamp = incomingTs;
         state.chats = [existing, ...state.chats.filter((c) => c.jid !== data.jid)];
     } else {
-        state.chats.unshift({ jid: data.jid, name: data.pushName, lastMsgSnippet: snippet });
+        state.chats.unshift({
+            jid: data.jid,
+            name: data.pushName,
+            lastMsgSnippet: snippet,
+            timestamp: incomingTs,
+        });
     }
     state.filteredChats = state.chats;
     renderChatList();
+}
+
+function normalizeTimestampSeconds(ts) {
+    if (typeof ts === 'number' && Number.isFinite(ts)) {
+        return ts > 1e12 ? Math.floor(ts / 1000) : Math.floor(ts);
+    }
+    if (typeof ts === 'string') {
+        const n = Number(ts);
+        if (Number.isFinite(n)) return n > 1e12 ? Math.floor(n / 1000) : Math.floor(n);
+        return 0;
+    }
+    if (ts && typeof ts === 'object') {
+        if (typeof ts.low === 'number') return Math.floor(ts.low);
+        if (typeof ts.toString === 'function') {
+            const n = Number(ts.toString());
+            if (Number.isFinite(n)) return n > 1e12 ? Math.floor(n / 1000) : Math.floor(n);
+        }
+    }
+    return 0;
+}
+
+function formatChatTimeLabel(ts) {
+    const secs = normalizeTimestampSeconds(ts);
+    if (!secs) return '';
+    const diff = Math.max(0, Math.floor(Date.now() / 1000) - secs);
+    if (diff < 45) return 'now';
+    if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+    if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
+    return safeMomentFormat(secs, 'DD MMM');
+}
+
+function formatChatAbsolute(ts) {
+    const secs = normalizeTimestampSeconds(ts);
+    if (!secs) return '';
+    return safeMomentFormat(secs, 'ddd, DD MMM hh:mm A');
 }
 
 // ── Open chat ─────────────────────────────────────────────────────
@@ -142,6 +298,14 @@ async function selectChat(chat) {
     state.activeJid = chat.jid;
     cancelReply();
     api.subscribePresence(chat.jid).catch(() => {});
+
+    // Cancel any previous in-flight chat load to prevent timeout races/stale swaps.
+    if (activeChatRequest) {
+        activeChatRequest.abort();
+        activeChatRequest = null;
+    }
+    const controller = new AbortController();
+    activeChatRequest = controller;
 
     document
         .querySelectorAll('.chat-item')
@@ -168,7 +332,11 @@ async function selectChat(chat) {
     loadOlderBtn.hidden = true;
 
     try {
-        const data = await api.fetchMessages(chat.jid, { limit: PAGE_SIZE });
+        const data = await api.fetchMessages(chat.jid, {
+            limit: PAGE_SIZE,
+            signal: controller.signal,
+        });
+        if (state.activeJid !== chat.jid || activeChatRequest !== controller) return;
         thread.innerHTML = '';
         state.renderedMsgIds.clear();
         state.msgReactions.clear();
@@ -185,8 +353,11 @@ async function selectChat(chat) {
             }).catch(() => {});
         }
     } catch (e) {
+        if (e?.code === 'ERR_CANCELED' || e?.name === 'AbortError') return;
         thread.innerHTML = '<div class="empty-state">Failed to load messages</div>';
         loadOlderBtn.hidden = true;
+    } finally {
+        if (activeChatRequest === controller) activeChatRequest = null;
     }
 }
 

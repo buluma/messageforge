@@ -1420,19 +1420,86 @@ app.get('/api/chat/:jid/messages', async (req, res) => {
     }
 });
 
+// Server-side profile-pic cache. Keyed by jid. Two flavors:
+//   hit:  { buf, mime, etag, expires }
+//   miss: { miss: true, expires }
+// LRU-bounded so resident memory stays predictable.
+const profilePicCache = new Map();
+const PROFILE_PIC_HIT_TTL_MS = 10 * 60 * 1000;
+const PROFILE_PIC_MISS_TTL_MS = 5 * 60 * 1000;
+const PROFILE_PIC_MAX_ENTRIES = 200;
+const PROFILE_PIC_SKIP_SUFFIXES = ['@newsletter', '@broadcast'];
+
+function profilePicCacheSet(jid, value) {
+    profilePicCache.delete(jid);
+    profilePicCache.set(jid, value);
+    while (profilePicCache.size > PROFILE_PIC_MAX_ENTRIES) {
+        const oldest = profilePicCache.keys().next().value;
+        if (oldest === undefined) break;
+        profilePicCache.delete(oldest);
+    }
+}
+
+function profilePicCacheTouch(jid) {
+    if (!profilePicCache.has(jid)) return;
+    const v = profilePicCache.get(jid);
+    profilePicCache.delete(jid);
+    profilePicCache.set(jid, v);
+}
+
 app.get('/api/profile-pic/:jid', async (req, res) => {
     const { jid } = req.params;
     try {
+        if (PROFILE_PIC_SKIP_SUFFIXES.some((s) => jid.endsWith(s))) {
+            res.set('Cache-Control', 'private, max-age=86400');
+            return res.status(404).end();
+        }
+
+        const now = Date.now();
+        const cached = profilePicCache.get(jid);
+        if (cached && cached.expires > now) {
+            profilePicCacheTouch(jid);
+            if (cached.miss) {
+                res.set('Cache-Control', `private, max-age=${Math.floor((cached.expires - now) / 1000)}`);
+                return res.status(404).end();
+            }
+            res.set('Cache-Control', `private, max-age=${Math.floor((cached.expires - now) / 1000)}`);
+            res.set('ETag', cached.etag);
+            if (req.headers['if-none-match'] === cached.etag) return res.status(304).end();
+            res.set('Content-Type', cached.mime);
+            return res.send(cached.buf);
+        }
+
         if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
         const url = await global.sock.profilePictureUrl(jid, 'image').catch(() => null);
-        if (!url) return res.json({ url: null });
+        if (!url) {
+            profilePicCacheSet(jid, { miss: true, expires: now + PROFILE_PIC_MISS_TTL_MS });
+            res.set('Cache-Control', `private, max-age=${Math.floor(PROFILE_PIC_MISS_TTL_MS / 1000)}`);
+            return res.status(404).end();
+        }
 
-        // Proxy the image to avoid CORS/Referer issues
         const axios = require('axios');
-        const response = await axios.get(url, { responseType: 'arraybuffer' });
-        res.set('Content-Type', response.headers['content-type']);
-        res.send(response.data);
+        const response = await axios.get(url, { responseType: 'arraybuffer', timeout: 10000 });
+        const buf = Buffer.from(response.data);
+        const crypto = require('crypto');
+        const etag = '"' + crypto.createHash('sha1').update(buf).digest('hex') + '"';
+        const mime = response.headers['content-type'] || 'image/jpeg';
+
+        profilePicCacheSet(jid, {
+            buf,
+            mime,
+            etag,
+            expires: now + PROFILE_PIC_HIT_TTL_MS,
+        });
+
+        res.set('Cache-Control', 'private, max-age=3600');
+        res.set('ETag', etag);
+        if (req.headers['if-none-match'] === etag) return res.status(304).end();
+        res.set('Content-Type', mime);
+        res.send(buf);
     } catch (e) {
+        profilePicCacheSet(jid, { miss: true, expires: Date.now() + PROFILE_PIC_MISS_TTL_MS });
+        res.set('Cache-Control', `private, max-age=${Math.floor(PROFILE_PIC_MISS_TTL_MS / 1000)}`);
         res.status(404).end();
     }
 });
