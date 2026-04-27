@@ -18,6 +18,14 @@ export function mountDashboard() {
             renderPlugins();
         };
     });
+
+    const pluginSearch = document.getElementById('pluginSearch');
+    if (pluginSearch) {
+        pluginSearch.oninput = () => {
+            state.pluginQuery = pluginSearch.value.trim().toLowerCase();
+            renderPlugins();
+        };
+    }
 }
 
 async function refreshAll() {
@@ -76,9 +84,15 @@ function renderPlugins() {
     const grid = document.getElementById('pluginsGrid');
     if (!grid) return;
     grid.innerHTML = '';
-    const filtered = state.allPlugins.filter(
-        (p) => state.pluginFilter === 'all' || p.permission === state.pluginFilter,
-    );
+    const q = (state.pluginQuery || '').toLowerCase();
+    const filtered = state.allPlugins.filter((p) => {
+        if (state.pluginFilter !== 'all' && p.permission !== state.pluginFilter) return false;
+        if (!q) return true;
+        const name = toTitleCase(p.name || (p.commands || [])[0] || '').toLowerCase();
+        const desc = (p.description || '').toLowerCase();
+        const cmds = (p.commands || []).join(' ').toLowerCase();
+        return name.includes(q) || desc.includes(q) || cmds.includes(q);
+    });
     for (const p of filtered) {
         const card = document.createElement('div');
         card.className = 'plugin-card';
@@ -104,29 +118,50 @@ async function fetchAndRenderChart() {
 }
 
 async function fetchCommitSeries(weeks = 12) {
+    const now = moment();
+    const weekStart = now.clone().startOf('isoWeek');
+    const weekLabel = weekStart.format('MMM D');
+
+    let series = null;
+
     try {
         const data = await api.ghCommitActivity(OWNER, REPO);
         if (Array.isArray(data) && data.length > 0) {
-            return data.slice(-weeks).map((w) => ({
+            series = data.slice(-weeks).map((w) => ({
                 week: moment.unix(w.week).format('MMM D'),
                 total: w.total,
             }));
         }
     } catch {}
 
-    // Fallback: count from commits endpoint
-    const commits = await api.ghCommits(OWNER, REPO, 100);
-    const now = moment();
-    const buckets = Array.from({ length: weeks }, (_, i) => ({
-        week: now.clone().subtract(i, 'weeks').startOf('week').format('MMM D'),
-        total: 0,
-    })).reverse();
-    for (const c of commits || []) {
-        const date = moment(c.commit?.author?.date);
-        const idx = buckets.findIndex((w) => date.isSame(moment(w.week, 'MMM D'), 'week'));
-        if (idx !== -1) buckets[idx].total++;
+    if (!series) {
+        // Fallback: count from commits endpoint
+        const commits = await api.ghCommits(OWNER, REPO, 100);
+        const buckets = Array.from({ length: weeks }, (_, i) => ({
+            week: now.clone().subtract(i, 'weeks').startOf('isoWeek').format('MMM D'),
+            total: 0,
+        })).reverse();
+        for (const c of commits || []) {
+            const date = moment(c.commit?.author?.date);
+            const idx = buckets.findIndex((w) => date.isSame(moment(w.week, 'MMM D'), 'isoWeek'));
+            if (idx !== -1) buckets[idx].total++;
+        }
+        series = buckets;
     }
-    return buckets;
+
+    // GitHub stats only cover complete weeks — patch/append the current partial week.
+    try {
+        const recentCommits = await api.ghCommits(OWNER, REPO, 100, weekStart.toISOString());
+        const currentCount = (recentCommits || []).length;
+        const last = series[series.length - 1];
+        if (last && last.week === weekLabel) {
+            last.total = currentCount;
+        } else {
+            series = [...series.slice(-(weeks - 1)), { week: weekLabel, total: currentCount }];
+        }
+    } catch {}
+
+    return series;
 }
 
 function renderCommitChart(series) {

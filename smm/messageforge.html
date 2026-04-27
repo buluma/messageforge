@@ -209,11 +209,20 @@
                 <section class="view view-plugins" id="view-plugins">
                     <header class="view-header">
                         <h1>Plugins</h1>
-                        <div class="filter-pills">
-                            <button class="pill active" data-filter="all">All</button>
-                            <button class="pill" data-filter="public">Public</button>
-                            <button class="pill" data-filter="admin">Admin</button>
-                            <button class="pill" data-filter="owner">Owner</button>
+                        <div class="plugins-controls">
+                            <input
+                                id="pluginSearch"
+                                class="plugin-search-input"
+                                type="search"
+                                placeholder="Search plugins…"
+                                autocomplete="off"
+                            />
+                            <div class="filter-pills">
+                                <button class="pill active" data-filter="all">All</button>
+                                <button class="pill" data-filter="public">Public</button>
+                                <button class="pill" data-filter="admin">Admin</button>
+                                <button class="pill" data-filter="owner">Owner</button>
+                            </div>
                         </div>
                     </header>
                     <div id="pluginsLoading" class="empty-state">Loading plugins…</div>
