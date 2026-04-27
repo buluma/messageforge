@@ -16,3 +16,4 @@ config.env
 /.gemini-tasks
 /.claude
 /.gemini-tasks
+/.playwright-browsers
