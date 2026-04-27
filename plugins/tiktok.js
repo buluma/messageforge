@@ -11,6 +11,85 @@ const { getStr, fmt } = require('../lib/theme');
 
 const DATA_DIR = path.join(__dirname, '..', 'data', 'tiktok');
 
+// ─── Telegram Config ────────────────────────────────────────────────────────────
+function getTelegramConfig() {
+    return {
+        botToken: process.env.TELEGRAM_BOT_TOKEN,
+        chatId: process.env.TELEGRAM_CHAT_ID,
+        autoSend: process.env.TELEGRAM_AUTO_SEND === 'true'
+    };
+}
+
+/**
+ * Send video to Telegram channel/group
+ */
+async function sendToTelegram(filePath, caption, fileMetadata) {
+    const config = getTelegramConfig();
+    
+    if (!config.botToken || config.botToken === 'YOUR_BOT_TOKEN_HERE') {
+        console.log('[TikTok→Telegram] Bot token not configured');
+        return { success: false, error: 'Telegram not configured' };
+    }
+    
+    if (!config.chatId || config.chatId === 'YOUR_CHAT_ID_HERE') {
+        console.log('[TikTok→Telegram] Chat ID not configured');
+        return { success: false, error: 'Telegram chat ID not configured' };
+    }
+    
+    const apiUrl = `https://api.telegram.org/bot${config.botToken}`;
+    
+    try {
+        // Prepare caption for Telegram
+        const tgCaption = caption
+            .replace(/\*/g, '')
+            .replace(/`/g, '')
+            .substring(0, 1024); // Telegram caption limit
+        
+        // Send video
+        const formData = new URLSearchParams();
+        formData.append('chat_id', config.chatId);
+        formData.append('caption', tgCaption);
+        formData.append('parse_mode', 'Markdown');
+        
+        const videoBuffer = fs.readFileSync(filePath);
+        const fileName = path.basename(filePath);
+        
+        // Use axios to send multipart form data
+        const response = await axios.post(`${apiUrl}/sendVideo`, formData, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            params: {
+                chat_id: config.chatId,
+                caption: tgCaption,
+                parse_mode: 'Markdown',
+            },
+        }).catch(async () => {
+            // If sendVideo fails, try sending as document
+            return await axios.post(`${apiUrl}/sendDocument`, {
+                chat_id: config.chatId,
+                document: fs.createReadStream(filePath),
+                caption: tgCaption,
+                parse_mode: 'Markdown',
+            }, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+        });
+        
+        if (response.data?.ok) {
+            console.log(`[TikTok→Telegram] ✅ Sent: ${fileName}`);
+            return { success: true, messageId: response.data?.result?.message_id };
+        }
+        
+        return { success: false, error: response.data?.description || 'Unknown error' };
+    } catch (err) {
+        console.error(`[TikTok→Telegram] ❌ Error: ${err.message}`);
+        return { success: false, error: err.message };
+    }
+}
+
 // Ensure storage directory exists
 function ensureDir() {
     if (!fs.existsSync(DATA_DIR)) {
@@ -275,8 +354,9 @@ module.exports = {
         await sock.sendPresenceUpdate('composing', sender);
 
         // Send processing message
+        const tgStatus = getTelegramConfig().autoSend ? '\n📱 Will forward to Telegram' : '';
         const processingMsg = await sock.sendMessage(sender, {
-            text: `⏳ *Processing TikTok video...*\n🔗 Quality: *${quality.toUpperCase()}*\n💾 Will be saved to data/tiktok/\n🧹 Removing watermark...\n⏱️ May take ~30 seconds`,
+            text: `⏳ *Processing TikTok video...*\n🔗 Quality: *${quality.toUpperCase()}*\n💾 Saved to data/tiktok/\n🧹 Removing watermark...${tgStatus}\n⏱️ May take ~30 seconds`,
             contextInfo
         }, { quoted: message });
         
@@ -347,7 +427,7 @@ module.exports = {
                 `${apiLine}`
             );
 
-            // ── Send video ───────────────────────────────────────────────
+            // ── Send video to WhatsApp ─────────────────────────────────────
             await sock.sendMessage(sender, {
                 video: fs.readFileSync(savedPath),
                 caption,
@@ -362,11 +442,31 @@ module.exports = {
                 }
             }, { quoted: message });
 
-            // Edit processing message
+            // ── Auto-send to Telegram ─────────────────────────────────────
+            let tgResult = null;
+            if (getTelegramConfig().autoSend) {
+                console.log('[TikTok] Auto-sending to Telegram...');
+                tgResult = await sendToTelegram(savedPath, caption, {
+                    author: result.author,
+                    likes: result.likes,
+                    api: result.api,
+                    quality
+                });
+            }
+
+            // ── Update processing message ────────────────────────────────
+            let statusText = '✅ *Video sent successfully!*';
+            if (tgResult) {
+                if (tgResult.success) {
+                    statusText += '\n📱 *Forwarded to Telegram!*';
+                } else {
+                    statusText += `\n⚠️ *Telegram: ${tgResult.error}*`;
+                }
+            }
             try {
                 await sock.sendMessage(sender, {
                     edit: processingMsg.key,
-                    text: '✅ *Video sent successfully!*'
+                    text: statusText
                 });
             } catch { /* ignore edit failures */ }
 
