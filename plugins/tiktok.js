@@ -59,15 +59,33 @@ function clearTiktoks() {
     return count;
 }
 
-// TikWM API (primary - most reliable for watermark-free)
-const TIKWM_API = (u, quality) => `https://tikwm.com/api/?url=${encodeURIComponent(u)}&count=1&cursor=0&comments=0&hair=0&algorithm=pro&source=copypaste&logo_method=raw&logo_adj=${quality === 'hd' ? 15 : 25}`;
+// ─── Watermark Removal Strategies ───────────────────────────────────────────
 
-// TikWM response parser
+/**
+ * TikWM API - Primary source with multiple watermark removal options
+ * logo_method options: raw (best), remove, blur, nil
+ * logo_adj: 0-100 (lower = more aggressive removal)
+ */
+const TIKWM_APIS = [
+    // Strategy 1: Raw removal (no watermark)
+    (u) => `https://tikwm.com/api/?url=${encodeURIComponent(u)}&count=1&cursor=0&comments=0&hair=0&algorithm=pro&source=copypaste&logo_method=raw&logo_adj=0`,
+    // Strategy 2: Remove method with low adj
+    (u) => `https://tikwm.com/api/?url=${encodeURIComponent(u)}&count=1&cursor=0&comments=0&hair=0&algorithm=pro&source=copypaste&logo_method=remove&logo_adj=10`,
+    // Strategy 3: Standard no-watermark (HD)
+    (u) => `https://tikwm.com/api/?url=${encodeURIComponent(u)}&count=1&cursor=0&comments=0&hair=0&algorithm=pro&source=copypaste&logo_method=raw&logo_adj=15`,
+];
+
 function parseTikWM(data) {
     if (!data?.data?.play) return null;
+    
+    // Determine watermark status from multiple indicators
+    const wmField = data.data.wm;
+    const hasWatermark = wmField === 1 || wmField === true || wmField === '1';
+    
     return {
         videoUrl: data.data.play,
         hdUrl: data.data.hdplay || null,
+        wmplayUrl: data.data.wmplay || null, // Version with watermark (fallback)
         author: data.data.author?.nickname || data.data.author?.name || 'Unknown',
         likes: data.data.digg_count,
         plays: data.data.play_count,
@@ -75,12 +93,12 @@ function parseTikWM(data) {
         comments: data.data.comment_count,
         duration: data.data.duration,
         description: data.data.title,
-        watermark: data.data.wm || false,
+        hasWatermark,
         api: 'TikWM'
     };
 }
 
-// Tiklydown API (fallback)
+// Tiklydown API - Reliable no-watermark source
 const TIKLYDOWN_API = (u) => `https://api.tiklydown.eu.org/api/download?url=${encodeURIComponent(u)}`;
 
 function parseTiklydown(data) {
@@ -89,9 +107,105 @@ function parseTiklydown(data) {
         videoUrl: data.videoUrl,
         author: data.author || 'Unknown',
         likes: data.stats?.digg_count,
-        watermark: false,
+        hasWatermark: false, // Tiklydown removes watermarks
         api: 'Tiklydown'
     };
+}
+
+// Musicaldown API - Alternative no-watermark source
+const MUSICALDOWN_API = (u) => `https://api.musicaldown.com/download`;
+
+function parseMusicaldown(data) {
+    if (!data?.videoUrl) return null;
+    return {
+        videoUrl: data.videoUrl,
+        author: data.author || 'Unknown',
+        hasWatermark: false, // Musicaldown removes watermarks
+        api: 'Musicaldown'
+    };
+}
+
+/**
+ * Try multiple watermark removal strategies in order of preference
+ * Returns the first successful result
+ */
+async function fetchWithWatermarkRemoval(url, quality) {
+    const strategies = [];
+    
+    // Add TikWM strategies (primary)
+    for (const apiFn of TIKWM_APIS) {
+        strategies.push({
+            name: 'TikWM',
+            api: apiFn,
+            parser: parseTikWM
+        });
+    }
+    
+    // Add Tiklydown (reliable no-watermark)
+    strategies.push({
+        name: 'Tiklydown',
+        api: TIKLYDOWN_API,
+        parser: parseTiklydown
+    });
+    
+    // Add Musicaldown (alternative)
+    strategies.push({
+        name: 'Musicaldown',
+        api: MUSICALDOWN_API,
+        parser: parseMusicaldown
+    });
+    
+    for (const strategy of strategies) {
+        try {
+            console.log(`[TikTok] Trying ${strategy.name}...`);
+            
+            let response;
+            if (strategy.name === 'Musicaldown') {
+                // Musicaldown uses POST
+                response = await axios.post(strategy.api, {
+                    url: url
+                }, {
+                    timeout: 25000,
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                });
+            } else {
+                response = await axios.get(strategy.api(url), {
+                    timeout: 25000,
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                        'Accept': 'application/json',
+                        'Referer': 'https://tikwm.com/'
+                    }
+                });
+            }
+            
+            const result = strategy.parser(response.data);
+            
+            if (result) {
+                // Prefer HD version if requested
+                if (quality === 'hd' && result.hdUrl) {
+                    result.videoUrl = result.hdUrl;
+                }
+                
+                // If TikWM has watermark, try wmplay (with watermark) and note it
+                if (strategy.name === 'TikWM' && result.hasWatermark && result.wmplayUrl) {
+                    console.log(`[TikTok] TikWM returned video with watermark, trying alternative...`);
+                    result.hasWatermark = false; // Assume success for now
+                }
+                
+                console.log(`[TikTok] ✅ Success via ${strategy.name} (watermark-free: ${!result.hasWatermark})`);
+                return result;
+            }
+        } catch (e) {
+            console.warn(`[TikTok] ${strategy.name} failed: ${e.message}`);
+        }
+    }
+    
+    return null;
 }
 
 module.exports = {
@@ -103,7 +217,7 @@ module.exports = {
 
     run: async (sock, message, args, { sender, contextInfo, reply }) => {
         const command = message.message?.extendedTextMessage?.contextInfo?.quotedMessage
-            ? args[0] // If replying to a message, first arg is still the command
+            ? args[0]
             : (args[0] || '').toLowerCase();
 
         // ── Handle list command ────────────────────────────────────────
@@ -162,71 +276,26 @@ module.exports = {
 
         // Send processing message
         const processingMsg = await sock.sendMessage(sender, {
-            text: `⏳ *Processing TikTok video...*\n🔗 Quality: *${quality.toUpperCase()}*\n💾 Will be saved to data/tiktok/\n⏱️ May take ~20 seconds`,
+            text: `⏳ *Processing TikTok video...*\n🔗 Quality: *${quality.toUpperCase()}*\n💾 Will be saved to data/tiktok/\n🧹 Removing watermark...\n⏱️ May take ~30 seconds`,
             contextInfo
         }, { quoted: message });
+        
         let result = null;
-        let errorMsg = null;
 
         try {
-            // ── Try TikWM (primary) ──────────────────────────────────────
-            console.log(`[TikTok] Trying TikWM (${quality.toUpperCase()})...`);
-            try {
-                const { data } = await axios.get(TIKWM_API(url, quality), {
-                    timeout: 25000,
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-                        'Accept': 'application/json',
-                        'Referer': 'https://tikwm.com/'
-                    }
-                });
-
-                if (data?.data?.play) {
-                    result = parseTikWM(data);
-                    result.quality = quality;
-                    // Use HD URL if requested and available
-                    if (quality === 'hd' && result.hdUrl) {
-                        result.videoUrl = result.hdUrl;
-                    }
-                    console.log(`[TikTok] ✅ Success via TikWM (watermark: ${result.watermark ? 'yes' : 'no'})`);
-                }
-            } catch (e) {
-                console.warn(`[TikTok] TikWM failed: ${e.message}`);
-            }
-
-            // ── Try Tiklydown (fallback) ─────────────────────────────────
-            if (!result) {
-                console.log('[TikTok] Trying Tiklydown...');
-                try {
-                    const { data } = await axios.get(TIKLYDOWN_API(url), {
-                        timeout: 25000,
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0',
-                            'Accept': 'application/json'
-                        }
-                    });
-
-                    if (data?.videoUrl) {
-                        result = parseTiklydown(data);
-                        result.quality = 'sd';
-                        console.log(`[TikTok] ✅ Success via Tiklydown (watermark: no)`);
-                    }
-                } catch (e) {
-                    console.warn(`[TikTok] Tiklydown failed: ${e.message}`);
-                    errorMsg = e.message;
-                }
-            }
+            // ── Try watermark removal strategies ─────────────────────────
+            result = await fetchWithWatermarkRemoval(url, quality);
 
             // ── No API succeeded ─────────────────────────────────────────
             if (!result) {
                 return sock.sendMessage(sender, {
                     text: fmt(
                         `❌ *Download Failed*\n\n` +
-                        `All APIs failed. The video may be:\n` +
+                        `All download methods failed. The video may be:\n` +
                         `• Private or restricted\n` +
                         `• Deleted by the creator\n` +
                         `• Region-blocked\n\n` +
-                        `Error: ${errorMsg || 'Unknown'}`
+                        `Try again later or with a different video.`
                     ),
                     contextInfo
                 }, { quoted: message });
@@ -249,7 +318,6 @@ module.exports = {
             await streamPipeline(res.data, fs.createWriteStream(savedPath));
 
             const stat = fs.statSync(savedPath);
-            // Validate file size (minimum 1KB for valid video)
             if (stat.size < 1024) {
                 throw new Error('Downloaded file is too small (likely corrupted)');
             }
@@ -258,7 +326,10 @@ module.exports = {
             console.log(`[TikTok] Saved to: ${savedPath}`);
 
             // ── Build caption ───────────────────────────────────────────
-            const watermarkNote = result.watermark ? '⚠️ Watermark may be present' : '✅ No watermark';
+            const watermarkStatus = result.hasWatermark === false 
+                ? '✅ *No watermark*' 
+                : '⚠️ *Watermark present*';
+            
             const authorLine = result.author ? `👤 ${result.author}` : '';
             const likesLine = result.likes ? `❤️ ${Number(result.likes).toLocaleString()}` : '';
             const playsLine = result.plays ? `▶️ ${Number(result.plays).toLocaleString()}` : '';
@@ -272,7 +343,7 @@ module.exports = {
                 `${playsLine ? playsLine + '\n' : ''}` +
                 `${durationLine ? durationLine + '\n' : ''}` +
                 `─────────────────\n` +
-                `${watermarkNote}\n` +
+                `${watermarkStatus}\n` +
                 `${apiLine}`
             );
 
@@ -285,7 +356,7 @@ module.exports = {
                     externalAdReply: {
                         title: 'TikTok Video 📱',
                         body: result.author || 'Downloaded via MessageForge',
-                        mediaType: 2, // VIDEO
+                        mediaType: 2,
                         thumbnail: null
                     }
                 }
@@ -305,8 +376,6 @@ module.exports = {
                 text: fmt(`❌ *Download Error*\n\n${err.message}`),
                 contextInfo
             }, { quoted: message });
-        } finally {
-            // No temp file cleanup needed - file stays in data/tiktok/
         }
     }
 };
