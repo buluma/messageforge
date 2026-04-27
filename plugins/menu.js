@@ -270,8 +270,10 @@ const CATEGORIES = [
     { icon: '🎤', name: 'Voice Tools', cmds: ['transcribe', 'voicetotext', 'tts'] },
 ];
 
-function box(title, lines) {
-    return `╭─「 ${title} 」\n${lines.map((l) => `│  ${l}`).join('\n')}\n╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄`;
+const DIVIDER = '━━━━━━━━━━━━━━━━━━━━━━━';
+
+function section(title, cmds) {
+    return `${title}\n${cmds.join('  ·  ')}`;
 }
 
 function buildMenuText(plugins, pfx, botName, ownerNum, mode) {
@@ -281,23 +283,23 @@ function buildMenuText(plugins, pfx, botName, ownerNum, mode) {
     const now = moment().tz(TZ);
 
     const header = [
-        ``,
         `✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦`,
-        `  ⚡ *${botName.toUpperCase()}* ⚡`,
-        `  _The Ultimate WhatsApp Bot_`,
+        `⚡ *${botName.toUpperCase()}* ⚡`,
+        `_The Ultimate WhatsApp Bot_`,
         `✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦`,
         ``,
     ].join('\n');
 
-    const infoPanel = box(`📋 Bot Status`, [
-        `◆ *Bot:*     ${botName}`,
-        `◆ *Number:*  ${ownerNum}`,
-        `◆ *Prefix:*  \`${pfx}\``,
-        `◆ *Mode:*    ${modeEmoji} ${mode}`,
-        `◆ *Plugins:* ${plugins.length} loaded`,
-        `◆ *Date:*    ${now.format('ddd, D MMM YYYY')}`,
-        `◆ *Time:*    ${now.format('hh:mm A')}`,
-    ]);
+    const infoPanel = [
+        `📋 *Bot Status*`,
+        `› *Bot:*     ${botName}`,
+        `› *Number:*  ${ownerNum}`,
+        `› *Prefix:*  \`${pfx}\``,
+        `› *Mode:*    ${modeEmoji} ${mode}`,
+        `› *Plugins:* ${plugins.length} loaded`,
+        `› *Date:*    ${now.format('ddd, D MMM YYYY')}`,
+        `› *Time:*    ${now.format('hh:mm A')}`,
+    ].join('\n');
 
     const catBlocks = [];
     for (const { icon, name, cmds } of CATEGORIES) {
@@ -305,9 +307,9 @@ function buildMenuText(plugins, pfx, botName, ownerNum, mode) {
         if (!found.length) continue;
         found.forEach((c) => assigned.add(c));
         catBlocks.push(
-            box(
-                `${icon} ${name}`,
-                found.map((c) => `◈  \`${pfx}${c}\``),
+            section(
+                `${icon} *${name}*`,
+                found.map((c) => `\`${pfx}${c}\``),
             ),
         );
     }
@@ -317,23 +319,22 @@ function buildMenuText(plugins, pfx, botName, ownerNum, mode) {
     );
     if (rest.length)
         catBlocks.push(
-            box(
-                `🔧 Other`,
-                rest.map((c) => `◈  \`${pfx}${c}\``),
+            section(
+                `🔧 *Other*`,
+                rest.map((c) => `\`${pfx}${c}\``),
             ),
         );
 
     const footer = [
         ``,
-        `╭┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╮`,
-        `│  💡 \`${pfx}help <cmd>\`     │`,
-        `│  🌐 ${WEBSITE}  │`,
-        `╰┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╯`,
+        `💡 \`${pfx}help <cmd>\` for details`,
+        `🌐 ${WEBSITE}`,
         ``,
         `> ⚡ _${getStr('by') || 'Made by: MessageForge Team'} © ${now.year()}_`,
     ].join('\n');
 
-    return `${header}${infoPanel}\n\n${catBlocks.join('\n\n')}\n${footer}`;
+    const body = catBlocks.join(`\n\n${DIVIDER}\n\n`);
+    return `${header}${infoPanel}\n\n${DIVIDER}\n\n${body}\n${footer}`;
 }
 
 // ── Send call log then menu text quoting it ───────────────────────────────────

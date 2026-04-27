@@ -450,22 +450,29 @@ input {
 }
 
 /* Reaction picker */
-.reaction-picker {
+.msg-bottom-bar {
     display: flex;
-    gap: 3px;
-    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
     max-height: 0;
     overflow: hidden;
     opacity: 0;
+    margin-top: 0;
     transition:
         max-height 0.15s,
         opacity 0.15s,
         margin-top 0.15s;
 }
-.msg-bubble:hover .reaction-picker {
-    max-height: 36px;
+.msg-bubble:hover .msg-bottom-bar {
+    max-height: 40px;
     opacity: 1;
     margin-top: 6px;
+}
+.reaction-picker {
+    display: flex;
+    gap: 3px;
+    flex-wrap: nowrap;
+    flex: 1;
 }
 .reaction-picker span {
     cursor: pointer;
@@ -502,22 +509,12 @@ input {
     cursor: pointer;
 }
 
-/* Action row */
+/* Action row — visibility controlled by parent .msg-bottom-bar */
 .msg-actions {
     display: flex;
     gap: 4px;
     justify-content: flex-end;
-    margin-top: 4px;
-    max-height: 0;
-    overflow: hidden;
-    opacity: 0;
-    transition:
-        max-height 0.15s,
-        opacity 0.15s;
-}
-.msg-bubble:hover .msg-actions {
-    max-height: 28px;
-    opacity: 1;
+    flex-shrink: 0;
 }
 .msg-action-btn {
     cursor: pointer;

@@ -483,13 +483,15 @@ function appendMessage(m, options = {}) {
         : `<div class="msg-actions"><span class="msg-action-btn reply-btn" title="Reply">↩️</span></div>`;
 
     b.innerHTML = `
-    <div class="reaction-picker"><span>👍</span><span>❤️</span><span>😂</span><span>😮</span><span>😢</span><span>🙏</span></div>
     ${quotedHtml}
     ${media}
     ${text ? `<div class="msg-text">${formatWAText(text)}</div>` : ''}
     <div class="msg-time">${safeMomentFormat(m.messageTimestamp)}</div>
     <div class="msg-reactions" id="reactions-${m.key.id}"></div>
-    ${actionsHtml}`;
+    <div class="msg-bottom-bar">
+      <div class="reaction-picker"><span>👍</span><span>❤️</span><span>😂</span><span>😮</span><span>😢</span><span>🙏</span></div>
+      ${actionsHtml}
+    </div>`;
 
     b.querySelector('.reply-btn').onclick = (e) => {
         e.stopPropagation();
@@ -498,6 +500,7 @@ function appendMessage(m, options = {}) {
         rp.hidden = false;
         document.getElementById('replyText').textContent =
             `Replying: ${(text || '[Media]').slice(0, 60)}`;
+        document.getElementById('messageInput').focus();
     };
     b.querySelectorAll('.reaction-picker span').forEach((el) => {
         el.onclick = (e) => {
