@@ -318,7 +318,7 @@ module.exports = {
 
         // ── Handle delete command ──────────────────────────────────────
         if (command === 'ttdelete' || command === 'delete') {
-            const filename = args[1];
+            const filename = args[0];
             if (!filename) {
                 return reply(fmt('❌ *Usage:* `ttdelete `\n\nUse `ttlist` to see saved files'));
             }
@@ -352,14 +352,14 @@ module.exports = {
                 return reply(fmt('📁 *No saved TikToks*\n\nDownload videos using `.tiktok <url>`'));
             }
 
-            const target = args[1]?.toLowerCase();
+            const target = args[0]?.toLowerCase();
             let filesToSend = [];
 
             if (target === 'all') {
                 filesToSend = files;
             } else {
                 // Send specific file by index or name
-                const fileId = args[1];
+                const fileId = args[0];
                 if (fileId) {
                     const file = files.find((f, i) => i + 1 === parseInt(fileId) || f.name === fileId || f.name === fileId + '.mp4');
                     if (file) {
@@ -385,6 +385,11 @@ module.exports = {
                 const result = await sendToTelegram(filePath, caption, {});
                 if (result.success) {
                     successCount++;
+                    // Clean up after successful send
+                    try {
+                        fs.unlinkSync(filePath);
+                        console.log(`[TikTok→Telegram] Deleted: ${file.name}`);
+                    } catch { /* ignore cleanup errors */ }
                 } else {
                     failCount++;
                 }
@@ -394,8 +399,10 @@ module.exports = {
             }
 
             return reply(fmt(
-                `📤 *Telegram Transfer Complete*\n\n` +
-                `✅ Sent: ${successCount}\n` +
+                `📤 *Telegram Transfer Complete*
+
+` +
+                `✅ Sent & deleted: ${successCount}\n` +
                 `${failCount > 0 ? `❌ Failed: ${failCount}` : ''}`
             ));
         }
