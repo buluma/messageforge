@@ -18,6 +18,14 @@ export function mountDashboard() {
             renderPlugins();
         };
     });
+
+    const pluginSearch = document.getElementById('pluginSearch');
+    if (pluginSearch) {
+        pluginSearch.oninput = () => {
+            state.pluginQuery = pluginSearch.value.trim().toLowerCase();
+            renderPlugins();
+        };
+    }
 }
 
 async function refreshAll() {
@@ -76,9 +84,15 @@ function renderPlugins() {
     const grid = document.getElementById('pluginsGrid');
     if (!grid) return;
     grid.innerHTML = '';
-    const filtered = state.allPlugins.filter(
-        (p) => state.pluginFilter === 'all' || p.permission === state.pluginFilter,
-    );
+    const q = (state.pluginQuery || '').toLowerCase();
+    const filtered = state.allPlugins.filter((p) => {
+        if (state.pluginFilter !== 'all' && p.permission !== state.pluginFilter) return false;
+        if (!q) return true;
+        const name = toTitleCase(p.name || (p.commands || [])[0] || '').toLowerCase();
+        const desc = (p.description || '').toLowerCase();
+        const cmds = (p.commands || []).join(' ').toLowerCase();
+        return name.includes(q) || desc.includes(q) || cmds.includes(q);
+    });
     for (const p of filtered) {
         const card = document.createElement('div');
         card.className = 'plugin-card';

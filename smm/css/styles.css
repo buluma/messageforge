@@ -676,6 +676,26 @@ input {
     display: flex;
     gap: 6px;
 }
+.plugins-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.plugin-search-input {
+    padding: 7px 14px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    color: var(--text);
+    outline: none;
+    font-size: 13px;
+    width: 220px;
+    transition: border-color 0.15s, width 0.2s;
+}
+.plugin-search-input:focus {
+    border-color: var(--primary);
+    width: 280px;
+}
 
 /* ── Cards / dashboard ────────────────────────────────────────────── */
 .card {
