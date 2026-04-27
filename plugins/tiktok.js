@@ -294,10 +294,9 @@ module.exports = {
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { sender, contextInfo, reply }) => {
-        const command = message.message?.extendedTextMessage?.contextInfo?.quotedMessage
-            ? args[0]
-            : (args[0] || '').toLowerCase();
+    run: async (sock, message, args, { sender, contextInfo, reply, command: ctxCommand }) => {
+        // Use ctx.command for accurate command detection
+        const command = (ctxCommand || (args[0] || '')).toLowerCase();
 
         // ── Handle list command ────────────────────────────────────────
         if (command === 'ttlist' || command === 'list') {
