@@ -358,6 +358,7 @@ async function selectChat(chat) {
         const msgs = data.messages || [];
         msgs.forEach((m) => appendMessage(m, { autoScroll: false }));
         thread.scrollTop = thread.scrollHeight;
+        document.getElementById('messageInput').focus();
         loadOlderBtn.hidden = !data.page?.hasMore;
         const lastIncoming = [...msgs].reverse().find((m) => !m.key.fromMe);
         if (lastIncoming) {
