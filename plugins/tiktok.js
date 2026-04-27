@@ -288,8 +288,8 @@ async function fetchWithWatermarkRemoval(url, quality) {
 }
 
 module.exports = {
-    commands:    ['tiktok', 'tt', 'ttdl', 'tiktokdl', 'ttlist', 'ttdelete', 'ttclear'],
-    description: 'Download TikTok video without watermark | Use: tiktok, ttlist, ttdelete, ttclear',
+    commands:    ['tiktok', 'tt', 'ttdl', 'tiktokdl', 'ttlist', 'ttdelete', 'ttclear', 'ttsend'],
+    description: 'Download TikTok video without watermark | Use: tiktok, ttlist, ttdelete, ttclear, ttsend',
     permission:  'public',
     group:       true,
     private:     true,
@@ -334,6 +334,71 @@ module.exports = {
         if (command === 'ttclear' || command === 'clear') {
             const count = clearTiktoks();
             return reply(fmt(`🗑️ *Cleared ${count} TikTok video(s)*`));
+        }
+
+        // ── Handle send to Telegram command ─────────────────────────────────────
+        if (command === 'ttsend' || command === 'send') {
+            const config = getTelegramConfig();
+            
+            if (!config.botToken || config.botToken === 'YOUR_BOT_TOKEN_HERE') {
+                return reply(fmt('❌ *Telegram not configured*\n\nSet `TELEGRAM_BOT_TOKEN` in .env'));
+            }
+            
+            if (!config.chatId || config.chatId === 'YOUR_CHAT_ID_HERE') {
+                return reply(fmt('❌ *Telegram chat not configured*\n\nSet `TELEGRAM_CHAT_ID` in .env'));
+            }
+
+            const files = listTiktoks();
+            if (files.length === 0) {
+                return reply(fmt('📁 *No saved TikToks*\n\nDownload videos using `.tiktok <url>`'));
+            }
+
+            const target = args[1]?.toLowerCase();
+            let filesToSend = [];
+
+            if (target === 'all') {
+                filesToSend = files;
+            } else {
+                // Send specific file by index or name
+                const fileId = args[1];
+                if (fileId) {
+                    const file = files.find((f, i) => i + 1 === parseInt(fileId) || f.name === fileId || f.name === fileId + '.mp4');
+                    if (file) {
+                        filesToSend = [file];
+                    } else {
+                        return reply(fmt(`❌ *File not found:* \`${fileId}\`\n\nUse \`ttlist\` to see available files`));
+                    }
+                } else {
+                    return reply(fmt('❌ *Usage:* `ttsend ` or `ttsend all`\n\nExamples:\n• `ttsend 1` - send file #1\n• `ttsend all` - send all files'));
+                }
+            }
+
+            await sock.sendPresenceUpdate('composing', sender);
+            await reply(fmt(`📤 *Sending ${filesToSend.length} video(s) to Telegram...*`));
+
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const file of filesToSend) {
+                const filePath = path.join(DATA_DIR, file.name);
+                const caption = `🎵 *TikTok Video*\n📦 ${file.size} • 📅 ${file.date}\n🤖 Via MessageForge`;
+                
+                const result = await sendToTelegram(filePath, caption, {});
+                if (result.success) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+                
+                // Small delay between sends to avoid rate limiting
+                await new Promise(r => setTimeout(r, 1000));
+            }
+
+            return reply(fmt(
+                `📤 *Telegram Transfer Complete*\n\n` +
+                `✅ Sent: ${successCount}\n` +
+                `${failCount > 0 ? `❌ Failed: ${failCount}` : ''}`
+            ));
         }
 
         // ── Download TikTok (default behavior) ─────────────────────────
