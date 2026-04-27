@@ -4,6 +4,40 @@ export function escapeHtml(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+export function formatWAText(s) {
+  // Escape first so injected HTML in message content is inert.
+  let t = escapeHtml(s);
+
+  // Extract code segments into placeholders so emphasis regexes cannot match
+  // inside them. Tokens are not valid WA format chars, so no re-entry risk.
+  const segments = [];
+  const placeholder = (html) => {
+    const token = `\x00${segments.length}\x00`;
+    segments.push(html);
+    return token;
+  };
+
+  // ```code block``` — must run before single-backtick rule.
+  t = t.replace(/```([\s\S]*?)```/g, (_, inner) =>
+    placeholder(`<pre><code>${inner}</code></pre>`)
+  );
+  // `inline code`
+  t = t.replace(/`([^`]+)`/g, (_, inner) => placeholder(`<code>${inner}</code>`));
+
+  // Emphasis rules — safe; code content is behind placeholders.
+  t = t.replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>');
+  t = t.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+  t = t.replace(/~([^~\n]+)~/g, '<s>$1</s>');
+
+  // Newlines → <br> outside restored code blocks.
+  t = t.replace(/([^>])\n/g, '$1<br>');
+
+  // Restore code segments.
+  t = t.replace(/\x00(\d+)\x00/g, (_, i) => segments[+i]);
+
+  return t;
+}
+
 export function toTitleCase(str) {
   return String(str || '').replace(/[-_.]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }

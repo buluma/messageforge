@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import * as api from './api.js';
 import { on } from './socket.js';
-import { escapeHtml, getInitials, getAvatarColor, jidShort, safeMomentFormat } from './utils.js';
+import { escapeHtml, formatWAText, getInitials, getAvatarColor, jidShort, safeMomentFormat } from './utils.js';
 
 const PAGE_SIZE = 60;
 let chatTimeTicker = null;
@@ -358,6 +358,7 @@ async function selectChat(chat) {
         const msgs = data.messages || [];
         msgs.forEach((m) => appendMessage(m, { autoScroll: false }));
         thread.scrollTop = thread.scrollHeight;
+        document.getElementById('messageInput').focus();
         loadOlderBtn.hidden = !data.page?.hasMore;
         const lastIncoming = [...msgs].reverse().find((m) => !m.key.fromMe);
         if (lastIncoming) {
@@ -474,7 +475,7 @@ function appendMessage(m, options = {}) {
             (quoted.documentMessage ? '📄 Document' : '') ||
             '[Media]';
         const author = ctx.participant ? jidShort(ctx.participant) : '';
-        quotedHtml = `<div class="quoted-msg">${author ? `<div class="quoted-author">${escapeHtml(author)}</div>` : ''}<div class="quoted-text">${escapeHtml(qText)}</div></div>`;
+        quotedHtml = `<div class="quoted-msg">${author ? `<div class="quoted-author">${escapeHtml(author)}</div>` : ''}<div class="quoted-text">${formatWAText(qText)}</div></div>`;
     }
 
     const actionsHtml = m.key.fromMe
@@ -485,7 +486,7 @@ function appendMessage(m, options = {}) {
     <div class="reaction-picker"><span>👍</span><span>❤️</span><span>😂</span><span>😮</span><span>😢</span><span>🙏</span></div>
     ${quotedHtml}
     ${media}
-    ${text ? `<div>${escapeHtml(text)}</div>` : ''}
+    ${text ? `<div class="msg-text">${formatWAText(text)}</div>` : ''}
     <div class="msg-time">${safeMomentFormat(m.messageTimestamp)}</div>
     <div class="msg-reactions" id="reactions-${m.key.id}"></div>
     ${actionsHtml}`;
