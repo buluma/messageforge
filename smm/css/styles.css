@@ -242,6 +242,18 @@ input {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+.chat-item .chat-item-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 10px;
+    flex-shrink: 0;
+}
+.chat-item .chat-item-time {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
 .chat-item .chat-item-snippet {
     font-size: 12.5px;
     color: var(--text-muted);

@@ -29,6 +29,26 @@ export function jidShort(jid) {
 }
 
 export function safeMomentFormat(ts, fmt = 'hh:mm A') {
-  try { return moment((ts || 0) * 1000).format(fmt); }
-  catch { return ''; }
+  try {
+    let secs = 0;
+
+    if (typeof ts === 'number' && Number.isFinite(ts)) {
+      secs = ts > 1e12 ? Math.floor(ts / 1000) : Math.floor(ts);
+    } else if (typeof ts === 'string') {
+      const n = Number(ts);
+      if (Number.isFinite(n)) secs = n > 1e12 ? Math.floor(n / 1000) : Math.floor(n);
+    } else if (ts && typeof ts === 'object') {
+      if (typeof ts.low === 'number') secs = Math.floor(ts.low);
+      else if (typeof ts.toString === 'function') {
+        const n = Number(ts.toString());
+        if (Number.isFinite(n)) secs = n > 1e12 ? Math.floor(n / 1000) : Math.floor(n);
+      }
+    }
+
+    if (!secs || !Number.isFinite(secs)) return '';
+    const m = moment(secs * 1000);
+    return m.isValid() ? m.format(fmt) : '';
+  } catch {
+    return '';
+  }
 }

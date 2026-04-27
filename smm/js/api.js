@@ -64,14 +64,25 @@ api.interceptors.response.use(
 // ── Identity / chats ──────────────────────────────────────────────
 export const authConfig = () => api.get('/api/auth/config').then((r) => r.data);
 export const me = () => api.get('/api/me').then((r) => r.data);
-export const fetchChats = () => api.get('/api/chats').then((r) => r.data);
+export const fetchChats = (options = {}) =>
+    api
+        .get('/api/chats', {
+            timeout: options.timeout || 30000,
+            ...(options.signal ? { signal: options.signal } : {}),
+        })
+        .then((r) => r.data);
 export const fetchMessages = (jid, options = {}) => {
     const params = new URLSearchParams();
     if (options.limit) params.set('limit', options.limit);
     if (options.before) params.set('before', options.before);
     const qs = params.toString();
     const url = `/api/chat/${encodeURIComponent(jid)}/messages${qs ? `?${qs}` : ''}`;
-    return api.get(url).then((r) => r.data);
+    return api
+        .get(url, {
+            timeout: options.timeout || 45000,
+            ...(options.signal ? { signal: options.signal } : {}),
+        })
+        .then((r) => r.data);
 };
 
 // ── Send / actions ────────────────────────────────────────────────
