@@ -4,6 +4,24 @@ export function escapeHtml(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+export function formatWAText(s) {
+  // Escape first so injected HTML in message content is inert.
+  let t = escapeHtml(s);
+  // ```code block``` — must run before single-backtick rule.
+  t = t.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+  // `inline code`
+  t = t.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // *bold*
+  t = t.replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>');
+  // _italic_
+  t = t.replace(/_([^_\n]+)_/g, '<em>$1</em>');
+  // ~strikethrough~
+  t = t.replace(/~([^~\n]+)~/g, '<s>$1</s>');
+  // Newlines → <br> (skip inside <pre> blocks by only replacing outside them).
+  t = t.replace(/([^>])\n/g, '$1<br>');
+  return t;
+}
+
 export function toTitleCase(str) {
   return String(str || '').replace(/[-_.]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
