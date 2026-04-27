@@ -89,7 +89,9 @@ function refreshChatTimes() {
 // ── Chat list ─────────────────────────────────────────────────────
 function sortedChats(chats) {
     return [...chats].sort((a, b) => {
-        if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+        const ap = !!a.isPinned;
+        const bp = !!b.isPinned;
+        if (ap !== bp) return ap ? -1 : 1;
         return (b.timestamp || 0) - (a.timestamp || 0);
     });
 }
