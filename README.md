@@ -1,51 +1,89 @@
-## 📖 WhatsApp Bot [MessageForge]
+# MessageForge
 
 <div align="center">
 
 <img src="https://i.imgur.com/dBaSKWF.gif" height="20" width="100%">
 
-**A powerful, feature-rich WhatsApp bot with 1200+ commands, AI integration, media tools, group management, and themed responses — built on Node.js and the Baileys library.**
+**A feature-rich WhatsApp bot powered by Node.js + Baileys, with 1200+ commands, AI tools, media utilities, and modular plugins.**
+
+<img src="https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white" alt="Node 20+">
+<img src="https://img.shields.io/badge/License-MIT-blue" alt="MIT License">
+<img src="https://img.shields.io/badge/Commands-1200%2B-brightgreen" alt="1200+ commands">
+<img src="https://img.shields.io/badge/Architecture-Plugin%20Based-orange" alt="Plugin based architecture">
 
 <img src="https://i.imgur.com/dBaSKWF.gif" height="20" width="100%">
 
 </div>
 
----
+## Highlights
 
-## 📖 Documentation Reference
+- 1200+ commands ready to run: moderation, media, AI, automation, and utility workflows.
+- Plugin-first architecture (`plugins/*.js`) so new features ship as isolated modules.
+- Storage without lock-in: local JSON, MongoDB, or PostgreSQL.
+- Built-in dashboard + REST endpoints for fast ops and debugging.
+- Theming layer for rapid voice/style swaps.
 
-Explore our modular documentation for detailed guides:
+## Boot
 
-- **🚀 [Installation & Deployment](./docs/01-INSTALLATION.md)**: Setup guides for Heroku, Railway, Koyeb, Replit, and Local VPS.
-- **⚙️ [Configuration Guide](./docs/02-CONFIGURATION.md)**: Detailed explanation of all environment variables.
-- **📋 [Command Reference](./docs/03-COMMANDS.md)**: Full list of 1200+ commands across all categories.
-- **🔌 [Plugin Architecture](./docs/04-PLUGINS.md)**: Learn how the modular plugin system works and how to create your own.
-- **🎨 [Theming System](./docs/05-THEMES.md)**: Customize the bot's personality with built-in or custom themes.
-- **🧠 [Technical API Reference](./docs/06-API-REFERENCE.md)**: Deep dive into the core engine architecture.
-- **🤝 [Contributing Guide](./CONTRIBUTING.md)**: Learn how you can help improve MessageForge.
+```bash
+npm install
+cp sample.env .env
+# set SESSION_ID / OWNER_NUMBER / core env vars
+npm start
+```
 
----
+If it boots, you’re live.
 
-## ⚡ Quick Start (Heroku)
+## Deploy (Heroku)
 
-1. **[Generate Session ID](https://messageforge-session-selector.vercel.app/)**
-2. **[Fork this repository](https://github.com/MessageForgeB/messageforge/fork)**
-3. **[Deploy to Heroku](https://messageforge-md-fork-checker.vercel.app/)**
+1. [Generate Session ID](https://messageforge-session-selector.vercel.app/)
+2. [Fork this repository](https://github.com/MessageForgeB/messageforge/fork)
+3. [Deploy to Heroku](https://messageforge-md-fork-checker.vercel.app/)
 
-For other platforms, see the [Installation Guide](./docs/01-INSTALLATION.md).
+## Hack
 
----
+```bash
+# format check
+npx prettier --check .
 
-## 📄 License
+# auto-format
+npx prettier --write .
+```
 
-MIT License — free to use, modify, and distribute with attribution.
+- Runtime flow: `messageforge.js` -> `handler.js` -> `plugins/*`
+- Add/patch commands in `plugins/` (one feature area per file)
+- Shared internals in `lib/` (`dbManager`, state, media, themes, helpers)
+- Treat `sample.env` as the config contract
+
+## Dev Loop
+
+```bash
+# terminal 1
+npm start
+
+# terminal 2 (while editing)
+npx prettier --write plugins/your-plugin.js
+```
+
+Edit small, run fast, test both private and group chats.
+
+## Ship
+
+- Installation: [docs/01-INSTALLATION.md](./docs/01-INSTALLATION.md)
+- Configuration: [docs/02-CONFIGURATION.md](./docs/02-CONFIGURATION.md)
+- Commands: [docs/03-COMMANDS.md](./docs/03-COMMANDS.md)
+- Plugins: [docs/04-PLUGINS.md](./docs/04-PLUGINS.md)
+- Themes: [docs/05-THEMES.md](./docs/05-THEMES.md)
+- API: [docs/06-API-REFERENCE.md](./docs/06-API-REFERENCE.md)
+- Database: [docs/database.md](./docs/database.md)
+- Contributing: [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+## License
+
+MIT. See [LICENSE](./LICENSE).
 
 <div align="center">
 
-**Built with purpose by [ShadowNet Inc](https://github.com/buluma)**
-
-<img src="https://i.imgur.com/dBaSKWF.gif" height="20" width="100%">
-
-</sub>MessageForge — 1200+ commands. One scan. Unlimited possibilities.</sub>
+Built by [ShadowNet Inc](https://github.com/buluma)
 
 </div>
