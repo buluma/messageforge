@@ -179,3 +179,5 @@ POSTGRES_USER=<username>
 POSTGRES_PASSWORD=<password>
 POSTGRES_DB=messageforge
 ```
+
+Before going live, run the [Deployment Checklist](./DEPLOYMENT-CHECKLIST.md).

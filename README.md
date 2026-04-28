@@ -91,6 +91,7 @@ Edit small, run fast, test both private and group chats.
 - Themes: [docs/05-THEMES.md](./docs/05-THEMES.md)
 - API: [docs/06-API-REFERENCE.md](./docs/06-API-REFERENCE.md)
 - Database: [docs/database.md](./docs/database.md)
+- Deployment Checklist: [docs/DEPLOYMENT-CHECKLIST.md](./docs/DEPLOYMENT-CHECKLIST.md)
 - Contributing: [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## License
