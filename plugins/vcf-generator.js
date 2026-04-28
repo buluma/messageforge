@@ -2,7 +2,7 @@
 
 const axios = require('axios');
 const { jidNormalizedUser, downloadMediaMessage } = require('@whiskeysockets/baileys');
-const { globalLidMapping } = require('@whiskeysockets/baileys/lib/Utils/lid-mapping');
+const { globalLidMapping } = require('../lib/lid-mapping-store');
 
 const truecallerCache = new Map();
 

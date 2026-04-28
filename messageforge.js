@@ -525,7 +525,7 @@ async function connectToWhatsApp() {
     try {
         ({
             globalLidMapping: _globalLidMapping,
-        } = require('@whiskeysockets/baileys/lib/Utils/lid-mapping'));
+        } = require('./lib/lid-mapping-store'));
     } catch {}
 
     const CACHE_DIR_EARLY = path.join(__dirname, 'data');
