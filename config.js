@@ -49,6 +49,12 @@ module.exports = {
     OLLAMA_MODEL: process.env.OLLAMA_MODEL || 'llama3.2',
     AI_TIMEOUT_MS: Number(process.env.AI_TIMEOUT_MS || 25000),
     MONGODB_URL: process.env.MONGODB_URL || '',
+    DATABASE_TYPE: (process.env.DATABASE_TYPE || 'local').toLowerCase().trim(),
+    POSTGRES_HOST: process.env.POSTGRES_HOST || 'localhost',
+    POSTGRES_PORT: Number(process.env.POSTGRES_PORT || 5432),
+    POSTGRES_USER: process.env.POSTGRES_USER || 'shadowwalker',
+    POSTGRES_PASSWORD: process.env.POSTGRES_PASSWORD || '',
+    POSTGRES_DB: process.env.POSTGRES_DB || 'messageforge',
     DASHBOARD_TOKEN: process.env.DASHBOARD_TOKEN || '',
     MESSENGER_HISTORY_MAX: Number(process.env.MESSENGER_HISTORY_MAX || 3000),
 };

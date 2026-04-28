@@ -1373,12 +1373,12 @@ app.get('/api/chats', async (req, res) => {
 
         const chats = [];
         const liveJids = Array.from(store.chats.keys());
-        const jids = messengerStore.listKnownJids(liveJids);
+        const jids = await messengerStore.listKnownJids(liveJids);
 
         for (const jid of jids) {
             const chatMsgs = store.chats.get(jid);
             const liveMessages = chatMsgs ? Array.from(chatMsgs.values()) : [];
-            const lastMsg = messengerStore.getLatestMessage(jid, liveMessages);
+            const lastMsg = await messengerStore.getLatestMessage(jid, liveMessages);
             if (!lastMsg) continue;
 
             const snippet =
@@ -1410,7 +1410,7 @@ app.get('/api/chat/:jid/messages', async (req, res) => {
         if (!store) return res.status(503).json({ error: 'Store not ready' });
         const chatMsgs = store.chats.get(jid);
         const liveMessages = chatMsgs ? Array.from(chatMsgs.values()) : [];
-        const page = messengerStore.getMessagesPage(jid, liveMessages, {
+        const page = await messengerStore.getMessagesPage(jid, liveMessages, {
             limit: req.query.limit,
             before: req.query.before,
         });
@@ -1511,7 +1511,7 @@ app.get('/api/media/:jid/:msgId', async (req, res) => {
         const liveMsg = await store.loadMessage(jid, msgId);
         const chatMsgs = store.chats.get(jid);
         const liveMessages = chatMsgs ? Array.from(chatMsgs.values()) : [];
-        const persisted = messengerStore.getMessageById(jid, msgId, liveMessages);
+        const persisted = await messengerStore.getMessageById(jid, msgId, liveMessages);
         const msg = liveMsg?.message ? liveMsg : persisted;
         if (!msg?.message) return res.status(404).json({ error: 'Message not found' });
 
@@ -1829,9 +1829,24 @@ process.on('unhandledRejection', (reason, promise) => {
             logMessage('WARN', `State initialization failed: ${e.message}`);
         }
 
+        // ── Initialize database connections ───────────────────────────────
+        await connectDB();
+
+        // Initialize PostgreSQL schema if using PostgreSQL
+        if (config.DATABASE_TYPE === 'postgres') {
+            try {
+                const dbManager = require('./lib/dbManager');
+                await dbManager.initPostgresSchema();
+
+                const messengerStore = require('./lib/messengerStore');
+                await messengerStore.initMessagesSchema();
+            } catch (e) {
+                logMessage('WARN', `PostgreSQL schema init failed: ${e.message}`);
+            }
+        }
+
         // loadSession is called ONCE here at startup.
         // connectToWhatsApp() and all reconnects reuse the saved state on disk.
-        await connectDB();
         await loadSession();
         await connectToWhatsApp();
     } catch (e) {
