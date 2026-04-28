@@ -29,19 +29,25 @@ function createTextImage(text, styleName = 'default') {
     }
     if (currentLine.trim()) lines.push(currentLine.trim());
 
-    const svgLines = lines.map((line, i) => {
-        const y = 256 - ((lines.length - 1) * 35) + (i * 70);
-        return `<text x="256" y="${y}" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-weight="bold" font-size="56" fill="${style.color}" stroke="${style.color}" stroke-width="1">${escapeXml(line)}</text>`;
-    }).join('');
+    const svgLines = lines
+        .map((line, i) => {
+            const y = 256 - (lines.length - 1) * 35 + i * 70;
+            return `<text x="256" y="${y}" text-anchor="middle" dominant-baseline="middle" font-family="sans-serif" font-weight="bold" font-size="56" fill="${style.color}" stroke="${style.color}" stroke-width="1">${escapeXml(line)}</text>`;
+        })
+        .join('');
 
-    return Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512">
         <rect width="512" height="512" fill="${style.bg}" rx="20"/>
         ${svgLines}
-    </svg>`);
+    </svg>`;
 }
 
 function escapeXml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }
 
 module.exports = {
@@ -56,11 +62,17 @@ module.exports = {
         const { jid, contextInfo } = ctx;
 
         if (!args.length) {
-            const styleList = Object.keys(styles).map(s => `• ${s}`).join('\n');
-            return sock.sendMessage(jid, {
-                text: `🎨 *Text Sticker Maker*\n\nCreate beautiful text stickers!\n\n*Usage:*\n\`.textsticker <text>\`\n\`.textsticker neon Hello World\`\n\n*Available Styles:*\n${styleList}`,
-                contextInfo
-            }, { quoted: message });
+            const styleList = Object.keys(styles)
+                .map((s) => `• ${s}`)
+                .join('\n');
+            return sock.sendMessage(
+                jid,
+                {
+                    text: `🎨 *Text Sticker Maker*\n\nCreate beautiful text stickers!\n\n*Usage:*\n\`.textsticker <text>\`\n\`.textsticker neon Hello World\`\n\n*Available Styles:*\n${styleList}`,
+                    contextInfo,
+                },
+                { quoted: message },
+            );
         }
 
         let styleName = 'default';
@@ -72,25 +84,37 @@ module.exports = {
         }
 
         if (!text.trim()) {
-            return sock.sendMessage(jid, { text: '❌ Please provide some text.', contextInfo }, { quoted: message });
+            return sock.sendMessage(
+                jid,
+                { text: '❌ Please provide some text.', contextInfo },
+                { quoted: message },
+            );
         }
 
         if (text.length > 100) {
-            return sock.sendMessage(jid, { text: '❌ Text too long. Max 100 characters.', contextInfo }, { quoted: message });
+            return sock.sendMessage(
+                jid,
+                { text: '❌ Text too long. Max 100 characters.', contextInfo },
+                { quoted: message },
+            );
         }
 
         try {
-            const svgBuffer = createTextImage(text, styleName);
-            const sticker = new Sticker(svgBuffer, {
+            const svgMarkup = createTextImage(text, styleName);
+            const sticker = new Sticker(svgMarkup, {
                 pack: ctx.pushName || 'MessageForge',
                 author: 'MessageForge Bot',
                 type: StickerTypes.FULL,
-                quality: 80
+                quality: 80,
             });
             const stickerBuffer = await sticker.toBuffer();
             await sock.sendMessage(jid, { sticker: stickerBuffer }, { quoted: message });
         } catch (err) {
-            await sock.sendMessage(jid, { text: '❌ Failed to create sticker. Try shorter text.', contextInfo }, { quoted: message });
+            await sock.sendMessage(
+                jid,
+                { text: '❌ Failed to create sticker. Try shorter text.', contextInfo },
+                { quoted: message },
+            );
         }
-    }
+    },
 };
