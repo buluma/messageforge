@@ -514,7 +514,7 @@ module.exports = {
 
         if (cmd === 'photoeditor') {
             return send(
-                '🖼️ *Photo Editor*\n\nUse these built-in commands:\n• `.sticker` — convert to sticker\n• `.toimg` — convert sticker to image\n• `.tojpeg` — convert to JPEG\n• `.togif` — convert to GIF\n• `.color` — color palette from image',
+                '🖼️ *Photo Editor*\n\nUse these built-in commands:\n• `.toimg` — convert sticker to image\n• `.tojpeg` — convert to JPEG\n• `.togif` — convert to GIF\n• `.color` — color palette from image',
             );
         }
 

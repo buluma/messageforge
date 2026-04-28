@@ -62,14 +62,13 @@ The bot's functionality is organized into specialized libraries:
 
 ---
 
-## 🎨 Stickers & Images
+## 🎨 Images & Media
 
-| Command    | Aliases  | Description                              |
-| ---------- | -------- | ---------------------------------------- |
-| `.sticker` | `.s`     | Convert any image or video to a sticker. |
-| `.imgurl`  | `.tourl` | Upload media and receive a direct link.  |
-| `.qrcode`  | `.qr`    | Generate a QR code from text or a link.  |
-| `.ascii`   |          | Convert text into stylized ASCII art.    |
+| Command   | Aliases  | Description                             |
+| --------- | -------- | --------------------------------------- |
+| `.imgurl` | `.tourl` | Upload media and receive a direct link. |
+| `.qrcode` | `.qr`    | Generate a QR code from text or a link. |
+| `.ascii`  |          | Convert text into stylized ASCII art.   |
 
 ---
 

@@ -45,7 +45,7 @@ const CATEGORIES = [
         name: 'Search & Info',
         cmds: ['wiki', 'country', 'ip', 'currency', 'time', 'weather', 'numberfact'],
     },
-    { icon: '🖼️', name: 'Media & Stickers', cmds: ['sticker', 'vv', 'ascii', 'qrcode', 'react'] },
+    { icon: '🖼️', name: 'Media Tools', cmds: ['vv', 'ascii', 'qrcode', 'react'] },
     {
         icon: '👥',
         name: 'Group Management',
@@ -266,7 +266,6 @@ const CATEGORIES = [
     },
     { icon: '🏆', name: 'Leveling & XP', cmds: ['level', 'rank', 'xp', 'leaderboard'] },
     { icon: '🔗', name: 'Link Tools', cmds: ['summarize', 'linkpreview', 'tldr'] },
-    { icon: '🎨', name: 'Sticker Creator', cmds: ['textsticker', 'tsticker', 'stext'] },
     { icon: '🎤', name: 'Voice Tools', cmds: ['transcribe', 'voicetotext', 'tts'] },
 ];
 

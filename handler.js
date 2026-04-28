@@ -662,8 +662,6 @@ async function handleMessages(sock, message) {
         const RECORDING_CMDS = new Set([
             'play',
             'song',
-            'sticker',
-            's',
             'tiktok',
             'tt',
             'ttdl',

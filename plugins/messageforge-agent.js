@@ -206,13 +206,7 @@ const intentMap = [
         strip: /\btwitter\b|\btweet\b|\bx\.com\b/gi,
     },
 
-    // ── Images & Stickers ────────────────────────────────────────────────────
-    {
-        pattern: /\bsticker\b/i,
-        cmd: 'sticker',
-        label: '🎭 Creating sticker',
-        strip: /\bsticker\b/gi,
-    },
+    // ── Images ───────────────────────────────────────────────────────────────
     {
         pattern:
             /\b(generate|create|make|draw|imagine)\s+(an?\s+)?(ai\s+)?(image|photo|picture|art|artwork|illustration)\b/i,
@@ -443,7 +437,7 @@ const smartResponses = [
     {
         p: /what can you do|your (capabilities|powers|features|abilities)\b/i,
         r: [
-            `I can: 🎵 play music, 📸 make stickers, ⬇️ download from TikTok/Instagram/YouTube, 🌤️ check weather, 📚 search Wikipedia, 🌐 translate text, 👥 manage groups, and 1400+ commands! Type \`messageforge help\` to see everything.`,
+            `I can: 🎵 play music, ⬇️ download from TikTok/Instagram/YouTube, 🌤️ check weather, 📚 search Wikipedia, 🌐 translate text, 👥 manage groups, and 1400+ commands! Type \`messageforge help\` to see everything.`,
         ],
     },
     {
@@ -481,7 +475,7 @@ const smartResponses = [
     {
         p: /help\b/i,
         r: [
-            `Type \`messageforge\` (no prefix needed) to see everything I can do! Or try:\n• \`messageforge play <song name>\`\n• \`messageforge weather <city>\`\n• \`messageforge wiki <topic>\`\n• \`messageforge sticker\` (reply to a photo)`,
+            `Type \`messageforge\` (no prefix needed) to see everything I can do! Or try:\n• \`messageforge play <song name>\`\n• \`messageforge weather <city>\`\n• \`messageforge wiki <topic>\`\n• \`messageforge qrcode https://example.com\``,
         ],
     },
 ];
@@ -653,7 +647,7 @@ module.exports = {
                     `• "messageforge create a poll: Question | A | B | C"\n` +
                     `• "messageforge schedule message at 9pm: team meeting"\n\n` +
                     `🛠️ *Tools*\n` +
-                    `• "messageforge sticker" _(reply to photo)_\n` +
+                    `• "messageforge qrcode https://example.com"\n` +
                     `• "messageforge translate hello to french"\n` +
                     `• "messageforge wiki artificial intelligence"\n` +
                     `• "messageforge weather Nairobi"\n` +
@@ -1219,7 +1213,7 @@ module.exports = {
             response =
                 `🤖 *MessageForge — Full Capabilities*\n\n` +
                 `📋 *Run Commands* (${pm.size} available)\n` +
-                `• "run menu" • "do alive" • "use sticker"\n` +
+                `• "run menu" • "do alive" • "use qrcode"\n` +
                 `• "run <any command name>"\n\n` +
                 `✍️ *Create Content*\n` +
                 `• Bio • Welcome/Goodbye messages\n` +
@@ -1751,7 +1745,7 @@ module.exports = {
             return;
         } else {
             // ── Natural language intent detection ────────────────────────────
-            // Understands phrases like "play u me luv", "sticker", "translate hello"
+            // Understands phrases like "play u me luv", "qrcode link", "translate hello"
             // and runs the matching bot plugin directly with feedback.
             const intent = findIntent(query);
             if (intent) {
