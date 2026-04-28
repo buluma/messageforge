@@ -19,7 +19,7 @@
 
 - 1200+ commands ready to run: moderation, media, AI, automation, and utility workflows.
 - Plugin-first architecture (`plugins/*.js`) so new features ship as isolated modules.
-- Storage without lock-in: local JSON, MongoDB, or PostgreSQL.
+- Storage without lock-in: local JSON or PostgreSQL.
 - Built-in dashboard + REST endpoints for fast ops and debugging.
 - Theming layer for rapid voice/style swaps.
 

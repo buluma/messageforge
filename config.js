@@ -48,7 +48,6 @@ module.exports = {
     OLLAMA_BASE_URL: process.env.OLLAMA_BASE_URL || 'http://127.0.0.1:11434',
     OLLAMA_MODEL: process.env.OLLAMA_MODEL || 'llama3.2',
     AI_TIMEOUT_MS: Number(process.env.AI_TIMEOUT_MS || 25000),
-    MONGODB_URL: process.env.MONGODB_URL || '',
     DATABASE_TYPE: (process.env.DATABASE_TYPE || 'local').toLowerCase().trim(),
     POSTGRES_HOST: process.env.POSTGRES_HOST || 'localhost',
     POSTGRES_PORT: Number(process.env.POSTGRES_PORT || 5432),

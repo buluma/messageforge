@@ -4,11 +4,11 @@ MessageForge uses environment variables for configuration. You can set these in 
 
 ## 🔑 Essential Variables
 
-| Variable       | Description                                            | Example           |
-| -------------- | ------------------------------------------------------ | ----------------- |
+| Variable       | Description                                            | Example                  |
+| -------------- | ------------------------------------------------------ | ------------------------ |
 | `SESSION_ID`   | The authentication string for your WhatsApp session.   | `MessageForge~abc123...` |
-| `OWNER_NUMBER` | Your WhatsApp number (with country code, digits only). | `254712345678`    |
-| `BOT_NAME`     | The name the bot uses to refer to itself.              | `MessageForge`       |
+| `OWNER_NUMBER` | Your WhatsApp number (with country code, digits only). | `254712345678`           |
+| `BOT_NAME`     | The name the bot uses to refer to itself.              | `MessageForge`           |
 
 ---
 
@@ -27,12 +27,12 @@ MessageForge uses environment variables for configuration. You can set these in 
 
 ## ✨ Appearance & Style
 
-| Variable     | Description                                                        | Default  |
-| ------------ | ------------------------------------------------------------------ | -------- |
-| `THEME`      | The visual theme for the bot (see [Themes Guide](./05-THEMES.md)). | `messageforge`  |
-| `PREFIX`     | The character(s) used to trigger commands.                         | `.`      |
-| `OWNER_NAME` | Your name displayed in the bot's about section.                    | `MessageForge Team`  |
-| `MODE`       | Who can use the bot: `public`, `private`, or `groups`.             | `public` |
+| Variable     | Description                                                        | Default             |
+| ------------ | ------------------------------------------------------------------ | ------------------- |
+| `THEME`      | The visual theme for the bot (see [Themes Guide](./05-THEMES.md)). | `messageforge`      |
+| `PREFIX`     | The character(s) used to trigger commands.                         | `.`                 |
+| `OWNER_NAME` | Your name displayed in the bot's about section.                    | `MessageForge Team` |
+| `MODE`       | Who can use the bot: `public`, `private`, or `groups`.             | `public`            |
 
 ---
 
@@ -52,11 +52,16 @@ MessageForge uses environment variables for configuration. You can set these in 
 
 ## 🛠️ Advanced Settings
 
-| Variable                | Description                                                  | Default           |
-| ----------------------- | ------------------------------------------------------------ | ----------------- |
-| `DEBUG`                 | Enable verbose logging in the console for troubleshooting.   | `false`           |
-| `MONGODB_URL`           | Connection string for MongoDB database (optional).           | _(Local storage)_ |
-| `DASHBOARD_TOKEN`       | Token required for remote admin dashboard/API/socket access. | _(Unset)_         |
-| `MESSENGER_HISTORY_MAX` | Number of messages retained per chat for dashboard history.  | `3000`            |
-| `PORT`                  | The port for the internal health check server.               | `25680`           |
-| `APP_URL`               | Your deployment URL (used for Heroku keep-alive).            | _(None)_          |
+| Variable                | Description                                                  | Default        |
+| ----------------------- | ------------------------------------------------------------ | -------------- |
+| `DEBUG`                 | Enable verbose logging in the console for troubleshooting.   | `false`        |
+| `DATABASE_TYPE`         | Storage backend: `local` or `postgres`.                      | `local`        |
+| `POSTGRES_HOST`         | PostgreSQL host (used when `DATABASE_TYPE=postgres`).        | `localhost`    |
+| `POSTGRES_PORT`         | PostgreSQL port.                                             | `5432`         |
+| `POSTGRES_USER`         | PostgreSQL username.                                         | `shadowwalker` |
+| `POSTGRES_PASSWORD`     | PostgreSQL password.                                         | _(Empty)_      |
+| `POSTGRES_DB`           | PostgreSQL database name.                                    | `messageforge` |
+| `DASHBOARD_TOKEN`       | Token required for remote admin dashboard/API/socket access. | _(Unset)_      |
+| `MESSENGER_HISTORY_MAX` | Number of messages retained per chat for dashboard history.  | `3000`         |
+| `PORT`                  | The port for the internal health check server.               | `25680`        |
+| `APP_URL`               | Your deployment URL (used for Heroku keep-alive).            | _(None)_       |
