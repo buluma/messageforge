@@ -107,10 +107,20 @@
             "required": false,
             "value": "*👀 Seen by MessageForge ✅*"
         },
+        "STATUS_INBOX_JID": {
+            "description": "Single chat/JID to receive saved status updates (use owner, me, phone digits, full user JID, or group JID).",
+            "required": false,
+            "value": "me"
+        },
         "AUTO_REACT_NEWSLETTER": {
             "description": "Auto-react to newsletter/channel messages (true/false).",
             "required": false,
             "value": "true"
+        },
+        "AUTO_UNFOLLOW_NEWSLETTER": {
+            "description": "Auto-unfollow newsletters/channels as soon as they are detected (true/false). Takes priority over auto-follow.",
+            "required": false,
+            "value": "false"
         },
         "CUSTOM_REACT_EMOJIS": {
             "description": "Comma-separated emojis for random status reactions.",

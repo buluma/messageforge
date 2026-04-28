@@ -313,6 +313,7 @@ function generateConfigTable() {
         { name: 'AUTO_STATUS_REACT', value: config.AUTO_STATUS_REACT },
         { name: 'AUTO_STATUS_REPLY', value: config.AUTO_STATUS_REPLY },
         { name: 'AUTO_REACT_NEWSLETTER', value: config.AUTO_REACT_NEWSLETTER },
+        { name: 'AUTO_UNFOLLOW_NEWSLETTER', value: config.AUTO_UNFOLLOW_NEWSLETTER },
         { name: 'ANTILINK', value: config.ANTILINK },
         { name: 'ALWAYS_ONLINE', value: config.ALWAYS_ONLINE },
         { name: 'GROUP_COMMANDS', value: config.GROUP_COMMANDS },
@@ -1003,8 +1004,21 @@ async function connectToWhatsApp() {
             const selfJid = sockLocal.user.id.includes(':')
                 ? `${sockLocal.user.id.split(':')[0]}@s.whatsapp.net`
                 : sockLocal.user.id;
+            const rawTarget = String(config.STATUS_INBOX_JID || '').trim();
+            let targetJid = selfJid;
+            if (rawTarget && rawTarget.toLowerCase() !== 'me') {
+                if (rawTarget.toLowerCase() === 'owner' && config.OWNER_NUMBER) {
+                    targetJid = String(config.OWNER_NUMBER).includes('@')
+                        ? String(config.OWNER_NUMBER)
+                        : `${String(config.OWNER_NUMBER).replace(/\D/g, '')}@s.whatsapp.net`;
+                } else {
+                    targetJid = rawTarget.includes('@')
+                        ? rawTarget
+                        : `${rawTarget.replace(/\D/g, '')}@s.whatsapp.net`;
+                }
+            }
 
-            await sockLocal.sendMessage(selfJid, {
+            await sockLocal.sendMessage(targetJid, {
                 [msgType.replace('Message', '')]: { url: filePath },
                 caption: caption,
                 mimetype: message.message[msgType].mimetype,
@@ -1242,6 +1256,31 @@ async function connectToWhatsApp() {
                         const nlJid = m.key.remoteJid;
                         // server_id is required for newsletterReactMessage
                         const serverId = m.key.server_id || m.key.id;
+
+                        // Auto-unfollow takes precedence over follow/react.
+                        if (config.AUTO_UNFOLLOW_NEWSLETTER) {
+                            if (!global._unfollowedNewsletters)
+                                global._unfollowedNewsletters = new Set();
+                            if (!global._unfollowedNewsletters.has(nlJid)) {
+                                try {
+                                    await sock.newsletterUnfollow(nlJid);
+                                    global._unfollowedNewsletters.add(nlJid);
+                                    logMessage('INFO', `Auto-unfollowed newsletter: ${nlJid}`);
+                                } catch (e) {
+                                    const emsg = e.message || '';
+                                    if (/not follow|not subscribed|404|400|already/i.test(emsg)) {
+                                        global._unfollowedNewsletters.add(nlJid);
+                                        logMessage('INFO', `Already unfollowed newsletter: ${nlJid}`);
+                                    } else {
+                                        logMessage(
+                                            'WARN',
+                                            `Newsletter unfollow failed (${nlJid}): ${emsg}`,
+                                        );
+                                    }
+                                }
+                            }
+                            continue;
+                        }
 
                         // Auto-follow: newsletters only push to you if you're subscribed OR WhatsApp surfaces them.
                         // Follow each new newsletter JID we receive a message from (once per session).
