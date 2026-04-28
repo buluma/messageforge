@@ -1,7 +1,14 @@
 import { state } from './state.js';
 import * as api from './api.js';
 import { on } from './socket.js';
-import { escapeHtml, formatWAText, getInitials, getAvatarColor, jidShort, safeMomentFormat } from './utils.js';
+import {
+    escapeHtml,
+    formatWAText,
+    getInitials,
+    getAvatarColor,
+    jidShort,
+    safeMomentFormat,
+} from './utils.js';
 
 const PAGE_SIZE = 60;
 let chatTimeTicker = null;
@@ -208,7 +215,7 @@ function handleSearch(e) {
             : state.chats.filter((c) => {
                   const name = (c.name || jidShort(c.jid)).toLowerCase();
                   return name.includes(q) || (c.lastMsgSnippet || '').toLowerCase().includes(q);
-              })
+              }),
     );
     renderChatList();
 }
@@ -478,9 +485,10 @@ function appendMessage(m, options = {}) {
         quotedHtml = `<div class="quoted-msg">${author ? `<div class="quoted-author">${escapeHtml(author)}</div>` : ''}<div class="quoted-text">${formatWAText(qText)}</div></div>`;
     }
 
-    const actionsHtml = m.key.fromMe
-        ? `<div class="msg-actions"><span class="msg-action-btn reply-btn" title="Reply">↩️</span><span class="msg-action-btn danger delete-btn" title="Delete">🗑</span></div>`
-        : `<div class="msg-actions"><span class="msg-action-btn reply-btn" title="Reply">↩️</span></div>`;
+    const actionsHtml = `<div class="msg-actions"><span class="msg-action-btn reply-btn" title="Reply">↩️</span></div>`;
+    const reactionPickerHtml = m.key.fromMe
+        ? ''
+        : `<div class="reaction-picker"><span>👍</span><span>❤️</span><span>😂</span><span>😮</span><span>😢</span><span>🙏</span></div>`;
 
     b.innerHTML = `
     ${quotedHtml}
@@ -489,7 +497,7 @@ function appendMessage(m, options = {}) {
     <div class="msg-time">${safeMomentFormat(m.messageTimestamp)}</div>
     <div class="msg-reactions" id="reactions-${m.key.id}"></div>
     <div class="msg-bottom-bar">
-      <div class="reaction-picker"><span>👍</span><span>❤️</span><span>😂</span><span>😮</span><span>😢</span><span>🙏</span></div>
+      ${reactionPickerHtml}
       ${actionsHtml}
     </div>`;
 
@@ -508,12 +516,6 @@ function appendMessage(m, options = {}) {
             doReact(m.key, el.textContent.trim());
         };
     });
-    if (m.key.fromMe) {
-        b.querySelector('.delete-btn').onclick = (e) => {
-            e.stopPropagation();
-            doDelete(m.key, b);
-        };
-    }
 
     if (prepend) thread.insertBefore(b, thread.firstChild);
     else thread.appendChild(b);
