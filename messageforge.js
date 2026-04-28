@@ -76,6 +76,15 @@ const { handleStatusBroadcast } = require('./lib/statusManager');
 const messengerStore = require('./lib/messengerStore');
 const config = require('./config.js');
 const { connectDB } = require('./lib/database');
+const BRAND_NAME = 'MessageForge';
+const BRAND_ICON = '◉';
+
+function getDisplayBotName() {
+    const raw = String(config.BOT_NAME || '').trim();
+    if (!raw) return BRAND_NAME;
+    if (/messageforge|silva\s*md|shadownet/i.test(raw)) return BRAND_NAME;
+    return raw;
+}
 
 if (typeof global.antivvEnabled === 'undefined') global.antivvEnabled = config.ANTIVV !== false;
 const store = makeInMemoryStore({ logger: P({ level: 'silent' }) });
@@ -169,7 +178,7 @@ async function loadSession() {
             if (!fs.existsSync(credsPath)) {
                 const [header, b64data] = sid.split('~');
                 if (header !== 'MessageForge' || !b64data) {
-                    logMessage('WARN', '⚠️ SESSION_ID format invalid — falling back to QR scan');
+                    logMessage('WARN', 'SESSION_ID format invalid. Falling back to QR flow.');
                     return;
                 }
 
@@ -177,20 +186,20 @@ async function loadSession() {
                 const compressedData = Buffer.from(cleanB64, 'base64');
                 const decompressedData = zlib.gunzipSync(compressedData);
                 fs.writeFileSync(credsPath, decompressedData, 'utf8');
-                logMessage('SUCCESS', '✅ ɴᴇᴡ ꜱᴇꜱꜱɪᴏɴ ʟᴏᴀᴅᴇᴅ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ');
+                logMessage('SUCCESS', 'Session restored from SESSION_ID.');
             } else {
-                logMessage('INFO', '📂 Using existing session from disk');
+                logMessage('INFO', 'Using session from disk.');
             }
         } else if (fs.existsSync(credsPath)) {
             // No SESSION_ID — reuse the session already on disk (Replit / local mode)
-            logMessage('INFO', '📂 Using existing session from disk');
+            logMessage('INFO', 'Using session from disk.');
         } else {
             // No session at all — Baileys will generate a QR code to scan
-            logMessage('WARN', '⚠️ No session found — scan the QR code to connect');
+            logMessage('WARN', 'No session found. Scan QR to connect.');
         }
     } catch (e) {
         logMessage('ERROR', `Session Error: ${e.message}`);
-        logMessage('WARN', '⚠️ Session load failed — attempting QR fallback');
+        logMessage('WARN', 'Session load failed. Attempting QR fallback.');
     }
 }
 
@@ -266,7 +275,7 @@ function loadPlugins() {
             if (m && m.commands) totalCmds += m.commands.length;
         }
     }
-    logMessage('INFO', `✅ Loaded ${plugins.size} plugin files (${totalCmds} commands)`);
+    logMessage('INFO', `Loaded ${plugins.size} plugin files (${totalCmds} commands)`);
 }
 loadPlugins();
 
@@ -325,6 +334,7 @@ function generateConfigTable() {
 
 // ✅ Fancy Bio Generator
 function generateFancyBio() {
+    const botName = getDisplayBotName();
     const now = new Date();
     const dateStr = now.toLocaleDateString('en-KE', {
         weekday: 'long',
@@ -340,11 +350,11 @@ function generateFancyBio() {
     });
 
     const bios = [
-        `✨ ${config.BOT_NAME} ✦ Online ✦ ${dateStr} ✦`,
-        `⚡ ${config.BOT_NAME} Active ✦ ${timeStr} ✦ ${dateStr} ✦`,
-        `💫 ${config.BOT_NAME} Operational ✦ ${dateStr} ✦`,
-        `🚀 ${config.BOT_NAME} Live ✦ ${dateStr} ✦ ${timeStr} ✦`,
-        `🌟 ${config.BOT_NAME} Running ✦ ${dateStr} ✦`,
+        `✨ ${botName} ✦ Online ✦ ${dateStr} ✦`,
+        `⚡ ${botName} Active ✦ ${timeStr} ✦ ${dateStr} ✦`,
+        `💫 ${botName} Operational ✦ ${dateStr} ✦`,
+        `🚀 ${botName} Live ✦ ${dateStr} ✦ ${timeStr} ✦`,
+        `🌟 ${botName} Running ✦ ${dateStr} ✦`,
     ];
 
     return bios[Math.floor(Math.random() * bios.length)];
@@ -361,8 +371,9 @@ async function sendWelcomeMessage(sock) {
         timeZone: 'Africa/Nairobi',
     });
 
+    const botName = getDisplayBotName();
     const welcomeMsg = [
-        `*${config.BOT_NAME}* is online ⚡`,
+        `*${botName}* is online ⚡`,
         ``,
         `▸ Prefix: \`${prefix}\``,
         `▸ Plugins: ${plugins.size} files | ${(() => {
@@ -409,7 +420,7 @@ async function sendWelcomeMessage(sock) {
             contextInfo: globalContextInfo,
             ephemeralExpiration: 20,
         });
-        logMessage('SUCCESS', 'Welcome message sent to owner (disappears in 20s).');
+        logMessage('SUCCESS', 'Owner welcome sent (auto-delete: 20s).');
 
         // Turn disappearing messages back off after the welcome has expired
         setTimeout(async () => {
@@ -431,9 +442,9 @@ async function updateProfileStatus(sock) {
     try {
         const bio = generateFancyBio();
         await sock.updateProfileStatus(bio);
-        logMessage('SUCCESS', `✅ Bio updated: ${bio}`);
+        logMessage('SUCCESS', `Profile bio synced: ${bio}`);
     } catch (err) {
-        logMessage('ERROR', `❌ Failed to update bio: ${err.message}`);
+        logMessage('ERROR', `Failed to update bio: ${err.message}`);
     }
 }
 
@@ -465,7 +476,7 @@ async function connectToWhatsApp() {
 
     const sock = makeWASocket({
         logger: P({ level: config.DEBUG ? 'debug' : 'silent' }),
-        printQRInTerminal: true,
+        // QR printing in terminal is deprecated upstream; handle via connection.update instead.
         browser: Browsers.macOS('Safari'),
         auth: state,
         version,
@@ -674,7 +685,7 @@ async function connectToWhatsApp() {
                 setTimeout(() => connectToWhatsApp(), 2000);
             }
         } else if (connection === 'open') {
-            logMessage('SUCCESS', '✅ Connected to WhatsApp');
+            logMessage('SUCCESS', 'Connected to WhatsApp.');
 
             // Store bot JID, phone number, and LID globally.
             // In full-LID groups WhatsApp hides phone numbers entirely — the only
@@ -1070,15 +1081,17 @@ async function connectToWhatsApp() {
                 }
 
                 // RAW diagnostic — confirms statuses enter the loop at all
-                console.log(
-                    '[DEBUG upsert]',
-                    type,
-                    remoteJid,
-                    '| fromMe:',
-                    m.key?.fromMe,
-                    '| participant:',
-                    m.key?.participant,
-                );
+                if (config.DEBUG) {
+                    console.log(
+                        '[DEBUG upsert]',
+                        type,
+                        remoteJid,
+                        '| fromMe:',
+                        m.key?.fromMe,
+                        '| participant:',
+                        m.key?.participant,
+                    );
+                }
 
                 // Debug: log any non-regular-message JIDs to help diagnose status delivery
                 if (!remoteJid.endsWith('@s.whatsapp.net') && !remoteJid.endsWith('@g.us')) {
@@ -1710,8 +1723,8 @@ app.get('/api/plugins', (req, res) => {
 });
 
 httpSrv.listen(port, () => {
-    logMessage('INFO', `🌐 Server running on port ${port}`);
-    logMessage('INFO', `📊 Dashboard available at http://localhost:${port}`);
+    logMessage('INFO', `Server listening on port ${port}.`);
+    logMessage('INFO', `Dashboard: http://localhost:${port}`);
 
     // ── Heroku keep-alive self-ping ─────────────────────────────────────────
     // On Heroku free/eco dynos the process sleeps after 30 min of no traffic,
@@ -1751,7 +1764,7 @@ httpSrv.listen(port, () => {
             25 * 60 * 1000,
         ); // every 25 minutes
 
-        logMessage('INFO', `🔄 Heroku keep-alive enabled → ${pingUrl}`);
+        logMessage('INFO', `Heroku keep-alive enabled: ${pingUrl}`);
     }
 });
 
@@ -1803,22 +1816,26 @@ process.on('unhandledRejection', (reason, promise) => {
     } catch (_) {}
 });
 
+function renderStartupBanner() {
+    const title = getDisplayBotName();
+    const innerWidth = 42;
+    const row = (text) => `║${String(text).padEnd(innerWidth, ' ')}║`;
+    return [
+        '╔══════════════════════════════════════════╗',
+        row(`   ${BRAND_ICON}  ${title}`),
+        row('   WhatsApp Automation Runtime'),
+        row('   github.com/buluma/messageforge'),
+        '╚══════════════════════════════════════════╝',
+    ];
+}
+
 // ✅ Boot Bot
 (async () => {
     try {
         console.log('\x1b[36m');
-        console.log('╔══════════════════════════════════════════╗');
-        console.log('║  ____  _ _                 __  __ ____   ║');
-        console.log('║ / ___|| (_)_   ____ _     |  \\/  |  _ \\  ║');
-        console.log('║ \\___ \\| | \\ \\ / / _` |    | |\\/| | | | | ║');
-        console.log('║  ___) | | |\\ V / (_| |    | |  | | |_| | ║');
-        console.log('║ |____/|_|_| \\_/ \\__,_|    |_|  |_|____/  ║');
-        console.log('║                                            ║');
-        console.log('║        WhatsApp Bot  •  Node.js           ║');
-        console.log('║  github.com/buluma/messageforge • v2.0    ║');
-        console.log('╚══════════════════════════════════════════╝');
+        for (const row of renderStartupBanner()) console.log(row);
         console.log('\x1b[0m');
-        logMessage('INFO', `Booting ${config.BOT_NAME} Bot...`);
+        logMessage('INFO', `Booting ${getDisplayBotName()} runtime...`);
 
         // ── Load global state ───────────────────────────────────────────────
         try {

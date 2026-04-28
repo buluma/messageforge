@@ -45,7 +45,7 @@
         "OWNER_NAME": {
             "description": "Bot owner's display name.",
             "required": false,
-            "value": "MessageForge"
+            "value": "SHADOWNET"
         },
         "DESCRIPTION": {
             "description": "Caption for menu and bot branding.",
@@ -185,7 +185,7 @@
         "PACK_AUTHOR": {
             "description": "Sticker pack author shown in sticker info.",
             "required": false,
-            "value": "MessageForge"
+            "value": "SHADOWNET"
         },
         "GREETING": {
             "description": "Auto-greeting message for new DMs. Leave blank to disable.",

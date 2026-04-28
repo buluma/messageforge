@@ -31,7 +31,7 @@ MessageForge uses environment variables for configuration. You can set these in 
 | ------------ | ------------------------------------------------------------------ | ------------------- |
 | `THEME`      | The visual theme for the bot (see [Themes Guide](./05-THEMES.md)). | `messageforge`      |
 | `PREFIX`     | The character(s) used to trigger commands.                         | `.`                 |
-| `OWNER_NAME` | Your name displayed in the bot's about section.                    | `MessageForge Team` |
+| `OWNER_NAME` | Your name displayed in the bot's about section.                    | `SHADOWNET Team` |
 | `MODE`       | Who can use the bot: `public`, `private`, or `groups`.             | `public`            |
 
 ---

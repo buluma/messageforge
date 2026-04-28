@@ -43,7 +43,7 @@ module.exports = {
         if (sub === 'social') {
             return sock.sendMessage(sender, {
                 text:
-`📱 *MessageForge Team Social Media*
+`📱 *SHADOWNET Team Social Media*
 
 • GitHub: https://github.com/buluma/messageforge
 • Issues: https://github.com/buluma/messageforge/issues

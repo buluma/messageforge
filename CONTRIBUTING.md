@@ -33,4 +33,4 @@ If you're interested in writing new features, check out the [Plugin Architecture
 
 ---
 
-*Built with ❤️ by MessageForge Team*
+*Built with ❤️ by SHADOWNET Team*

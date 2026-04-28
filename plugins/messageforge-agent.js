@@ -52,7 +52,7 @@ const BOT_IDENTITY = {
     get platform() {
         return detectPlatform();
     },
-    developer: 'MessageForge Team',
+    developer: 'SHADOWNET Team',
     ownerName: config.OWNER_NAME || 'MessageForge',
     ownerNumber: config.OWNER_NUMBER || '',
     features: [

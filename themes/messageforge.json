@@ -1,6 +1,6 @@
 {
     "theme": "MessageForge",
-    "AUTHOR": "MessageForge Team",
+    "AUTHOR": "SHADOWNET Team",
     "LANGUAGE": "English",
     "LANGCODE": "en",
     "STRINGS": {
@@ -23,7 +23,7 @@
             "mention": "Please mention a user.",
             "title": "MessageForge",
             "footer": "MessageForge",
-            "by": "Made by: MessageForge",
+            "by": "Made by: SHADOWNET Team",
             "success": "Done ✓",
             "wait": "*Processing your request* ✅",
             "admin": "⛔ This command is for group admins only.",

@@ -10,13 +10,13 @@ module.exports = {
     private:     true,
     run: async (sock, message, args, { sender, jid, contextInfo }) => {
         const ownerNumber = (config.OWNER_NUMBER || '').replace(/\D/g, '');
-        const ownerName   = config.OWNER_NAME || '✦ MessageForge ✦';
+        const ownerName   = config.OWNER_NAME || '✦ SHADOWNET ✦';
 
         const vcard = [
             'BEGIN:VCARD',
             'VERSION:3.0',
             `FN:${ownerName}`,
-            'ORG:MessageForge Team',
+            'ORG:SHADOWNET Team',
             `TEL;type=CELL;type=VOICE;waid=${ownerNumber}:+${ownerNumber}`,
             'END:VCARD'
         ].join('\n');

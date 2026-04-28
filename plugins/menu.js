@@ -329,7 +329,7 @@ function buildMenuText(plugins, pfx, botName, ownerNum, mode) {
         `💡 \`${pfx}help <cmd>\` for details`,
         `🌐 ${WEBSITE}`,
         ``,
-        `> ⚡ _${getStr('by') || 'Made by: MessageForge Team'} © ${now.year()}_`,
+        `> ⚡ _${getStr('by') || 'Made by: SHADOWNET Team'} © ${now.year()}_`,
     ].join('\n');
 
     const body = catBlocks.join(`\n\n${DIVIDER}\n\n`);

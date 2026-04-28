@@ -138,7 +138,7 @@ function loadPlugins() {
             console.error(`[Plugin] Error loading ${file}: ${err.message}`);
         }
     }
-    console.log(`[Plugin] ✅ ${plugins.length} plugins loaded successfully`);
+    // Plugin file/command totals are logged by messageforge.js; avoid duplicate startup noise.
 }
 
 loadPlugins();
