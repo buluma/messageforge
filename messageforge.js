@@ -1511,7 +1511,7 @@ app.get('/api/media/:jid/:msgId', async (req, res) => {
         const liveMsg = await store.loadMessage(jid, msgId);
         const chatMsgs = store.chats.get(jid);
         const liveMessages = chatMsgs ? Array.from(chatMsgs.values()) : [];
-        const persisted = messengerStore.getMessageById(jid, msgId, liveMessages);
+        const persisted = await messengerStore.getMessageById(jid, msgId, liveMessages);
         const msg = liveMsg?.message ? liveMsg : persisted;
         if (!msg?.message) return res.status(404).json({ error: 'Message not found' });
 
