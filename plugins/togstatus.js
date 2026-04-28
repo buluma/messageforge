@@ -215,7 +215,7 @@ function buildMsgObj(originalMessage, quotedContent) {
 }
 
 /**
- * Send content as a WhatsApp group status (groupStatusMessageV2).
+ * Send content as a WhatsApp group status.
  * FIX 2 — Proto spread: call toJSON() on proto objects before spreading,
  * so all fields survive the spread into the plain JS object.
  */
@@ -228,7 +228,7 @@ async function groupStatus(conn, jid, content) {
 
     const fullContent = {
         messageContextInfo: { messageSecret: secret },
-        groupStatusMessageV2: {
+        groupStatusMessage: {
             message: {
                 ...innerMsg,
                 messageContextInfo: { messageSecret: secret },
