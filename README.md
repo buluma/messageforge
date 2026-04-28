@@ -34,6 +34,21 @@ npm start
 
 If it boots, you’re live.
 
+## Boot (Docker)
+
+```bash
+cp sample.env .env
+# set SESSION_ID / OWNER_NUMBER / core env vars
+docker compose up -d --build
+docker compose logs -f messageforge
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:25680/health
+```
+
 ## Deploy (Heroku)
 
 1. [Generate Session ID](https://messageforge-session-selector.vercel.app/)
