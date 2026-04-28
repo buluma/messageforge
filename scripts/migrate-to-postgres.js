@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * Migration Script: Import local JSON data into PostgreSQL
- * 
+ *
  * Usage:
  *   node scripts/migrate-to-postgres.js
- * 
+ *
  * This script migrates:
  *   - plugin_data (sudo, banned, antilink groups, etc.) → plugin_data table
  *   - messenger history (data/messenger-history/) → messages table
@@ -24,7 +24,14 @@ const { connectDB, getPgPool } = require('../lib/database');
 
 const DATA_DIR = path.join(__dirname, '../data');
 const MESSENGER_DIR = path.join(DATA_DIR, 'messenger-history');
-const PLUGIN_FILES = ['sudo', 'banned', 'antilink_groups', 'antibad_groups', 'antidemote_gps', 'auto_reply_sch'];
+const PLUGIN_FILES = [
+    'sudo',
+    'banned',
+    'antilink_groups',
+    'antibad_groups',
+    'antidemote_gps',
+    'auto_reply_sch',
+];
 
 async function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -98,7 +105,9 @@ async function migratePluginData(pool) {
             );
 
             migrated++;
-            console.log(`  ✅ ${file}.json - ${Array.isArray(data) ? data.length : Object.keys(data).length} items`);
+            console.log(
+                `  ✅ ${file}.json - ${Array.isArray(data) ? data.length : Object.keys(data).length} items`,
+            );
         } catch (err) {
             errors++;
             console.log(`  ❌ ${file}.json - ${err.message}`);
@@ -185,7 +194,9 @@ async function migrateMessages(pool) {
         await sleep(50);
     }
 
-    console.log(`\nMessenger history: ${totalMessages} messages in ${chats} chats, ${errors} errors`);
+    console.log(
+        `\nMessenger history: ${totalMessages} messages in ${chats} chats, ${errors} errors`,
+    );
     return { migrated: totalMessages, errors, chats };
 }
 
@@ -210,11 +221,11 @@ async function main() {
     console.log('📤 MessageForge → PostgreSQL Migration Script');
     console.log('═'.repeat(60));
 
-    // Check database type
+    // Require postgres mode so connectDB initializes the PostgreSQL pool.
     if (config.DATABASE_TYPE !== 'postgres') {
-        console.log('\n⚠️  Warning: DATABASE_TYPE is not set to "postgres"');
-        console.log('   Set DATABASE_TYPE=postgres in your .env file to enable PostgreSQL.');
-        console.log('   Continuing anyway if PostgreSQL connection is available...\n');
+        console.log('\n❌ DATABASE_TYPE must be set to "postgres" for this migration script.');
+        console.log('   Update your .env file: DATABASE_TYPE=postgres');
+        process.exit(1);
     }
 
     // Initialize database connection
@@ -277,7 +288,9 @@ async function main() {
     console.log('📊 Migration Summary');
     console.log('═'.repeat(60));
     console.log(`   Plugin data:  ${pluginResult.migrated} files migrated`);
-    console.log(`   Messages:     ${messageResult.migrated} messages in ${messageResult.chats} chats`);
+    console.log(
+        `   Messages:     ${messageResult.migrated} messages in ${messageResult.chats} chats`,
+    );
     console.log(`   Total errors: ${pluginResult.errors + messageResult.errors}`);
     console.log('═'.repeat(60));
 
