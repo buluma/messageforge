@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const config = require('./config');
 const { getStr, getActiveTheme } = require('./lib/theme');
+const logger = require('./lib/logger');
 
 let isJidGroup, areJidsSameUser, jidNormalizedUser;
 try {
@@ -158,7 +159,7 @@ async function emitCommandExecuted(event) {
 function setupConnectionHandlers(sock) {
     bindGroupCacheInvalidation(sock);
     sock.ev.on('connection.update', ({ connection }) => {
-        if (connection === 'open') console.log('[Handler] WhatsApp connection open.');
+        if (connection === 'open') logger.custom('Handler', 'WhatsApp connection open.');
     });
     sock.ev.on('group-participants.update', async (update) => {
         for (const p of plugins) {
@@ -500,8 +501,9 @@ async function handleMessages(sock, message) {
             }
         }
 
-        console.log(
-            `[HANDLER] prefix="${usedPrefix}" cmd=${command}${resolvedCommand !== command ? `→${resolvedCommand}` : ''} jid=${jid} from=${from}`,
+        logger.custom(
+            'HANDLER',
+            `prefix="${usedPrefix}" cmd=${command}${resolvedCommand !== command ? `→${resolvedCommand}` : ''} jid=${jid} from=${from}`,
         );
 
         // ── Fetch group metadata FIRST — needed for LID resolution ────────────

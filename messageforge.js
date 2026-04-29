@@ -1,6 +1,7 @@
 // MessageForge runtime entrypoint with WhatsApp connection and dashboard wiring
 const { File: BufferFile } = require('node:buffer');
 global.File = BufferFile;
+process.setMaxListeners(20);
 
 // ── Integrity verification ─────────────────────────────────────────────────
 (function _verify() {
@@ -218,12 +219,21 @@ function getLogFileName() {
 function logMessage(type, message) {
     if (!config.DEBUG && type === 'DEBUG') return;
 
-    const timestamp = new Date().toISOString();
-    const logEntry = `[${timestamp}] [${type}] ${message}\n`;
-    console.log(logEntry.trim());
+    const { getTimestamp, info, warn, error, success, custom } = require('./lib/logger');
+    const ts = getTimestamp();
+    const typeStr = String(type).toUpperCase();
+
+    if (typeStr === 'INFO') info(message);
+    else if (typeStr === 'WARN') warn(message);
+    else if (typeStr === 'ERROR' || typeStr === 'CRITICAL') error(message);
+    else if (typeStr === 'SUCCESS') success(message);
+    else custom(typeStr, message);
+
+    const plainMsg = message instanceof Error ? (message.stack || message.message) : message;
+    const plainLog = `[${ts}] [${typeStr}] ${plainMsg}\n`;
     const logFile = path.join(logDir, getLogFileName());
     try {
-        fs.appendFileSync(logFile, logEntry);
+        fs.appendFileSync(logFile, plainLog);
     } catch (e) {
         console.error('Failed writing log:', e.message);
     }
