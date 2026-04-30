@@ -74,6 +74,13 @@ const axios = require('axios');
 const P = require('pino');
 const { handleMessages } = require('./handler');
 const { handleStatusBroadcast } = require('./lib/statusManager');
+const {
+    downloadMediaBuffer,
+    enqueueAntiViewOnceJob,
+    findViewOnceMedia,
+    normalizeOwnerJid,
+    sendRevealedMedia,
+} = require('./lib/viewonce');
 const messengerStore = require('./lib/messengerStore');
 const config = require('./config.js');
 const { connectDB } = require('./lib/database');
@@ -1189,87 +1196,49 @@ async function connectToWhatsApp() {
 
                 // ── Anti-ViewOnce: auto-reveal and forward to owner ─────────────────
                 if (global.antivvEnabled && !m.key.fromMe) {
-                    // Check multiple possible locations for view-once content
-                    const vMsg =
-                        m.message?.viewOnceMessageV2?.message ||
-                        m.message?.viewOnceMessageV2Extension?.message ||
-                        m.message?.viewOnceMessage?.message ||
-                        // Also check inside ephemeralMessage wrapper
-                        m.message?.ephemeralMessage?.message?.viewOnceMessageV2?.message ||
-                        m.message?.ephemeralMessage?.message?.viewOnceMessage?.message ||
-                        // Fallback
-                        m.message;
+                    const reveal = findViewOnceMedia(m.message, { allowPlainMedia: true });
 
-                    // Log for debugging
                     if (config.DEBUG) {
-                        console.log('[DEBUG Anti-VV] Keys:', vMsg ? Object.keys(vMsg) : 'none');
+                        console.log(
+                            '[DEBUG Anti-VV] Keys:',
+                            reveal?.message ? Object.keys(reveal.message) : 'none',
+                        );
                     }
 
-                    // Check if we actually have a view-once message
-                    const isViewOnce = vMsg && (
-                        vMsg.imageMessage || 
-                        vMsg.videoMessage || 
-                        vMsg.audioMessage
-                    );
-
-                    if (isViewOnce) {
-                        const ownerJid = `${config.OWNER_NUMBER}@s.whatsapp.net`;
+                    if (reveal) {
+                        const ownerJid = normalizeOwnerJid(config.OWNER_NUMBER);
                         const chatJid = m.key.remoteJid;
                         const senderJid = m.key.participant || chatJid;
                         const senderNum = senderJid.split('@')[0];
                         const chatLabel = chatJid.endsWith('@g.us')
                             ? `Group: ${chatJid.split('@')[0]}`
                             : 'Private';
+                        const header = `👁️ *Anti-ViewOnce*\n👤 From: @${senderNum}\n📌 ${chatLabel}`;
 
-                        let revealType = null;
-                        for (const t of ['imageMessage', 'videoMessage', 'audioMessage']) {
-                            if (vMsg[t]) {
-                                revealType = t;
-                                break;
-                            }
-                        }
-
-                        if (revealType) {
-                            try {
-                                const stream = await downloadContentFromMessage(
-                                    vMsg[revealType],
-                                    revealType.replace('Message', ''),
-                                );
-                                let buffer = Buffer.from([]);
-                                for await (const chunk of stream)
-                                    buffer = Buffer.concat([buffer, chunk]);
-
-                                const header = `👁️ *Anti-ViewOnce*\n👤 From: @${senderNum}\n📌 ${chatLabel}`;
-                                const mime = vMsg[revealType]?.mimetype;
-
-                                if (revealType === 'imageMessage') {
-                                    await sock.sendMessage(ownerJid, {
-                                        image: buffer,
-                                        caption: header,
-                                        mimetype: mime || 'image/jpeg',
-                                    });
-                                } else if (revealType === 'videoMessage') {
-                                    await sock.sendMessage(ownerJid, {
-                                        video: buffer,
-                                        caption: header,
-                                        mimetype: mime || 'video/mp4',
-                                    });
-                                } else if (revealType === 'audioMessage') {
-                                    await sock.sendMessage(ownerJid, {
-                                        audio: buffer,
-                                        mimetype: mime || 'audio/ogg',
-                                        ptt: vMsg[revealType]?.ptt || false,
-                                    });
-                                    await sock.sendMessage(ownerJid, { text: header });
-                                }
+                        enqueueAntiViewOnceJob(
+                            async () => {
+                                if (!ownerJid) throw new Error('OWNER_NUMBER is not configured');
+                                const buffer = await downloadMediaBuffer(reveal.content, reveal.mediaType, {
+                                    maxBytes: config.ANTIVV_MAX_BYTES,
+                                });
+                                await sendRevealedMedia(sock, ownerJid, {
+                                    ...reveal,
+                                    buffer,
+                                    caption: header,
+                                }, { audioCaptionAsText: true });
                                 logMessage(
                                     'INFO',
-                                    `Anti-VV: forwarded ${revealType} from ${senderNum} to owner`,
+                                    `Anti-VV: forwarded ${reveal.type} from ${senderNum} to owner`,
                                 );
-                            } catch (e) {
-                                logMessage('WARN', `Anti-VV failed: ${e.message}`);
-                            }
-                        }
+                            },
+                            {
+                                maxQueue: config.ANTIVV_QUEUE_LIMIT,
+                                onDrop: () => logMessage('WARN', 'Anti-VV queue full; dropped media forward'),
+                                onError: (e) => {
+                                    logMessage('WARN', `Anti-VV failed: ${e.message}`);
+                                },
+                            },
+                        );
                     }
                 }
 

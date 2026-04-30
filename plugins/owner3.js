@@ -6,6 +6,11 @@ const config = require('../config');
 const { fmt } = require('../lib/theme');
 const { jidNormalizedUser } = require('@whiskeysockets/baileys');
 const { getCommand } = require('../lib/command');
+const {
+    downloadMediaBuffer,
+    findViewOnceMedia,
+    sendRevealedMedia,
+} = require('../lib/viewonce');
 
 const SUDO_FILE = path.join(__dirname, '../data/sudo.json');
 function loadSudo()       { try { return JSON.parse(fs.readFileSync(SUDO_FILE, 'utf8')); } catch { return []; } }
@@ -225,8 +230,20 @@ module.exports = {
         if (cmd === 'vv2') {
             const quotedMsg = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
             if (!quotedMsg) return send('❌ Reply to a view-once message with `.vv2`');
-            const vMsg = quotedMsg?.viewOnceMessageV2?.message || quotedMsg?.viewOnceMessage?.message || quotedMsg;
-            await sock.sendMessage(jid, vMsg, { quoted: message }).catch(() => {});
+            const reveal = findViewOnceMedia(quotedMsg, { allowPlainMedia: true });
+            if (!reveal) return send('❌ Quoted message has no image, video, or audio.');
+            try {
+                const buffer = await downloadMediaBuffer(reveal.content, reveal.mediaType, {
+                    maxBytes: config.ANTIVV_MAX_BYTES,
+                });
+                await sendRevealedMedia(sock, jid, {
+                    ...reveal,
+                    buffer,
+                    caption: reveal.content?.caption || '',
+                }, { quoted: message });
+            } catch (e) {
+                return send(`❌ Failed to open media: ${e.message}`);
+            }
             return;
         }
 

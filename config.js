@@ -41,6 +41,8 @@ module.exports = {
     ANTIDELETE_PRIVATE: toBool(process.env.ANTIDELETE_PRIVATE, true),
     ANTILINK: toBool(process.env.ANTILINK, false),
     ANTIVV: toBool(process.env.ANTIVV, true),
+    ANTIVV_MAX_BYTES: Number(process.env.ANTIVV_MAX_BYTES || 64 * 1024 * 1024),
+    ANTIVV_QUEUE_LIMIT: Number(process.env.ANTIVV_QUEUE_LIMIT || 30),
     DEBUG: toBool(process.env.DEBUG, false),
     THEME: (process.env.THEME || 'messageforge').toLowerCase().trim(),
     GREETING: process.env.GREETING || '',

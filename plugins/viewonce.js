@@ -1,7 +1,11 @@
 'use strict';
 
-const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 const config = require('../config');
+const {
+    downloadMediaBuffer,
+    findViewOnceMedia,
+    sendRevealedMedia,
+} = require('../lib/viewonce');
 
 // In-memory toggle — seeded from config, changeable at runtime
 if (typeof global.antivvEnabled === 'undefined') {
@@ -24,12 +28,8 @@ module.exports = {
             }, { quoted: message });
         }
 
-        let type = null;
-        for (const k of ['imageMessage', 'videoMessage', 'audioMessage']) {
-            if (quoted[k]) { type = k; break; }
-        }
-
-        if (!type) {
+        const reveal = findViewOnceMedia(quoted, { allowPlainMedia: true });
+        if (!reveal) {
             return sock.sendMessage(sender, {
                 text: '❌ Quoted message has no image, video, or audio.',
                 contextInfo
@@ -37,34 +37,17 @@ module.exports = {
         }
 
         try {
-            const msgContent = quoted[type];
-            const stream = await downloadContentFromMessage(msgContent, type.replace('Message', ''));
-            let buffer = Buffer.alloc(0);
-            for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
-
-            if (type === 'imageMessage') {
-                await sock.sendMessage(sender, {
-                    image:    buffer,
-                    caption:  msgContent?.caption || '',
-                    mimetype: msgContent?.mimetype || 'image/jpeg'
-                }, { quoted: message });
-            } else if (type === 'videoMessage') {
-                await sock.sendMessage(sender, {
-                    video:    buffer,
-                    caption:  msgContent?.caption || '',
-                    mimetype: msgContent?.mimetype || 'video/mp4'
-                }, { quoted: message });
-            } else if (type === 'audioMessage') {
-                await sock.sendMessage(sender, {
-                    audio:    buffer,
-                    mimetype: msgContent?.mimetype || 'audio/mp4',
-                    ptt:      msgContent?.ptt || false
-                }, { quoted: message });
-            }
-
-            await sock.sendMessage(sender, { react: { text: '😍', key: message.key } });
+            const buffer = await downloadMediaBuffer(reveal.content, reveal.mediaType, {
+                maxBytes: config.ANTIVV_MAX_BYTES,
+            });
+            await sendRevealedMedia(sock, sender, {
+                ...reveal,
+                buffer,
+                caption: reveal.content?.caption || '',
+            }, { quoted: message });
+            await sock.sendMessage(sender, { react: { text: '😍', key: message.key } }).catch(() => {});
         } catch (err) {
-            await sock.sendMessage(sender, { react: { text: '😔', key: message.key } });
+            await sock.sendMessage(sender, { react: { text: '😔', key: message.key } }).catch(() => {});
             await sock.sendMessage(sender, {
                 text: `❌ Failed to open media: ${err.message}`,
                 contextInfo
