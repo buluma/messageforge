@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { getCommand } = require('../lib/command');
 const dataFile = path.join(__dirname, '..', 'data', 'recurring.json');
 
 function loadReminders() {
@@ -60,8 +61,7 @@ module.exports = {
     run: async (sock, message, args, ctx) => {
         const { jid, sender, contextInfo } = ctx;
 
-        const rawCmd = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const rawCmd = getCommand(ctx);
 
         if (rawCmd === 'clearreminders') {
             const userReminders = Object.entries(reminders).filter(([, r]) => r.sender === sender);

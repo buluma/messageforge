@@ -1,6 +1,7 @@
 'use strict';
 
 const { fmt } = require('../lib/theme');
+const { getCommand } = require('../lib/command');
 
 module.exports = {
     commands:    ['promote', 'demote', 'admin', 'unadmin'],
@@ -12,13 +13,8 @@ module.exports = {
 
     run: async (sock, message, args, ctx) => {
         const { jid, isAdmin, isBotAdmin, contextInfo, mentionedJid, theme } = ctx;
-        const cmd = (message.key?.fromMe ? args[-1] : undefined) || ctx.text?.split(' ')[0]?.replace(/^\./, '');
-
-        // Determine action from the command used
-        const rawCmd = message.message?.extendedTextMessage?.text?.trim().split(/\s+/)[0]
-            || message.message?.conversation?.trim().split(/\s+/)[0]
-            || '';
-        const isPromote = /^\.?(promote|admin)$/i.test(rawCmd);
+        const command = getCommand(ctx);
+        const isPromote = command === 'promote' || command === 'admin';
 
         if (!isAdmin) {
             return sock.sendMessage(jid, { text: fmt(theme.admin || '⛔ Only admins can use this command.'), contextInfo }, { quoted: message });

@@ -2,6 +2,7 @@
 
 const axios  = require('axios');
 const { fmt } = require('../lib/theme');
+const { getCommand } = require('../lib/command');
 
 module.exports = {
     commands: ['livescore', 'sportnews', 'standings', 'topscorers', 'upcomingmatches', 'surebet', 'gamehistory'],
@@ -12,8 +13,7 @@ module.exports = {
 
     run: async (sock, message, args, ctx) => {
         const { jid, contextInfo } = ctx;
-        const cmd  = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const cmd = getCommand(ctx);
         const text = args.join(' ').trim();
         const send = (t) => sock.sendMessage(jid, { text: fmt(t), contextInfo }, { quoted: message });
 

@@ -3,6 +3,7 @@
 const fs   = require('fs');
 const path = require('path');
 const { fmt, getStr } = require('../lib/theme');
+const { getCommand } = require('../lib/command');
 
 const DATA_PATH  = path.join(__dirname, '../data/warns.json');
 const WARN_LIMIT = 3;
@@ -65,9 +66,7 @@ module.exports = {
 
         if (!isAdmin) return reply(fmt(theme.admin || '⛔ Only admins can use this command.'));
 
-        const rawCmd = (message.message?.extendedTextMessage?.text ||
-                        message.message?.conversation || '')
-            .trim().split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const rawCmd = getCommand(ctx);
 
         const quotedParticipant = message.message?.extendedTextMessage?.contextInfo?.participant;
         const target = quotedParticipant || mentionedJid?.[0];

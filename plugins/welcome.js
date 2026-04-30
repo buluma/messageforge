@@ -1,4 +1,5 @@
 'use strict';
+const { getCommand } = require('../lib/command');
 
 // Map of jid -> { welcome: bool, goodbye: bool, customWelcome: string, customGoodbye: string }
 // Read by messageforge.js group-participants.update handler
@@ -16,8 +17,7 @@ module.exports = {
     run: async (sock, message, args, ctx) => {
         const { jid, isAdmin, contextInfo, theme } = ctx;
 
-        const rawCmd = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const rawCmd = getCommand(ctx);
 
         if (!isAdmin) {
             return sock.sendMessage(jid, { text: theme.admin || '⛔ Only admins can configure welcome messages.', contextInfo }, { quoted: message });

@@ -1,4 +1,5 @@
 'use strict';
+const { getCommand } = require('../lib/command');
 
 // Runtime toggles — override config values without editing config.env
 // Read by messageforge.js status handler when present
@@ -6,10 +7,20 @@ if (global.autoStatusFlags === undefined) {
     global.autoStatusFlags = {
         seen:  null,   // null = use config default, true/false = runtime override
         react: null,
+        mode:  null,   // null = use config default, "all"|"favorites" = runtime override
     };
 }
 
 const FLAGS = global.autoStatusFlags;
+const VALID_MODES = new Set(['all', 'favorites']);
+
+function getEffectiveMode(configMode) {
+    const runtimeMode = String(FLAGS.mode || '').trim().toLowerCase();
+    if (VALID_MODES.has(runtimeMode)) return runtimeMode;
+    const envMode = String(configMode || '').trim().toLowerCase();
+    if (VALID_MODES.has(envMode)) return envMode;
+    return 'all';
+}
 
 module.exports = {
     commands:    ['autoview', 'autolike', 'autoreact', 'autostatus', 'statusconfig'],
@@ -21,19 +32,21 @@ module.exports = {
 
     run: async (sock, message, args, ctx) => {
         const { jid, contextInfo } = ctx;
-
-        const rawCmd = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const command = getCommand(ctx);
 
         const sub = (args[0] || '').toLowerCase();
 
         // ── .autostatus / .statusconfig — show current state ─────────────────
-        if (rawCmd === 'autostatus' || rawCmd === 'statusconfig') {
+        if (command === 'autostatus' || command === 'statusconfig') {
             const config = require('../config');
+            const { getFormattedFavorites } = require('../lib/favorites');
             const seenEff  = FLAGS.seen  !== null ? FLAGS.seen  : config.AUTO_STATUS_SEEN;
             const reactEff = FLAGS.react !== null ? FLAGS.react : config.AUTO_STATUS_REACT;
             const seenSrc  = FLAGS.seen  !== null ? '_(runtime override)_' : '_(from config.env)_';
             const reactSrc = FLAGS.react !== null ? '_(runtime override)_' : '_(from config.env)_';
+            const mode = getEffectiveMode(config.AUTO_STATUS_MODE);
+            const modeSrc = FLAGS.mode !== null ? '_(runtime override)_' : '_(from config.env)_';
+            const favCount = getFormattedFavorites().length;
 
             return sock.sendMessage(jid, {
                 text: [
@@ -41,6 +54,7 @@ module.exports = {
                     ``,
                     `👁️ *Auto View:*   ${seenEff  ? '✅ ON' : '❌ OFF'}  ${seenSrc}`,
                     `❤️ *Auto Like:*   ${reactEff ? '✅ ON' : '❌ OFF'}  ${reactSrc}`,
+                    `🔒 *Mode:*      ${mode === 'favorites' ? '⭐ Favorites Only' : '👤 All Contacts'} (${favCount} saved) ${modeSrc}`,
                     ``,
                     `*Commands:*`,
                     `• \`.autoview on\`  — force view all statuses`,
@@ -48,13 +62,14 @@ module.exports = {
                     `• \`.autolike on\`  — force react/like all statuses`,
                     `• \`.autolike off\` — stop reacting to statuses`,
                     `• \`.autostatus\`   — show this panel`,
+                    `• \`.fav\`        — manage favorites`,
                 ].join('\n'),
                 contextInfo
             }, { quoted: message });
         }
 
         // ── .autoview on/off ──────────────────────────────────────────────────
-        if (rawCmd === 'autoview') {
+        if (command === 'autoview') {
             if (sub !== 'on' && sub !== 'off') {
                 const config = require('../config');
                 const eff = FLAGS.seen !== null ? FLAGS.seen : config.AUTO_STATUS_SEEN;
@@ -73,7 +88,7 @@ module.exports = {
         }
 
         // ── .autolike / .autoreact on/off ─────────────────────────────────────
-        if (rawCmd === 'autolike' || rawCmd === 'autoreact') {
+        if (command === 'autolike' || command === 'autoreact') {
             if (sub !== 'on' && sub !== 'off') {
                 const config = require('../config');
                 const eff = FLAGS.react !== null ? FLAGS.react : config.AUTO_STATUS_REACT;

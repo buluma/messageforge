@@ -3,6 +3,7 @@
 const fs   = require('fs');
 const path = require('path');
 const { fmt } = require('../lib/theme');
+const { getCommand } = require('../lib/command');
 
 const BAD_WORDS_FILE = path.join(__dirname, '../data/badwords.json');
 function loadBadWords(jid) {
@@ -34,10 +35,7 @@ module.exports = {
     run: async (sock, message, args, ctx) => {
         const { jid, isAdmin, isBotAdmin, contextInfo, groupMetadata, mentionedJid, theme, isOwner } = ctx;
         const participants = groupMetadata?.participants || [];
-
-        const rawText = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim();
-        const cmd = rawText.split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const cmd = getCommand(ctx);
 
         const send = (text, extra = {}) =>
             sock.sendMessage(jid, { text: fmt(text), contextInfo, ...extra }, { quoted: message });

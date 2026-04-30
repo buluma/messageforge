@@ -21,6 +21,7 @@ module.exports = {
     AUTO_STATUS_REACT: toBool(process.env.AUTO_STATUS_REACT, true),
     AUTO_STATUS_REPLY: toBool(process.env.AUTO_STATUS_REPLY, false),
     AUTO_STATUS_MSG: process.env.AUTO_STATUS_MSG || 'Seen by MessageForge',
+    AUTO_STATUS_MODE: (process.env.AUTO_STATUS_MODE || 'all').toLowerCase().trim(),
     CUSTOM_REACT_EMOJIS: process.env.CUSTOM_REACT_EMOJIS || '❤️,🔥,💯,😍,👏,💙,🙌',
     Status_Saver: process.env.Status_Saver || process.env.STATUS_SAVER || 'false',
     STATUS_INBOX_JID: process.env.STATUS_INBOX_JID || '',

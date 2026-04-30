@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { getCommand } = require('../lib/command');
 const dataFile = path.join(__dirname, '..', 'data', 'bookmarks.json');
 
 function loadBookmarks() {
@@ -23,8 +24,7 @@ module.exports = {
     run: async (sock, message, args, ctx) => {
         const { jid, sender, contextInfo } = ctx;
 
-        const rawCmd = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const rawCmd = getCommand(ctx);
 
         const bookmarks = loadBookmarks();
         if (!bookmarks[sender]) bookmarks[sender] = [];

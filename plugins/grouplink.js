@@ -1,4 +1,5 @@
 'use strict';
+const { getCommandRaw } = require('../lib/command');
 
 module.exports = {
     commands:    ['grouplink', 'invitelink', 'link', 'revoke', 'revokelink'],
@@ -11,8 +12,7 @@ module.exports = {
     run: async (sock, message, args, ctx) => {
         const { jid, isAdmin, isBotAdmin, contextInfo, theme } = ctx;
 
-        const rawCmd = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '');
+        const rawCmd = getCommandRaw(ctx);
 
         const isRevoke = /^revoke/i.test(rawCmd);
 

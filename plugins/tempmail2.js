@@ -2,6 +2,7 @@
 
 const { fmt } = require('../lib/theme');
 const { TempMail } = require('tempmail.lol');
+const { getCommand } = require('../lib/command');
 
 function getSessionStore() {
     if (!global.tempMailSessions) global.tempMailSessions = new Map();
@@ -24,15 +25,7 @@ module.exports = {
         const { jid, contextInfo } = ctx;
         const from = message.key.participant || message.key.remoteJid;
         const mailSessions = getSessionStore();
-        const cmd = (
-            message.message?.extendedTextMessage?.text ||
-            message.message?.conversation ||
-            ''
-        )
-            .trim()
-            .split(/\s+/)[0]
-            .replace(/^\./, '')
-            .toLowerCase();
+        const cmd = getCommand(ctx);
         const text = args.join(' ').trim();
         const send = (t) =>
             sock.sendMessage(jid, { text: fmt(t), contextInfo }, { quoted: message });

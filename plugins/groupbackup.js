@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { getCommand } = require('../lib/command');
 const backupDir = path.join(__dirname, '..', 'data', 'backups');
 
 function ensureDir() {
@@ -19,8 +20,7 @@ module.exports = {
     run: async (sock, message, args, ctx) => {
         const { jid, isAdmin, contextInfo, isOwner } = ctx;
 
-        const rawCmd = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const rawCmd = getCommand(ctx);
 
         if (!isAdmin) {
             return sock.sendMessage(jid, { text: '⛔ Only admins can manage group backups.', contextInfo }, { quoted: message });

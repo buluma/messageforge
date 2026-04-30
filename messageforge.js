@@ -1189,12 +1189,30 @@ async function connectToWhatsApp() {
 
                 // ── Anti-ViewOnce: auto-reveal and forward to owner ─────────────────
                 if (global.antivvEnabled && !m.key.fromMe) {
+                    // Check multiple possible locations for view-once content
                     const vMsg =
                         m.message?.viewOnceMessageV2?.message ||
                         m.message?.viewOnceMessageV2Extension?.message ||
-                        m.message?.viewOnceMessage?.message;
+                        m.message?.viewOnceMessage?.message ||
+                        // Also check inside ephemeralMessage wrapper
+                        m.message?.ephemeralMessage?.message?.viewOnceMessageV2?.message ||
+                        m.message?.ephemeralMessage?.message?.viewOnceMessage?.message ||
+                        // Fallback
+                        m.message;
 
-                    if (vMsg) {
+                    // Log for debugging
+                    if (config.DEBUG) {
+                        console.log('[DEBUG Anti-VV] Keys:', vMsg ? Object.keys(vMsg) : 'none');
+                    }
+
+                    // Check if we actually have a view-once message
+                    const isViewOnce = vMsg && (
+                        vMsg.imageMessage || 
+                        vMsg.videoMessage || 
+                        vMsg.audioMessage
+                    );
+
+                    if (isViewOnce) {
                         const ownerJid = `${config.OWNER_NUMBER}@s.whatsapp.net`;
                         const chatJid = m.key.remoteJid;
                         const senderJid = m.key.participant || chatJid;

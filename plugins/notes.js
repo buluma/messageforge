@@ -3,6 +3,7 @@
 const fs   = require('fs');
 const path = require('path');
 const { fmt } = require('../lib/theme');
+const { getCommand } = require('../lib/command');
 
 const DATA_DIR  = path.join(__dirname, '../data/notes');
 const ADMIN_DIR = path.join(__dirname, '../data/notes_admin');
@@ -33,8 +34,7 @@ module.exports = {
     run: async (sock, message, args, ctx) => {
         const { jid, contextInfo, isOwner } = ctx;
         const from   = message.key.participant || message.key.remoteJid;
-        const cmd    = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const cmd = getCommand(ctx);
 
         const uFile = userFile(from);
         const aFile = adminFile(jid);

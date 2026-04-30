@@ -1,6 +1,7 @@
 'use strict';
 
 const axios = require('axios');
+const { getCommand } = require('../lib/command');
 
 module.exports = {
     commands:    ['anime', 'animesearch', 'manga'],
@@ -13,8 +14,7 @@ module.exports = {
     run: async (sock, message, args, ctx) => {
         const { jid, contextInfo } = ctx;
 
-        const rawCmd = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const rawCmd = getCommand(ctx);
 
         const query = args.join(' ').trim();
         if (!query) {

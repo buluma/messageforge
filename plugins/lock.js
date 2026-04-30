@@ -1,6 +1,7 @@
 'use strict';
 
 const { fmt } = require('../lib/theme');
+const { getCommandRaw } = require('../lib/command');
 
 module.exports = {
     commands:    ['lock', 'unlock', 'close', 'open'],
@@ -13,8 +14,7 @@ module.exports = {
     run: async (sock, message, args, ctx) => {
         const { jid, isAdmin, isBotAdmin, contextInfo, theme } = ctx;
 
-        const rawCmd = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '');
+        const rawCmd = getCommandRaw(ctx);
 
         const isLock = /^(lock|close)$/i.test(rawCmd);
 

@@ -2,6 +2,7 @@
 
 const { fmt } = require('../lib/theme');
 const db = require('../lib/dbManager');
+const { getCommand } = require('../lib/command');
 
 if (!global.bannedUsers) global.bannedUsers = new Set();
 
@@ -16,8 +17,7 @@ module.exports = {
     run: async (sock, message, args, ctx) => {
         const { jid, isOwner, contextInfo, mentionedJid } = ctx;
 
-        const rawCmd = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const rawCmd = getCommand(ctx);
 
         if (rawCmd === 'banlist') {
             if (!global.bannedUsers.size) {

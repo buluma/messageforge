@@ -5,6 +5,7 @@ const path   = require('path');
 const config = require('../config');
 const { fmt } = require('../lib/theme');
 const { jidNormalizedUser } = require('@whiskeysockets/baileys');
+const { getCommand } = require('../lib/command');
 
 const SUDO_FILE = path.join(__dirname, '../data/sudo.json');
 function loadSudo()       { try { return JSON.parse(fs.readFileSync(SUDO_FILE, 'utf8')); } catch { return []; } }
@@ -48,8 +49,7 @@ module.exports = {
 
     run: async (sock, message, args, ctx) => {
         const { jid, contextInfo, isOwner, mentionedJid, groupMetadata } = ctx;
-        const cmd  = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const cmd = getCommand(ctx);
         const text = args.join(' ').trim();
         const send = (t) => sock.sendMessage(jid, { text: fmt(t), contextInfo }, { quoted: message });
 

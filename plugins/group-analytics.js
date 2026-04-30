@@ -1,4 +1,5 @@
 'use strict';
+const { getCommand } = require('../lib/command');
 
 const analytics = new Map();
 global.groupAnalytics = analytics;
@@ -39,8 +40,7 @@ module.exports = {
 
     run: async (sock, message, args, ctx) => {
         const { jid, contextInfo } = ctx;
-        const rawCmd = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const rawCmd = getCommand(ctx);
 
         const data = analytics.get(jid);
         if (!data || data.totalMessages === 0) {

@@ -3,6 +3,7 @@
 const axios = require('axios');
 const { jidNormalizedUser, downloadMediaMessage } = require('@whiskeysockets/baileys');
 const { globalLidMapping } = require('../lib/lid-mapping-store');
+const { getCommand } = require('../lib/command');
 
 const truecallerCache = new Map();
 
@@ -137,8 +138,7 @@ module.exports = {
 
     run: async (sock, message, args, ctx) => {
         const { jid, contextInfo, isGroup, groupMetadata, resolveLid } = ctx;
-        const rawCmd = (message.message?.extendedTextMessage?.text
-            || message.message?.conversation || '').trim().split(/\s+/)[0].replace(/^\./, '').toLowerCase();
+        const rawCmd = getCommand(ctx);
 
         if (['vcfread', 'readvcf', 'vcfview'].includes(rawCmd)) {
             const msg = message.message || {};
