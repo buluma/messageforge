@@ -40,8 +40,8 @@ function renderGrid() {
     grid.innerHTML = files.map((f) => `
         <div class="media-card" data-url="${f.url}" data-type="${f.type}" data-name="${f.name}">
             <button class="media-delete-btn" data-url="${f.url}" title="Delete">🗑</button>
-            ${f.type === 'image'
-                ? `<img class="media-thumb" src="${f.url}" alt="${f.name}" loading="lazy" />`
+            ${f.type === 'image' || f.type === 'video'
+                ? `<img class="media-thumb" src="/api/media/thumb?url=${encodeURIComponent(f.url)}" alt="${f.name}" loading="lazy" data-icon="${ICON[f.type] || '📄'}" />`
                 : `<div class="media-thumb-placeholder">${ICON[f.type] || '📄'}</div>`
             }
             <div class="media-card-body">
@@ -56,6 +56,16 @@ function renderGrid() {
             </div>
         </div>
     `).join('');
+
+    grid.querySelectorAll('img.media-thumb[data-icon]').forEach((img) => {
+        img.onerror = function () {
+            const icon = this.dataset.icon || '📄';
+            const placeholder = document.createElement('div');
+            placeholder.className = 'media-thumb-placeholder';
+            placeholder.textContent = icon;
+            this.replaceWith(placeholder);
+        };
+    });
 
     grid.hidden = false;
 }
