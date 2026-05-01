@@ -147,7 +147,7 @@ module.exports = {
         'chatmute', 'chatunmute',
         'chatread', 'chatunread',
         'chatstar', 'chatunstar',
-        'chatdelete', 'chatclear',
+        'chatdelete', 'chatclear', 'clearhist',
         'broadcastlist', 'blistinfo',
         'removepp', 'clearpp',
         'msgedit',
@@ -221,6 +221,12 @@ module.exports = {
                 },
             }, jid);
             return ctx.reply('✅ Cleared quoted message for this account.');
+        }
+
+        if (cmd === 'clearhist') {
+            const { softDeleteChat } = require('../lib/messengerStore');
+            await softDeleteChat(jid);
+            return ctx.reply('✅ Chat history cleared from local database. Will restore automatically when the next message arrives.');
         }
 
         if (cmd === 'broadcastlist' || cmd === 'blistinfo') {

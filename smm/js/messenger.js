@@ -45,13 +45,31 @@ export function mountMessenger() {
     });
     on('presence-update', ({ jid, presences }) => {
         if (jid !== state.activeJid) return;
-        const isTyping = Object.values(presences || {}).some(
-            (p) => p.lastKnownPresence === 'composing',
-        );
+        const values = Object.values(presences || {});
+
+        const isTyping = values.some((p) => p.lastKnownPresence === 'composing');
         const el = document.getElementById('typingIndicator');
         el.innerHTML = isTyping
             ? `<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span> typing`
             : '';
+
+        const statusEl = document.getElementById('activeChatStatus');
+        if (jid.endsWith('@g.us')) {
+            const onlineCount = values.filter((p) =>
+                p.lastKnownPresence === 'available' ||
+                p.lastKnownPresence === 'composing' ||
+                p.lastKnownPresence === 'paused',
+            ).length;
+            if (onlineCount > 0) statusEl.textContent = `${onlineCount} online`;
+        } else {
+            const p = values[0];
+            if (!p) return;
+            const presence = p.lastKnownPresence;
+            if (presence === 'composing') statusEl.textContent = 'typing...';
+            else if (presence === 'recording') statusEl.textContent = 'recording...';
+            else if (presence === 'available' || presence === 'paused') statusEl.textContent = 'Online';
+            else statusEl.textContent = 'Offline';
+        }
     });
     on('reaction-update', ({ jid, msgId, emoji, sender }) => {
         if (jid !== state.activeJid) return;
@@ -380,7 +398,7 @@ async function selectChat(chat) {
     document.getElementById('activeChatName').textContent = chat.name || jidShort(chat.jid);
     document.getElementById('activeChatStatus').textContent = chat.jid.endsWith('@g.us')
         ? 'Group'
-        : 'Online';
+        : '—';
     document.getElementById('togglePin').textContent = chat.isPinned ? '⭐' : '☆';
 
     const av = document.getElementById('activeChatAvatar');

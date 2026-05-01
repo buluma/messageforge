@@ -1723,6 +1723,7 @@ io.on('connection', (socket) => {
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'smm')));
+app.use('/media-files', requireDashboardAuth, express.static(path.join(__dirname, 'data')));
 
 app.get('/api/auth/config', (req, res) => {
     res.json({
@@ -2191,6 +2192,65 @@ app.post('/api/subscribe-presence', async (req, res) => {
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
+    }
+});
+
+const MEDIA_EXTS = new Map([
+    ['.mp4', 'video'], ['.webm', 'video'], ['.mkv', 'video'], ['.mov', 'video'],
+    ['.jpg', 'image'], ['.jpeg', 'image'], ['.png', 'image'], ['.webp', 'image'], ['.gif', 'image'],
+    ['.mp3', 'audio'], ['.ogg', 'audio'], ['.opus', 'audio'], ['.wav', 'audio'], ['.m4a', 'audio'],
+]);
+const MEDIA_DATA_DIR = path.join(__dirname, 'data');
+
+function scanMediaDir(dir, baseDir, results) {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            scanMediaDir(full, baseDir, results);
+        } else if (entry.isFile()) {
+            const ext = path.extname(entry.name).toLowerCase();
+            const kind = MEDIA_EXTS.get(ext);
+            if (!kind) continue;
+            const rel = path.relative(baseDir, full).replace(/\\/g, '/');
+            const folder = path.relative(baseDir, dir).replace(/\\/g, '/') || '.';
+            let stat;
+            try { stat = fs.statSync(full); } catch { continue; }
+            results.push({
+                name: entry.name,
+                url: `/media-files/${rel}`,
+                type: kind,
+                folder,
+                size: stat.size,
+                mtime: Math.floor(stat.mtimeMs / 1000),
+            });
+        }
+    }
+}
+
+app.get('/api/media', (req, res) => {
+    const results = [];
+    scanMediaDir(MEDIA_DATA_DIR, MEDIA_DATA_DIR, results);
+    results.sort((a, b) => b.mtime - a.mtime);
+    res.json({ files: results, total: results.length });
+});
+
+app.delete('/api/media', (req, res) => {
+    const { url } = req.body;
+    if (!url || !url.startsWith('/media-files/')) {
+        return res.status(400).json({ error: 'Invalid url' });
+    }
+    const rel = url.slice('/media-files/'.length);
+    const target = path.resolve(MEDIA_DATA_DIR, rel);
+    if (!target.startsWith(MEDIA_DATA_DIR + path.sep) && target !== MEDIA_DATA_DIR) {
+        return res.status(400).json({ error: 'Path traversal rejected' });
+    }
+    try {
+        fs.unlinkSync(target);
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 

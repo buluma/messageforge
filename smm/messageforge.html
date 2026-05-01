@@ -51,6 +51,14 @@
                         />
                     </svg>
                 </button>
+                <button class="rail-btn" data-view="media" title="Media">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" rx="1"/>
+                        <rect x="14" y="3" width="7" height="7" rx="1"/>
+                        <rect x="3" y="14" width="7" height="7" rx="1"/>
+                        <path d="M17 14v7M14 17h7"/>
+                    </svg>
+                </button>
                 <div class="rail-spacer"></div>
                 <a
                     class="rail-btn"
@@ -242,6 +250,41 @@
                     <div id="pluginsLoading" class="empty-state">Loading plugins…</div>
                     <div id="pluginsGrid" class="plugins-grid"></div>
                 </section>
+
+                <!-- ── Media view ───────────────────────────────────────── -->
+                <section class="view view-media" id="view-media">
+                    <header class="view-header">
+                        <h1>Media</h1>
+                        <div class="view-meta" id="mediaCount">—</div>
+                    </header>
+                    <div class="media-controls">
+                        <div class="filter-pills" id="mediaFilterPills">
+                            <button class="pill active" data-type="all">All</button>
+                            <button class="pill" data-type="video">Video</button>
+                            <button class="pill" data-type="image">Image</button>
+                            <button class="pill" data-type="audio">Audio</button>
+                        </div>
+                        <input id="mediaSearch" class="plugin-search-input" type="search" placeholder="Search files…" autocomplete="off" />
+                    </div>
+                    <div id="mediaLoading" class="empty-state">Loading media…</div>
+                    <div id="mediaGrid" class="media-grid" hidden></div>
+                </section>
+
+                <!-- ── Media lightbox ────────────────────────────────────── -->
+                <div id="mediaLightbox" class="media-lightbox" hidden>
+                    <div class="media-lightbox-backdrop"></div>
+                    <div class="media-lightbox-box">
+                        <button class="media-lightbox-close">✕</button>
+                        <div id="mediaLightboxContent" class="media-lightbox-content"></div>
+                        <div class="media-lightbox-meta">
+                            <div id="mediaLightboxName" class="media-lightbox-name"></div>
+                            <div style="display:flex;gap:10px;align-items:center">
+                                <a id="mediaLightboxDownload" class="media-lightbox-download" download>↓ Download</a>
+                                <button id="mediaLightboxDelete" class="media-lightbox-del">🗑 Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </main>
         </div>
 

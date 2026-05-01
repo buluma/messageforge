@@ -1,6 +1,7 @@
 import { initSocket } from './socket.js';
 import { mountMessenger } from './messenger.js';
 import { mountDashboard } from './dashboard.js';
+import { mountMedia } from './media.js';
 
 // ── View switching via rail nav ────────────────────────────────────
 function setView(name) {
@@ -20,6 +21,7 @@ document.querySelectorAll('.rail-btn[data-view]').forEach(btn => {
 initSocket();
 mountMessenger();
 mountDashboard();
+mountMedia();
 
 // Expose for debugging from console
 window.__shadow = { setView };

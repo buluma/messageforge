@@ -150,7 +150,8 @@ input {
     grid-template-columns: 340px 1fr;
 }
 .view-dashboard.active,
-.view-plugins.active {
+.view-plugins.active,
+.view-media.active {
     display: block;
     overflow-y: auto;
     padding: 28px 32px;
@@ -961,4 +962,196 @@ input {
         right: 14px;
         bottom: 86px;
     }
+    .view-media.active {
+        padding: 18px;
+    }
+}
+
+/* ── Media view ───────────────────────────────────────────────────── */
+.media-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+.media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+}
+.media-card {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+}
+.media-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+}
+.media-card {
+    position: relative;
+}
+.media-delete-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 2;
+    background: rgba(0,0,0,0.65);
+    border: none;
+    color: #fff;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+}
+.media-card:hover .media-delete-btn {
+    opacity: 1;
+}
+.media-delete-btn:hover {
+    background: var(--error);
+}
+.media-thumb {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    display: block;
+    background: var(--bg-3);
+}
+.media-thumb-placeholder {
+    width: 100%;
+    aspect-ratio: 16/9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-3);
+    font-size: 32px;
+}
+.media-card-body {
+    padding: 10px 12px;
+}
+.media-card-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+}
+.media-card-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+}
+.media-folder-tag {
+    background: var(--bg-3);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 10px;
+    color: var(--text-dim);
+}
+
+/* ── Media lightbox ───────────────────────────────────────────────── */
+.media-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.media-lightbox[hidden] { display: none !important; }
+.media-lightbox-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+}
+.media-lightbox-box {
+    position: relative;
+    z-index: 1;
+    background: var(--bg-1);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    max-width: min(90vw, 900px);
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.media-lightbox-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: var(--bg-3);
+    border: none;
+    color: var(--text);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.media-lightbox-content img,
+.media-lightbox-content video,
+.media-lightbox-content audio {
+    display: block;
+    max-width: 100%;
+    max-height: 65vh;
+    margin: 0 auto;
+    border-radius: var(--radius-sm);
+}
+.media-lightbox-content audio {
+    width: 100%;
+    max-height: none;
+}
+.media-lightbox-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+.media-lightbox-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.media-lightbox-download {
+    color: var(--primary-hi);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.media-lightbox-download:hover { text-decoration: underline; }
+.media-lightbox-del {
+    background: transparent;
+    border: 1px solid var(--error);
+    color: var(--error);
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.media-lightbox-del:hover {
+    background: var(--error);
+    color: #fff;
 }
