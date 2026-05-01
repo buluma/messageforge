@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0](https://github.com/buluma/messageforge/compare/v2.1.0...v2.2.0) (2026-05-01)
+
+
+### Features
+
+* add media gallery, soft-delete chat history, and real presence status ([0094dd3](https://github.com/buluma/messageforge/commit/0094dd3f59effcea09944ce8e20649330e512f03))
+
 ## [2.1.0](https://github.com/buluma/messageforge/compare/2.0.0...v2.1.0) (2026-05-01)
 
 
