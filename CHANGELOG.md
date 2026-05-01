@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0](https://github.com/buluma/messageforge/compare/2.0.0...v2.1.0) (2026-05-01)
+
+
+### Features
+
+* cap app log growth and add dashboard favicon ([8492828](https://github.com/buluma/messageforge/commit/84928287ac9ac99fbbc1cea9488673eb7dee3a5b))
+* **smm:** improve chat UX, naming, aliases, and dashboard activity ([3013cd1](https://github.com/buluma/messageforge/commit/3013cd1b53a8e436fd6794dcb57a627ce1d516ce))
+
 ## [Unreleased]
 
 ### Added
