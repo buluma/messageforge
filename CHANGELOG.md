@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `feat(smm)`: Add floating `scroll to latest` button in thread view
+- `feat(smm)`: Add persistent chat label aliases with new endpoints:
+  - `GET /api/chat-aliases`
+  - `POST /api/chat-alias`
+- `feat(smm)`: Add quick rename action (`✎`) in active chat header
+- `feat(dashboard)`: Add local git activity API (`GET /api/local-commit-activity`) and plot local commits as a second chart dataset
+
+### Changed
+- `change(smm)`: Preserve active chat search filter when chat list refreshes or updates
+- `change(smm)`: Auto-refresh dashboard every 60s only when dashboard view is active and tab is visible
+- `change(dashboard)`: Show chart recency context via `Last commit ... ago` status text
+- `change(pm2)`: Align PM2 runtime port back to `25680` in `ecosystem.config.js`
+
+### Fixed
+- `fix(smm)`: Always scroll to latest messages and keep message input focused when switching conversations
+- `fix(smm)`: Prevent chat list load stalls by making unresolved-name hydration non-blocking in `/api/chats`
+- `fix(smm)`: Improve contact name resolution for LID/JID variants and avoid self-name leakage in unrelated private chats
+- `fix(smm)`: Restore own-linked chat labels (for bot/owner-linked numbers) when self-name guard is active
+
 ---
 
 ## [1.0.0] - 2026-05-01
