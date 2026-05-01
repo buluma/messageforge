@@ -82,11 +82,17 @@ const MAX_SENDS_PER_MIN = 30;
 async function safeSend(sock, jid, content, opts = {}) {
     if (!jid || !sock?.sendMessage) return null;
     try {
-        const now = Date.now();
+        if (sock.__messageforgeSendGuarded) {
+            return await sock.sendMessage(jid, content, opts);
+        }
+
+        let now = Date.now();
         while (sendTimestamps.length && now - sendTimestamps[0] > 60000) sendTimestamps.shift();
         if (sendTimestamps.length >= MAX_SENDS_PER_MIN) {
-            const wait = 60000 - (now - sendTimestamps[0]);
-            await new Promise((r) => setTimeout(r, Math.min(wait, 3000)));
+            const wait = Math.max(0, 60000 - (now - sendTimestamps[0])) + 50;
+            await new Promise((r) => setTimeout(r, wait));
+            now = Date.now();
+            while (sendTimestamps.length && now - sendTimestamps[0] > 60000) sendTimestamps.shift();
         }
         const jitter = Math.floor(Math.random() * 400) + 100;
         await new Promise((r) => setTimeout(r, jitter));
