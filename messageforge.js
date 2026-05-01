@@ -2090,6 +2090,9 @@ app.get('/api/profile-pic/:jid', async (req, res) => {
     }
 });
 
+const { buildIndex: facesBuildIndex, getPersons, renamePerson, getStatus: facesStatus, FACES_DIR } = require('./lib/faceIndexer');
+app.use('/api/media/face', express.static(FACES_DIR));
+
 app.get('/api/media/:jid/:msgId', async (req, res) => {
     const { jid, msgId } = req.params;
     try {
@@ -2322,6 +2325,35 @@ app.delete('/api/media', (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// ── Face recognition ──────────────────────────────────────────────────────────
+
+app.get('/api/media/persons', (req, res) => {
+    try {
+        res.json({ persons: getPersons() });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/media/index-status', (req, res) => {
+    res.json(facesStatus());
+});
+
+app.post('/api/media/index-faces', (req, res) => {
+    const files = [];
+    scanMediaDir(MEDIA_DATA_DIR, MEDIA_DATA_DIR, files);
+    facesBuildIndex(files).catch(() => {});
+    res.json({ started: true, total: files.length });
+});
+
+app.patch('/api/media/persons/:id', (req, res) => {
+    const { name } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ error: 'name required' });
+    const ok = renamePerson(req.params.id, name.trim());
+    if (!ok) return res.status(404).json({ error: 'Person not found' });
+    res.json({ success: true });
 });
 
 app.get('/api/me', (req, res) => {

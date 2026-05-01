@@ -268,6 +268,18 @@
                     </div>
                     <div id="mediaLoading" class="empty-state">Loading media…</div>
                     <div id="mediaGrid" class="media-grid" hidden></div>
+
+                    <!-- People section -->
+                    <div id="peopleSectionWrap" hidden>
+                        <div class="people-header">
+                            <h2 class="people-title">People</h2>
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <span id="indexStatus" class="muted" style="font-size:12px"></span>
+                                <button id="indexFacesBtn" class="ghost-btn" title="Scan thumbnails for faces">Scan faces</button>
+                            </div>
+                        </div>
+                        <div id="peopleGrid" class="people-grid"></div>
+                    </div>
                 </section>
 
                 <!-- ── Media lightbox ────────────────────────────────────── -->
@@ -275,10 +287,15 @@
                     <div class="media-lightbox-backdrop"></div>
                     <div class="media-lightbox-box">
                         <button class="media-lightbox-close">✕</button>
+                        <button class="media-lightbox-nav media-lightbox-prev" id="lbPrev">‹</button>
+                        <button class="media-lightbox-nav media-lightbox-next" id="lbNext">›</button>
                         <div id="mediaLightboxContent" class="media-lightbox-content"></div>
                         <div class="media-lightbox-meta">
                             <div id="mediaLightboxName" class="media-lightbox-name"></div>
-                            <div style="display:flex;gap:10px;align-items:center">
+                            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                                <button id="lbAutoplay" class="lb-toggle" title="Toggle autoplay">⏭ Auto</button>
+                                <button id="lbLoop" class="lb-toggle" title="Toggle loop">🔁 Loop</button>
+                                <span id="lbCounter" class="media-lightbox-counter"></span>
                                 <a id="mediaLightboxDownload" class="media-lightbox-download" download>↓ Download</a>
                                 <button id="mediaLightboxDelete" class="media-lightbox-del">🗑 Delete</button>
                             </div>
