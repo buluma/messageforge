@@ -65,4 +65,7 @@ module.exports = {
     POSTGRES_DB: process.env.POSTGRES_DB || 'messageforge',
     DASHBOARD_TOKEN: process.env.DASHBOARD_TOKEN || '',
     MESSENGER_HISTORY_MAX: Number(process.env.MESSENGER_HISTORY_MAX || 3000),
+    LOG_MAX_FILE_BYTES: Number(process.env.LOG_MAX_FILE_BYTES || 5 * 1024 * 1024),
+    LOG_MAX_AGE_DAYS: Number(process.env.LOG_MAX_AGE_DAYS || 2),
+    LOG_MAX_TOTAL_BYTES: Number(process.env.LOG_MAX_TOTAL_BYTES || 200 * 1024 * 1024),
 };

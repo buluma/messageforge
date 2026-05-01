@@ -353,8 +353,12 @@ const messageCache = new Map();
 const logDir = path.join(__dirname, 'logs');
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
 
-// ✅ Message log limit per file
-const LOG_MESSAGE_LIMIT = 100;
+const LOG_MAX_FILE_BYTES = Math.max(256 * 1024, Number(config.LOG_MAX_FILE_BYTES) || 5 * 1024 * 1024);
+const LOG_MAX_AGE_MS = Math.max(1, Number(config.LOG_MAX_AGE_DAYS) || 2) * 24 * 60 * 60 * 1000;
+const LOG_MAX_TOTAL_BYTES = Math.max(
+    LOG_MAX_FILE_BYTES * 2,
+    Number(config.LOG_MAX_TOTAL_BYTES) || 200 * 1024 * 1024,
+);
 
 function getLogFileName(date) {
     return `messages-${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}.log`;
@@ -377,14 +381,10 @@ function logMessage(type, message) {
     const plainLog = `[${ts}] [${typeStr}] ${plainMsg}\n`;
     let logFile = path.join(logDir, getLogFileName(new Date()));
     try {
-        // Check line count and rotate if at limit
+        // Rotate when file exceeds configured byte limit.
         if (fs.existsSync(logFile)) {
-            const lines = fs
-                .readFileSync(logFile, 'utf8')
-                .split('\n')
-                .filter((l) => l.trim()).length;
-            if (lines >= LOG_MESSAGE_LIMIT) {
-                // Rotate: append timestamp to current file and start fresh
+            const stat = fs.statSync(logFile);
+            if (stat.size >= LOG_MAX_FILE_BYTES) {
                 const rotatedFile = logFile.replace('.log', `_${Date.now()}.log`);
                 fs.renameSync(logFile, rotatedFile);
                 logFile = path.join(logDir, getLogFileName(new Date()));
@@ -393,6 +393,50 @@ function logMessage(type, message) {
         fs.appendFileSync(logFile, plainLog);
     } catch (e) {
         console.error('Failed writing log:', e.message);
+    }
+}
+
+function cleanupLogs() {
+    try {
+        const now = Date.now();
+        const files = fs
+            .readdirSync(logDir)
+            .filter((file) => file.endsWith('.log'))
+            .map((file) => {
+                const filePath = path.join(logDir, file);
+                const stat = fs.statSync(filePath);
+                return { file, filePath, mtimeMs: stat.mtimeMs, size: stat.size };
+            })
+            .sort((a, b) => a.mtimeMs - b.mtimeMs);
+
+        let totalBytes = files.reduce((sum, f) => sum + f.size, 0);
+        for (const item of files) {
+            if (now - item.mtimeMs > LOG_MAX_AGE_MS) {
+                fs.unlinkSync(item.filePath);
+                totalBytes -= item.size;
+                logMessage('INFO', `Cleaned old log: ${item.file}`);
+            }
+        }
+
+        const survivors = fs
+            .readdirSync(logDir)
+            .filter((file) => file.endsWith('.log'))
+            .map((file) => {
+                const filePath = path.join(logDir, file);
+                const stat = fs.statSync(filePath);
+                return { file, filePath, mtimeMs: stat.mtimeMs, size: stat.size };
+            })
+            .sort((a, b) => a.mtimeMs - b.mtimeMs);
+
+        let currentTotal = survivors.reduce((sum, f) => sum + f.size, 0);
+        for (const item of survivors) {
+            if (currentTotal <= LOG_MAX_TOTAL_BYTES) break;
+            fs.unlinkSync(item.filePath);
+            currentTotal -= item.size;
+            logMessage('INFO', `Pruned log by total-size cap: ${item.file}`);
+        }
+    } catch {
+        // ignore
     }
 }
 
@@ -420,25 +464,10 @@ setInterval(
     5 * 60 * 1000,
 );
 
-// ✅ Auto-delete logs older than 2 days
-const LOG_MAX_AGE_MS = 2 * 24 * 60 * 60 * 1000;
+// ✅ Auto-delete stale logs and cap total log footprint
+cleanupLogs();
 setInterval(
-    () => {
-        try {
-            const now = Date.now();
-            fs.readdirSync(logDir).forEach((file) => {
-                if (!file.endsWith('.log')) return;
-                const filePath = path.join(logDir, file);
-                const stat = fs.statSync(filePath);
-                if (now - stat.mtimeMs > LOG_MAX_AGE_MS) {
-                    fs.unlinkSync(filePath);
-                    logMessage('INFO', `Cleaned old log: ${file}`);
-                }
-            });
-        } catch (e) {
-            /* ignore */
-        }
-    },
+    () => cleanupLogs(),
     60 * 60 * 1000, // check every hour
 );
 

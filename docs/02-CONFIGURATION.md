@@ -65,5 +65,8 @@ MessageForge uses environment variables for configuration. You can set these in 
 | `POSTGRES_DB`           | PostgreSQL database name.                                    | `messageforge` |
 | `DASHBOARD_TOKEN`       | Token required for remote admin dashboard/API/socket access. | _(Unset)_      |
 | `MESSENGER_HISTORY_MAX` | Number of messages retained per chat for dashboard history.  | `3000`         |
+| `LOG_MAX_FILE_BYTES`    | Rotate app log file after this many bytes.                   | `5242880`      |
+| `LOG_MAX_AGE_DAYS`      | Delete app log files older than this many days.              | `2`            |
+| `LOG_MAX_TOTAL_BYTES`   | Prune oldest app logs when total log size exceeds this cap.  | `209715200`    |
 | `PORT`                  | The port for the internal health check server.               | `25680`        |
 | `APP_URL`               | Your deployment URL (used for Heroku keep-alive).            | _(None)_       |
