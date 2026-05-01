@@ -5,6 +5,7 @@ temp/
 .config/
 *.log
 .env
+config.json
 .replit
 replit.nix
 data/lid-phone-cache.json
