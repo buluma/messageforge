@@ -14,4 +14,4 @@ Verification: [docs/08-BAILEYS-GAP-VERIFICATION.md](docs/08-BAILEYS-GAP-VERIFICA
   - [ ] confirm reconnect does not duplicate listeners
 
 ## Release Hygiene
-- [ ] Confirm no secret leakage (`.env`, session artifacts, tokens) before future pushes
+- [x] Confirm no secret leakage (`.env`, session artifacts, tokens) before future pushes

@@ -1,5 +1,6 @@
 'use strict';
 const axios = require('axios');
+const config = require('../config');
 
 module.exports = {
     commands:    ['stickersearch', 'findsticker', 'giphy'],
@@ -18,7 +19,11 @@ module.exports = {
         }
         await sock.sendMessage(chatId, { text: `⏳ Searching GIFs for "${query}"...`, contextInfo }, { quoted: message });
         try {
-            const api = `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&limit=1&media_filter=gif`;
+            const tenorKey = String(config.TENOR_API_KEY || '').trim();
+            if (!tenorKey) {
+                throw new Error('TENOR_API_KEY is not configured');
+            }
+            const api = `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${encodeURIComponent(tenorKey)}&limit=1&media_filter=gif`;
             const { data } = await axios.get(api, { timeout: 10000 });
             const gif = data?.results?.[0]?.media_formats?.gif?.url;
             if (!gif) throw new Error('No GIFs found.');

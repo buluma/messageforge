@@ -49,6 +49,7 @@ module.exports = {
     THEME: (process.env.THEME || 'messageforge').toLowerCase().trim(),
     GREETING: process.env.GREETING || '',
     APP_URL: process.env.APP_URL || '',
+    TENOR_API_KEY: process.env.TENOR_API_KEY || '',
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY || '',
     OPENROUTER_MODEL: process.env.OPENROUTER_MODEL || '',
     OPENROUTER_MODELS: process.env.OPENROUTER_MODELS || '',
