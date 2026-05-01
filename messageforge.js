@@ -218,8 +218,10 @@ const messageCache = new Map();
 const logDir = path.join(__dirname, 'logs');
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
 
-function getLogFileName() {
-    const date = new Date();
+// ✅ Message log limit per file
+const LOG_MESSAGE_LIMIT = 100;
+
+function getLogFileName(date) {
     return `messages-${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}.log`;
 }
 
@@ -238,8 +240,18 @@ function logMessage(type, message) {
 
     const plainMsg = message instanceof Error ? (message.stack || message.message) : message;
     const plainLog = `[${ts}] [${typeStr}] ${plainMsg}\n`;
-    const logFile = path.join(logDir, getLogFileName());
+    let logFile = path.join(logDir, getLogFileName(new Date()));
     try {
+        // Check line count and rotate if at limit
+        if (fs.existsSync(logFile)) {
+            const lines = fs.readFileSync(logFile, 'utf8').split('\n').filter(l => l.trim()).length;
+            if (lines >= LOG_MESSAGE_LIMIT) {
+                // Rotate: append timestamp to current file and start fresh
+                const rotatedFile = logFile.replace('.log', `_${Date.now()}.log`);
+                fs.renameSync(logFile, rotatedFile);
+                logFile = path.join(logDir, getLogFileName(new Date()));
+            }
+        }
         fs.appendFileSync(logFile, plainLog);
     } catch (e) {
         console.error('Failed writing log:', e.message);
@@ -268,6 +280,28 @@ setInterval(
         }
     },
     5 * 60 * 1000,
+);
+
+// ✅ Auto-delete logs older than 2 days
+const LOG_MAX_AGE_MS = 2 * 24 * 60 * 60 * 1000;
+setInterval(
+    () => {
+        try {
+            const now = Date.now();
+            fs.readdirSync(logDir).forEach((file) => {
+                if (!file.endsWith('.log')) return;
+                const filePath = path.join(logDir, file);
+                const stat = fs.statSync(filePath);
+                if (now - stat.mtimeMs > LOG_MAX_AGE_MS) {
+                    fs.unlinkSync(filePath);
+                    logMessage('INFO', `Cleaned old log: ${file}`);
+                }
+            });
+        } catch (e) {
+            /* ignore */
+        }
+    },
+    60 * 60 * 1000, // check every hour
 );
 
 // ✅ Load Plugins
