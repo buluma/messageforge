@@ -143,6 +143,14 @@ function closeSocket(sock) {
         clearInterval(sock.__messageforgeSeenCleanupTimer);
         sock.__messageforgeSeenCleanupTimer = null;
     }
+    if (sock.__messageforgeCacheTimerEarly) {
+        clearTimeout(sock.__messageforgeCacheTimerEarly);
+        sock.__messageforgeCacheTimerEarly = null;
+    }
+    if (sock.__messageforgeWelcomeOffTimer) {
+        clearTimeout(sock.__messageforgeWelcomeOffTimer);
+        sock.__messageforgeWelcomeOffTimer = null;
+    }
     try {
         sock.ev?.removeAllListeners?.();
     } catch {}
@@ -604,13 +612,16 @@ async function sendWelcomeMessage(sock) {
         logMessage('SUCCESS', 'Owner welcome sent (auto-delete: 20s).');
 
         // Turn disappearing messages back off after the welcome has expired
-        setTimeout(async () => {
+        sock.__messageforgeWelcomeOffTimer = setTimeout(async () => {
             try {
+                if (currentSock !== sock) return;
                 await sock.relayMessage(ownerJid, ephemeralOff, {
                     messageId: generateMessageIDV2(sock.user?.id),
                 });
             } catch {
                 /* ok */
+            } finally {
+                if (sock.__messageforgeWelcomeOffTimer) sock.__messageforgeWelcomeOffTimer = null;
             }
         }, 25_000);
     } catch (e) {
@@ -821,11 +832,10 @@ async function createWhatsAppSocket() {
         }
     }
 
-    let _cacheTimerEarly = null;
     function scheduleCacheSave() {
-        if (_cacheTimerEarly) return;
-        _cacheTimerEarly = setTimeout(() => {
-            _cacheTimerEarly = null;
+        if (sock.__messageforgeCacheTimerEarly) return;
+        sock.__messageforgeCacheTimerEarly = setTimeout(() => {
+            sock.__messageforgeCacheTimerEarly = null;
             flushCachesToDisk();
         }, 30000);
     }
@@ -899,8 +909,8 @@ async function createWhatsAppSocket() {
             }
         }
         if (connection === 'close') {
-            clearInterval(seenCleanupTimer);
-            sock.__messageforgeSeenCleanupTimer = null;
+            closeSocket(sock);
+            seenCleanupTimer = null;
             if (currentSock === sock) {
                 currentSock = null;
                 if (global.sock === sock) global.sock = null;
