@@ -139,6 +139,10 @@ function scheduleReconnect(delayMs = 5000) {
 
 function closeSocket(sock) {
     if (!sock) return;
+    if (sock.__messageforgeSeenCleanupTimer) {
+        clearInterval(sock.__messageforgeSeenCleanupTimer);
+        sock.__messageforgeSeenCleanupTimer = null;
+    }
     try {
         sock.ev?.removeAllListeners?.();
     } catch {}
@@ -721,6 +725,7 @@ async function createWhatsAppSocket() {
         },
         10 * 60 * 1000,
     );
+    sock.__messageforgeSeenCleanupTimer = seenCleanupTimer;
 
     // ── Persist messenger history and realtime dashboard events ──────────────
     sock.ev.on('messages.upsert', ({ messages: newMsgs }) => {
@@ -895,6 +900,7 @@ async function createWhatsAppSocket() {
         }
         if (connection === 'close') {
             clearInterval(seenCleanupTimer);
+            sock.__messageforgeSeenCleanupTimer = null;
             if (currentSock === sock) {
                 currentSock = null;
                 if (global.sock === sock) global.sock = null;
