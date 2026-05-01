@@ -281,7 +281,8 @@ module.exports = {
             const number = normalizePhone(args[0]);
             if (!number) return ctx.reply('❌ Usage: .statusof <number>');
             const st = await sock.fetchStatus(`${number}@s.whatsapp.net`);
-            const text = st?.status?.status || st?.status || 'No status';
+            const entry = Array.isArray(st) ? st[0] : st;
+            const text = entry?.status?.status || entry?.status || 'No status';
             return ctx.reply(`💬 Status for ${number}:\n${text}`);
         }
 

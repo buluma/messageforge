@@ -911,6 +911,7 @@ async function createWhatsAppSocket() {
                     const code = await sock.requestPairingCode(number);
                     logMessage('INFO', `Pairing code for ${number}: ${code}`);
                 } catch (e) {
+                    pairingRequested = false;
                     logMessage('WARN', `Failed to request pairing code: ${e.message}`);
                 }
             } else {
