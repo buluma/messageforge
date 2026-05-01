@@ -116,9 +116,12 @@ function reportCommandCollisions(loadedPlugins) {
     for (const plugin of loadedPlugins) {
         const file = plugin.__pluginFile || 'unknown-file';
         const aliases = Array.isArray(plugin.commands) ? plugin.commands : [];
+        const seenInPlugin = new Set();
         for (const raw of aliases) {
             const cmd = String(raw || '').trim().toLowerCase();
             if (!cmd) continue;
+            if (seenInPlugin.has(cmd)) continue;
+            seenInPlugin.add(cmd);
             if (!ownersByCommand.has(cmd)) ownersByCommand.set(cmd, []);
             ownersByCommand.get(cmd).push({
                 file,
