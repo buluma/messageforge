@@ -3,41 +3,41 @@
 Spec: [docs/07-BAILEYS-GAP-SPEC.md](/Users/shadowwalker/Documents/GitHub/messageforge/docs/07-BAILEYS-GAP-SPEC.md)
 
 ## Baileys Gap Checklist
-- [ ] Add privacy-settings command group
-  - [ ] last seen
-  - [ ] online
-  - [ ] profile picture
-  - [ ] status
-  - [ ] read receipts
-  - [ ] groups add
-  - [ ] disappearing mode
-- [ ] Add chat-level management commands
-  - [ ] archive / unarchive
-  - [ ] mute / unmute private chats
-  - [ ] mark read / unread
-  - [ ] star / unstar
-  - [ ] delete chat / clear chat history if needed
-- [ ] Add pairing-code login support
-  - [ ] boot option or command to request pairing code
-  - [ ] fallback to QR/session flow
-  - [ ] keep it compatible with current auth handling
-- [ ] Add broadcast-list support
-  - [ ] fetch broadcast list info
-  - [ ] surface it in a command or admin tool
-- [ ] Add profile-picture removal support
-  - [ ] explicit remove / clear profile photo action
-  - [ ] optional companion command alongside update photo/name/bio
-- [ ] Add an explicit message-edit command
-  - [ ] send edit payload for a quoted message or message ID
-  - [ ] keep separate from the receive-side edited-message detector
-- [ ] Decide whether to expose more Baileys primitives directly
-  - [ ] onWhatsApp
-  - [ ] fetchStatus
-  - [ ] getBusinessProfile
-  - [ ] profilePictureUrl
-  - [ ] presenceSubscribe
-  - [ ] sendPresenceUpdate
-  - [ ] readMessages
+- [x] Add privacy-settings command group
+  - [x] last seen
+  - [x] online
+  - [x] profile picture
+  - [x] status
+  - [x] read receipts
+  - [x] groups add
+  - [x] disappearing mode
+- [x] Add chat-level management commands
+  - [x] archive / unarchive
+  - [x] mute / unmute private chats
+  - [x] mark read / unread
+  - [x] star / unstar
+  - [x] delete chat / clear chat history if needed
+- [x] Add pairing-code login support
+  - [x] boot option or command to request pairing code
+  - [x] fallback to QR/session flow
+  - [x] keep it compatible with current auth handling
+- [x] Add broadcast-list support
+  - [x] fetch broadcast list info
+  - [x] surface it in a command or admin tool
+- [x] Add profile-picture removal support
+  - [x] explicit remove / clear profile photo action
+  - [x] optional companion command alongside update photo/name/bio
+- [x] Add an explicit message-edit command
+  - [x] send edit payload for a quoted message or message ID
+  - [x] keep separate from the receive-side edited-message detector
+- [x] Decide whether to expose more Baileys primitives directly
+  - [x] onWhatsApp
+  - [x] fetchStatus
+  - [x] getBusinessProfile
+  - [x] profilePictureUrl
+  - [x] presenceSubscribe
+  - [x] sendPresenceUpdate
+  - [x] readMessages
 - [ ] Rework event handling to `sock.ev.process()` later
   - [ ] keep this as a stability refactor, not a feature addition
   - [ ] schedule after the missing command surface is filled in

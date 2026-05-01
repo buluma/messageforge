@@ -678,6 +678,7 @@ async function createWhatsAppSocket() {
     const seenStatusIds = new Set();
     const seenCmdIds = new Set();
     let seenCleanupTimer = null;
+    let pairingRequested = false;
 
     // Use the session directory for multi-file auth state
     const { state, saveCreds } = await getBaileysAuthState();
@@ -739,11 +740,11 @@ async function createWhatsAppSocket() {
     sock.__messageforgeSeenCleanupTimer = seenCleanupTimer;
 
     // ── Persist messenger history and realtime dashboard events ──────────────
-    sock.ev.on('messages.upsert', ({ messages: newMsgs }) => {
+    const onPersistMessagesUpsert = ({ messages: newMsgs }) => {
         void messengerStore.persistMessages(newMsgs);
-    });
+    };
 
-    sock.ev.on('messages.upsert', async ({ messages: newMsgs, type }) => {
+    const onDashboardMessagesUpsert = async ({ messages: newMsgs, type }) => {
         if (type !== 'notify') return;
         for (const m of newMsgs) {
             const clientCount = global.io?.engine?.clientsCount || 0;
@@ -757,7 +758,7 @@ async function createWhatsAppSocket() {
                 pushName: m.pushName || global.pushNameCache?.get(m.key.remoteJid) || 'User',
             });
         }
-    });
+    };
 
     // bind the store so store.loadMessage works
     try {
@@ -766,9 +767,9 @@ async function createWhatsAppSocket() {
         logMessage('WARN', `store.bind failed: ${e.message}`);
     }
 
-    sock.ev.on('presence.update', ({ id, presences }) => {
+    const onPresenceUpdate = ({ id, presences }) => {
         emitDashboard('presence-update', { jid: id, presences });
-    });
+    };
 
     // On fully LID-migrated accounts the contact id IS the LID — no phone JID is provided.
     // We keep a map in case partial data arrives via messaging-history.set on other accounts.
@@ -879,11 +880,11 @@ async function createWhatsAppSocket() {
             scheduleCacheSave();
         }
     };
-    sock.ev.on('contacts.upsert', (c) => trackContacts(c, 'contacts.upsert'));
-    sock.ev.on('contacts.update', (c) => trackContacts(c, 'contacts.update'));
-    sock.ev.on('messaging-history.set', ({ contacts }) => {
+    const onContactsUpsert = (c) => trackContacts(c, 'contacts.upsert');
+    const onContactsUpdate = (c) => trackContacts(c, 'contacts.update');
+    const onMessagingHistorySet = ({ contacts }) => {
         if (contacts?.length) trackContacts(contacts, 'messaging-history.set');
-    });
+    };
 
     // keep handler's setup in place if your handler requires connection hooks
     try {
@@ -894,8 +895,29 @@ async function createWhatsAppSocket() {
     }
 
     // connection update
-    sock.ev.on('connection.update', async (update) => {
+    const onConnectionUpdate = async (update) => {
         const { connection, lastDisconnect, qr } = update;
+
+        if (
+            qr &&
+            config.PAIRING_CODE &&
+            !pairingRequested &&
+            !sock?.authState?.creds?.registered
+        ) {
+            const number = String(config.PAIRING_NUMBER || '').replace(/\D/g, '');
+            if (number) {
+                try {
+                    pairingRequested = true;
+                    const code = await sock.requestPairingCode(number);
+                    logMessage('INFO', `Pairing code for ${number}: ${code}`);
+                } catch (e) {
+                    pairingRequested = false;
+                    logMessage('WARN', `Failed to request pairing code: ${e.message}`);
+                }
+            } else {
+                logMessage('WARN', 'PAIRING_CODE=true but PAIRING_NUMBER is empty; falling back to QR.');
+            }
+        }
 
         // Handle QR code
         if (qr) {
@@ -987,12 +1009,12 @@ async function createWhatsAppSocket() {
             //     }
             // }, 5000);
         }
-    });
+    };
 
-    sock.ev.on('creds.update', saveCreds);
+    const onCredsUpdate = (credsUpdate) => saveCreds(credsUpdate);
 
     // ✅ Cache messages for anti-delete
-    sock.ev.on('messages.upsert', ({ messages }) => {
+    const onCacheMessagesUpsert = ({ messages }) => {
         if (!Array.isArray(messages)) return;
 
         for (const m of messages) {
@@ -1011,11 +1033,11 @@ async function createWhatsAppSocket() {
                 messageCache.delete(key);
             }
         }
-    });
+    };
 
     // ✅ Anti-delete/anti-edit handler (messages.update)
     // Forward reactions to dashboard via the proper Baileys event
-    sock.ev.on('messages.reaction', (reactions) => {
+    const onMessagesReaction = (reactions) => {
         for (const r of reactions) {
             const reactorJid =
                 r.reaction?.key?.participant || r.reaction?.key?.remoteJid || r.key?.remoteJid;
@@ -1027,9 +1049,9 @@ async function createWhatsAppSocket() {
                 fromMe: !!r.reaction?.key?.fromMe,
             });
         }
-    });
+    };
 
-    sock.ev.on('messages.update', async (updates) => {
+    const onMessagesUpdate = async (updates) => {
         for (const { key, update } of updates) {
             if (key.remoteJid === 'status@broadcast') continue;
             if (key.fromMe) continue;
@@ -1106,9 +1128,9 @@ async function createWhatsAppSocket() {
                 }
             }
         }
-    });
+    };
 
-    sock.ev.on('messages.delete', async (item) => {
+    const onMessagesDelete = async (item) => {
         try {
             logMessage('DEBUG', 'messages.delete triggered');
             const keys = Array.isArray(item) ? item.map((i) => i.key) : item?.keys || [];
@@ -1179,10 +1201,10 @@ async function createWhatsAppSocket() {
         } catch (err) {
             logMessage('ERROR', `Anti-Delete Error: ${err.stack || err.message}`);
         }
-    });
+    };
 
     // ✅ Group participant events: anti-demote, welcome, goodbye
-    sock.ev.on('group-participants.update', async ({ id, participants, action }) => {
+    const onGroupParticipantsUpdate = async ({ id, participants, action }) => {
         try {
             // --- Anti-Demote ---
             if (action === 'demote' && global.antiDemoteGroups?.has(id)) {
@@ -1224,7 +1246,7 @@ async function createWhatsAppSocket() {
         } catch (err) {
             logMessage('WARN', `Group-participants event error: ${err.message}`);
         }
-    });
+    };
 
     // Status saver dir
     const statusSaverDir = path.join(__dirname, 'status_saver');
@@ -1314,7 +1336,7 @@ async function createWhatsAppSocket() {
     }
 
     // === ONE consolidated messages.upsert handler for statuses, newsletters and commands ===
-    sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    const onConsolidatedMessagesUpsert = async ({ messages, type }) => {
         try {
             if (!Array.isArray(messages) || messages.length === 0) return;
 
@@ -1598,6 +1620,45 @@ async function createWhatsAppSocket() {
                 'ERROR',
                 `messages.upsert consolidated handler error: ${err.stack || err.message}`,
             );
+        }
+    };
+
+    sock.ev.process(async (events) => {
+        if (events['connection.update']) {
+            await onConnectionUpdate(events['connection.update']);
+        }
+        if (events['presence.update']) {
+            await onPresenceUpdate(events['presence.update']);
+        }
+        if (events['contacts.upsert']) {
+            await onContactsUpsert(events['contacts.upsert']);
+        }
+        if (events['contacts.update']) {
+            await onContactsUpdate(events['contacts.update']);
+        }
+        if (events['messaging-history.set']) {
+            await onMessagingHistorySet(events['messaging-history.set']);
+        }
+        if (events['creds.update']) {
+            await onCredsUpdate(events['creds.update']);
+        }
+        if (events['messages.reaction']) {
+            await onMessagesReaction(events['messages.reaction']);
+        }
+        if (events['messages.update']) {
+            await onMessagesUpdate(events['messages.update']);
+        }
+        if (events['messages.delete']) {
+            await onMessagesDelete(events['messages.delete']);
+        }
+        if (events['group-participants.update']) {
+            await onGroupParticipantsUpdate(events['group-participants.update']);
+        }
+        if (events['messages.upsert']) {
+            onPersistMessagesUpsert(events['messages.upsert']);
+            onCacheMessagesUpsert(events['messages.upsert']);
+            await onDashboardMessagesUpsert(events['messages.upsert']);
+            await onConsolidatedMessagesUpsert(events['messages.upsert']);
         }
     });
 
