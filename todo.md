@@ -41,11 +41,12 @@ Spec: [docs/07-BAILEYS-GAP-SPEC.md](/Users/shadowwalker/Documents/GitHub/message
 - [ ] Rework event handling to `sock.ev.process()` later
   - [ ] keep this as a stability refactor, not a feature addition
   - [ ] schedule after the missing command surface is filled in
-- [ ] Add tests or manual verification notes for each new command
-  - [ ] confirm permission gates
-  - [ ] confirm private vs group behavior
-  - [ ] confirm owner-only actions
-  - [ ] confirm reconnect does not duplicate listeners
+- [x] Add tests or manual verification notes for each new command
+  - [x] confirm permission gates
+  - [x] confirm private vs group behavior
+  - [x] confirm owner-only actions
+  - [x] confirm reconnect does not duplicate listeners
+  - [x] notes added: [docs/08-BAILEYS-GAP-VERIFICATION.md](/Users/shadowwalker/Documents/GitHub/messageforge/docs/08-BAILEYS-GAP-VERIFICATION.md)
 
 ## Completed
 - [x] Runtime/process rename to `messageforge` (PM2 scripts, ecosystem app name, start scripts)
