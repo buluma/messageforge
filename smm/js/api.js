@@ -122,9 +122,14 @@ export const subscribePresence = (jid) =>
     api.post('/api/subscribe-presence', { jid }).then((r) => r.data);
 
 export const togglePin = (jid) => api.post('/api/toggle-pin', { jid }).then((r) => r.data);
+export const fetchChatAliases = () => api.get('/api/chat-aliases').then((r) => r.data);
+export const setChatAlias = (jid, alias) =>
+    api.post('/api/chat-alias', { jid, alias }).then((r) => r.data);
 
 // ── Dashboard sources ─────────────────────────────────────────────
 export const fetchPlugins = () => api.get('/api/plugins').then((r) => r.data);
+export const localCommitActivity = (weeks = 12) =>
+    api.get(`/api/local-commit-activity?weeks=${encodeURIComponent(weeks)}`).then((r) => r.data);
 export const ghRepo = (owner, repo) =>
     api.get(`/gh/repo?owner=${owner}&repo=${repo}`).then((r) => r.data);
 export const ghUser = (login) => api.get(`/gh/user?login=${login}`).then((r) => r.data);

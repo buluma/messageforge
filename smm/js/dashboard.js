@@ -7,7 +7,12 @@ const REPO = 'messageforge';
 
 export function mountDashboard() {
     refreshAll();
-    setInterval(refreshAll, 5 * 60 * 1000);
+    setInterval(() => {
+        if (document.hidden) return;
+        const dashboardView = document.getElementById('view-dashboard');
+        if (!dashboardView?.classList.contains('active')) return;
+        refreshAll();
+    }, 60 * 1000);
 
     document.querySelectorAll('.pill[data-filter]').forEach((btn) => {
         btn.onclick = () => {
@@ -110,8 +115,14 @@ function renderPlugins() {
 // ── Chart ────────────────────────────────────────────────────────
 async function fetchAndRenderChart() {
     try {
-        const series = await fetchCommitSeries();
-        renderCommitChart(series);
+        const { githubSeries, localSeries, lastGithubCommitAt, lastLocalCommitAt } =
+            await fetchCommitSeries();
+        renderCommitChart(githubSeries, localSeries);
+        const stamps = [lastGithubCommitAt, lastLocalCommitAt].filter(Boolean).sort();
+        const lastAny = stamps.length ? stamps[stamps.length - 1] : null;
+        const parts = ['Live'];
+        if (lastAny) parts.push(`Last commit ${moment(lastAny).fromNow()}`);
+        document.getElementById('chartStatus').textContent = parts.join(' • ');
     } catch (e) {
         document.getElementById('chartStatus').textContent = 'Chart unavailable';
     }
@@ -122,19 +133,21 @@ async function fetchCommitSeries(weeks = 12) {
     const weekStart = now.clone().startOf('isoWeek');
     const weekLabel = weekStart.format('MMM D');
 
-    let series = null;
+    let githubSeries = null;
+    let lastGithubCommitAt = null;
+    let lastLocalCommitAt = null;
 
     try {
         const data = await api.ghCommitActivity(OWNER, REPO);
         if (Array.isArray(data) && data.length > 0) {
-            series = data.slice(-weeks).map((w) => ({
+            githubSeries = data.slice(-weeks).map((w) => ({
                 week: moment.unix(w.week).format('MMM D'),
                 total: w.total,
             }));
         }
     } catch {}
 
-    if (!series) {
+    if (!githubSeries) {
         // Fallback: count from commits endpoint
         const commits = await api.ghCommits(OWNER, REPO, 100);
         const buckets = Array.from({ length: weeks }, (_, i) => ({
@@ -143,28 +156,60 @@ async function fetchCommitSeries(weeks = 12) {
         })).reverse();
         for (const c of commits || []) {
             const date = moment(c.commit?.author?.date);
+            if (!lastGithubCommitAt || date.isAfter(lastGithubCommitAt)) {
+                lastGithubCommitAt = date.toISOString();
+            }
             const idx = buckets.findIndex((w) => date.isSame(moment(w.week, 'MMM D'), 'isoWeek'));
             if (idx !== -1) buckets[idx].total++;
         }
-        series = buckets;
+        githubSeries = buckets;
     }
 
     // GitHub stats only cover complete weeks — patch/append the current partial week.
     try {
         const recentCommits = await api.ghCommits(OWNER, REPO, 100, weekStart.toISOString());
         const currentCount = (recentCommits || []).length;
-        const last = series[series.length - 1];
+        for (const c of recentCommits || []) {
+            const d = c?.commit?.author?.date;
+            if (d && (!lastGithubCommitAt || moment(d).isAfter(lastGithubCommitAt))) {
+                lastGithubCommitAt = d;
+            }
+        }
+        const last = githubSeries[githubSeries.length - 1];
         if (last && last.week === weekLabel) {
             last.total = currentCount;
         } else {
-            series = [...series.slice(-(weeks - 1)), { week: weekLabel, total: currentCount }];
+            githubSeries = [
+                ...githubSeries.slice(-(weeks - 1)),
+                { week: weekLabel, total: currentCount },
+            ];
         }
     } catch {}
 
-    return series;
+    const localBuckets = Array.from({ length: weeks }, (_, i) => ({
+        week: now.clone().subtract(i, 'weeks').startOf('isoWeek').format('MMM D'),
+        total: 0,
+    })).reverse();
+
+    try {
+        const local = await api.localCommitActivity(weeks);
+        for (const iso of local?.commits || []) {
+            const date = moment(iso);
+            if (!date.isValid()) continue;
+            if (!lastLocalCommitAt || date.isAfter(lastLocalCommitAt)) {
+                lastLocalCommitAt = date.toISOString();
+            }
+            const idx = localBuckets.findIndex((w) =>
+                date.isSame(moment(w.week, 'MMM D'), 'isoWeek'),
+            );
+            if (idx !== -1) localBuckets[idx].total++;
+        }
+    } catch {}
+
+    return { githubSeries, localSeries: localBuckets, lastGithubCommitAt, lastLocalCommitAt };
 }
 
-function renderCommitChart(series) {
+function renderCommitChart(githubSeries, localSeries) {
     const canvas = document.getElementById('commitsChart');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -177,11 +222,11 @@ function renderCommitChart(series) {
     state.commitsChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: series.map((s) => s.week),
+            labels: githubSeries.map((s) => s.week),
             datasets: [
                 {
-                    label: 'Commits',
-                    data: series.map((s) => s.total),
+                    label: 'GitHub',
+                    data: githubSeries.map((s) => s.total),
                     borderColor: primary,
                     backgroundColor: 'rgba(99,102,241,0.12)',
                     fill: true,
@@ -190,12 +235,28 @@ function renderCommitChart(series) {
                     pointRadius: 3,
                     pointBackgroundColor: primary,
                 },
+                {
+                    label: 'Local',
+                    data: localSeries.map((s) => s.total),
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16,185,129,0.06)',
+                    fill: false,
+                    tension: 0.35,
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    pointBackgroundColor: '#10b981',
+                },
             ],
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: { color: '#94a3b8', boxWidth: 10, usePointStyle: true },
+                },
+            },
             scales: {
                 x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 10 } } },
                 y: {
@@ -206,7 +267,6 @@ function renderCommitChart(series) {
             },
         },
     });
-    document.getElementById('chartStatus').textContent = 'Live';
 }
 
 // ── tiny helper ──────────────────────────────────────────────────

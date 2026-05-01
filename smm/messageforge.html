@@ -6,7 +6,7 @@
         <title>MessageForge — Admin</title>
 
         <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap"
             rel="stylesheet"
         />
         <link rel="stylesheet" href="/css/styles.css" />
@@ -97,6 +97,9 @@
                                 </div>
                             </div>
                             <div class="chat-actions">
+                                <button id="renameChat" class="ghost-btn" title="Rename chat label">
+                                    ✎
+                                </button>
                                 <button id="togglePin" class="ghost-btn" title="Pin">☆</button>
                             </div>
                         </header>
@@ -118,6 +121,16 @@
                             <div class="reply-text" id="replyText"></div>
                             <button class="ghost-btn" id="cancelReplyBtn">✕</button>
                         </div>
+
+                        <button
+                            id="scrollToBottomBtn"
+                            class="scroll-bottom-btn"
+                            title="Scroll to latest"
+                            aria-label="Scroll to latest messages"
+                            hidden
+                        >
+                            ↓
+                        </button>
 
                         <div id="chatInputArea" class="chat-input-area" hidden>
                             <input

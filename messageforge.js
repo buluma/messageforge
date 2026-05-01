@@ -70,6 +70,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const zlib = require('zlib'); // Added for session decompression
+const { execFile } = require('child_process');
 const express = require('express');
 const axios = require('axios');
 const P = require('pino');
@@ -862,14 +863,8 @@ async function createWhatsAppSocket() {
             }
             if (c.name || c.notify || c.pushName || c.verifiedName) {
                 const name = c.name || c.notify || c.pushName || c.verifiedName;
-                if (jid) {
-                    global.pushNameCache.set(jid, name);
-                }
-                if (lid) {
-                    global.pushNameCache.set(lid, name);
-                    const n = lid.split(':')[0].split('@')[0] + '@lid';
-                    if (n !== lid) global.pushNameCache.set(n, name);
-                }
+                if (jid) cachePushName(jid, name);
+                if (lid) cachePushName(lid, name);
             }
         }
         if (contacts.length > 0 && mapped > 0) {
@@ -898,12 +893,7 @@ async function createWhatsAppSocket() {
     const onConnectionUpdate = async (update) => {
         const { connection, lastDisconnect, qr } = update;
 
-        if (
-            qr &&
-            config.PAIRING_CODE &&
-            !pairingRequested &&
-            !sock?.authState?.creds?.registered
-        ) {
+        if (qr && config.PAIRING_CODE && !pairingRequested && !sock?.authState?.creds?.registered) {
             const number = String(config.PAIRING_NUMBER || '').replace(/\D/g, '');
             if (number) {
                 try {
@@ -915,7 +905,10 @@ async function createWhatsAppSocket() {
                     logMessage('WARN', `Failed to request pairing code: ${e.message}`);
                 }
             } else {
-                logMessage('WARN', 'PAIRING_CODE=true but PAIRING_NUMBER is empty; falling back to QR.');
+                logMessage(
+                    'WARN',
+                    'PAIRING_CODE=true but PAIRING_NUMBER is empty; falling back to QR.',
+                );
             }
         }
 
@@ -1325,12 +1318,16 @@ async function createWhatsAppSocket() {
 
     function cachePushName(jid, name) {
         if (!jid || !name) return;
-        global.pushNameCache.set(jid, name);
-        const norm = jid.split(':')[0];
-        if (norm !== jid) {
-            if (jid.includes('@lid')) global.pushNameCache.set(norm + '@lid', name);
-            else if (jid.includes('@s.whatsapp.net'))
-                global.pushNameCache.set(norm + '@s.whatsapp.net', name);
+        const normJid = jidNormalizedUser(jid);
+        const phone = normJid.split('@')[0].split(':')[0].replace(/\D/g, '');
+        const candidates = new Set([jid, normJid]);
+        if (phone) {
+            candidates.add(phone);
+            candidates.add(`${phone}@s.whatsapp.net`);
+            candidates.add(`${phone}@lid`);
+        }
+        for (const key of candidates) {
+            if (key) global.pushNameCache.set(key, name);
         }
         scheduleCacheSave();
     }
@@ -1350,7 +1347,7 @@ async function createWhatsAppSocket() {
                             cachePushName(m.key.participantPn, m.pushName);
                             cacheLidPhone(m.key.participant, m.key.participantPn);
                         }
-                    } else if (remoteJid) {
+                    } else if (remoteJid && !m.key?.fromMe) {
                         cachePushName(remoteJid, m.pushName);
                         if (m.key?.senderPn) {
                             cachePushName(m.key.senderPn, m.pushName);
@@ -1719,16 +1716,192 @@ app.get('/', (req, res) => {
 
 // ── Messenger API Endpoints ───────────────────────────────────────────────
 
+const CHAT_ALIASES_FILE = path.join(__dirname, 'data', 'chat-aliases.json');
+
+function readChatAliases() {
+    try {
+        if (!fs.existsSync(CHAT_ALIASES_FILE)) return {};
+        const raw = JSON.parse(fs.readFileSync(CHAT_ALIASES_FILE, 'utf8'));
+        return raw && typeof raw === 'object' ? raw : {};
+    } catch {
+        return {};
+    }
+}
+
+function writeChatAliases(aliases) {
+    const dir = path.dirname(CHAT_ALIASES_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(CHAT_ALIASES_FILE, JSON.stringify(aliases, null, 2));
+}
+
 app.get('/api/chats', async (req, res) => {
     try {
         if (!store) return res.status(503).json({ error: 'Store not ready' });
 
         const db = require('./lib/dbManager');
         const pinned = await db.get('messenger_pinned', []);
+        const aliases = readChatAliases();
 
         const chats = [];
         const liveJids = Array.from(store.chats.keys());
         const jids = await messengerStore.listKnownJids(liveJids);
+        const selfName = String(global.sock?.user?.name || '')
+            .trim()
+            .toLowerCase();
+        const pushNameCache = global.pushNameCache;
+        if (!global.chatNameHydrateCooldown) global.chatNameHydrateCooldown = new Map();
+        const hydrateCooldownMs = 10 * 60 * 1000;
+
+        const extractPhone = (value) =>
+            String(value || '')
+                .split('@')[0]
+                .split(':')[0];
+        const displayFromJid = (value) =>
+            extractPhone(value).replace(/\D/g, '') || extractPhone(value);
+        const nameLooksNumeric = (value) => /^\+?\d{7,}$/.test(String(value || '').trim());
+        const normalizeCandidates = (value) => {
+            const norm = jidNormalizedUser(value || '');
+            const phone = extractPhone(norm);
+            return Array.from(
+                new Set(
+                    [
+                        value,
+                        norm,
+                        phone ? `${phone}@s.whatsapp.net` : '',
+                        phone ? `${phone}@lid` : '',
+                        phone || '',
+                    ].filter(Boolean),
+                ),
+            );
+        };
+        const digitsOnly = (value) => String(value || '').replace(/\D/g, '');
+        const ownPhones = new Set(
+            [global.sock?.user?.id, global.sock?.user?.lid, global.botJid, config.OWNER_NUMBER]
+                .map((v) => digitsOnly(extractPhone(v)))
+                .filter((v) => v && v.length >= 7),
+        );
+        const isOwnLinkedChat = (jid) => ownPhones.has(digitsOnly(extractPhone(jid)));
+        const cacheResolvedName = (jid, name) => {
+            if (!jid || !name || !pushNameCache) return;
+            const normJid = jidNormalizedUser(jid);
+            const phone = normJid.split('@')[0].split(':')[0].replace(/\D/g, '');
+            const keys = new Set([jid, normJid]);
+            if (phone) {
+                keys.add(phone);
+                keys.add(`${phone}@s.whatsapp.net`);
+                keys.add(`${phone}@lid`);
+            }
+            for (const key of keys) {
+                if (key) pushNameCache.set(key, name);
+            }
+        };
+        const readCandidateName = (row) =>
+            row?.name ||
+            row?.notify ||
+            row?.pushName ||
+            row?.verifiedName ||
+            row?.verified_name ||
+            '';
+
+        async function hydrateNameFromSocket(jid) {
+            const sock = global.sock;
+            if (!sock) return '';
+            const now = Date.now();
+            const until = global.chatNameHydrateCooldown.get(jid) || 0;
+            if (until > now) return '';
+
+            const candidates = normalizeCandidates(jid).filter((v) => v.includes('@'));
+            let hydrated = '';
+            try {
+                if (typeof sock.onWhatsApp === 'function') {
+                    for (const candidate of candidates) {
+                        const rows = (await sock.onWhatsApp(candidate)) || [];
+                        for (const row of rows) {
+                            const name = String(readCandidateName(row) || '').trim();
+                            if (name && !nameLooksNumeric(name)) {
+                                cacheResolvedName(candidate, name);
+                                if (row?.jid) cacheResolvedName(row.jid, name);
+                                hydrated = name;
+                                break;
+                            }
+                        }
+                        if (hydrated) break;
+                    }
+                }
+            } catch {}
+
+            if (!hydrated && typeof sock.getBusinessProfile === 'function') {
+                try {
+                    for (const candidate of candidates) {
+                        const profile = await sock.getBusinessProfile(candidate);
+                        const name = String(readCandidateName(profile) || '').trim();
+                        if (name && !nameLooksNumeric(name)) {
+                            cacheResolvedName(candidate, name);
+                            hydrated = name;
+                            break;
+                        }
+                    }
+                } catch {}
+            }
+
+            global.chatNameHydrateCooldown.set(jid, now + hydrateCooldownMs);
+            return hydrated;
+        }
+
+        async function resolveChatName(jid, liveMessages, lastMsg) {
+            const isPrivate = !isJidGroup(jid) && !isJidBroadcast(jid);
+            const fromIncoming = !lastMsg.key?.fromMe;
+            const candidates = normalizeCandidates(jid);
+            let resolvedName = '';
+
+            for (const key of candidates) {
+                const v = pushNameCache?.get(key);
+                if (v && !nameLooksNumeric(v)) {
+                    resolvedName = v;
+                    break;
+                }
+            }
+
+            if (
+                !resolvedName &&
+                fromIncoming &&
+                lastMsg.pushName &&
+                !nameLooksNumeric(lastMsg.pushName)
+            ) {
+                resolvedName = lastMsg.pushName;
+            }
+
+            if (!resolvedName && isPrivate) {
+                const recentIncomingName = await messengerStore.getLatestIncomingPushName(
+                    jid,
+                    liveMessages,
+                );
+                if (recentIncomingName && !nameLooksNumeric(recentIncomingName)) {
+                    resolvedName = recentIncomingName;
+                }
+            }
+
+            if (!resolvedName || nameLooksNumeric(resolvedName)) {
+                // Never block /api/chats on remote metadata lookups.
+                // Trigger best-effort hydration in the background; next refresh can pick it up.
+                void hydrateNameFromSocket(jid);
+            }
+
+            if (!resolvedName) resolvedName = displayFromJid(jid);
+
+            if (isPrivate && !fromIncoming && selfName) {
+                if (
+                    String(resolvedName || '')
+                        .trim()
+                        .toLowerCase() === selfName &&
+                    !isOwnLinkedChat(jid)
+                ) {
+                    resolvedName = displayFromJid(jid);
+                }
+            }
+
+            return resolvedName;
+        }
 
         for (const jid of jids) {
             const chatMsgs = store.chats.get(jid);
@@ -1741,9 +1914,12 @@ app.get('/api/chats', async (req, res) => {
                 lastMsg.message?.extendedTextMessage?.text ||
                 '[Media]';
 
+            const aliasName = String(aliases[jid] || '').trim();
+            const resolvedName = aliasName || (await resolveChatName(jid, liveMessages, lastMsg));
+
             chats.push({
                 jid,
-                name: global.pushNameCache?.get(jid) || lastMsg.pushName || jid.split('@')[0],
+                name: resolvedName,
                 lastMsgSnippet: snippet,
                 timestamp: lastMsg.messageTimestamp,
                 isPinned: pinned.includes(jid),
@@ -1757,6 +1933,22 @@ app.get('/api/chats', async (req, res) => {
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
+});
+
+app.get('/api/chat-aliases', (req, res) => {
+    res.json({ aliases: readChatAliases() });
+});
+
+app.post('/api/chat-alias', (req, res) => {
+    const jid = String(req.body?.jid || '').trim();
+    const alias = String(req.body?.alias || '').trim();
+    if (!jid) return res.status(400).json({ error: 'Missing jid' });
+
+    const aliases = readChatAliases();
+    if (!alias) delete aliases[jid];
+    else aliases[jid] = alias;
+    writeChatAliases(aliases);
+    res.json({ ok: true, aliases });
 });
 
 app.get('/api/chat/:jid/messages', async (req, res) => {
@@ -2047,6 +2239,27 @@ app.get('/gh/commit-activity', (req, res) =>
         `https://api.github.com/repos/${req.query.owner}/${req.query.repo}/stats/commit_activity`,
     ),
 );
+
+app.get('/api/local-commit-activity', (req, res) => {
+    const weeksRaw = Number(req.query.weeks || 12);
+    const weeks = Number.isFinite(weeksRaw) ? Math.min(Math.max(weeksRaw, 1), 52) : 12;
+    const sinceDate = new Date(Date.now() - weeks * 7 * 24 * 60 * 60 * 1000);
+    const sinceIso = sinceDate.toISOString();
+
+    execFile(
+        'git',
+        ['log', '--since', sinceIso, '--pretty=format:%cI'],
+        { cwd: __dirname, timeout: 12000 },
+        (err, stdout) => {
+            if (err) return res.status(500).json({ error: 'Failed to read local git activity' });
+            const lines = String(stdout || '')
+                .split('\n')
+                .map((s) => s.trim())
+                .filter(Boolean);
+            res.json({ commits: lines });
+        },
+    );
+});
 
 // Local plugin manifest — reads descriptions directly from loaded plugin files
 app.get('/api/plugins', (req, res) => {

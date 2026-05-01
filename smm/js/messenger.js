@@ -13,11 +13,13 @@ import {
 const PAGE_SIZE = 60;
 let chatTimeTicker = null;
 let activeChatRequest = null;
+const SCROLL_BOTTOM_THRESHOLD = 72;
 
 // jid -> 'loaded' | 'failed'. Avoids re-issuing profile-pic requests per render.
 const avatarStatus = new Map();
 // jid -> DOM node. Lets renderChatList reuse nodes instead of rebuilding.
 const chatItemNodes = new Map();
+let chatAliases = {};
 
 // ── Bootstrap ────────────────────────────────────────────────────
 export function mountMessenger() {
@@ -65,8 +67,18 @@ export function mountMessenger() {
     document.getElementById('refreshChats').onclick = fetchChats;
     document.getElementById('chatSearch').oninput = handleSearch;
     document.getElementById('cancelReplyBtn').onclick = cancelReply;
+    document.getElementById('renameChat').onclick = renameActiveChat;
     document.getElementById('togglePin').onclick = toggleActivePin;
     document.getElementById('loadOlderBtn').onclick = loadOlderMessages;
+    document.getElementById('scrollToBottomBtn').onclick = () =>
+        scrollThreadToBottom({ force: true });
+    document.getElementById('messageThread').addEventListener('scroll', updateScrollBottomButton);
+
+    api.fetchChatAliases()
+        .then((d) => {
+            chatAliases = d?.aliases || {};
+        })
+        .catch(() => {});
 
     fetchChats();
 
@@ -75,6 +87,31 @@ export function mountMessenger() {
             if (state.filteredChats?.length) refreshChatTimes();
         }, 30 * 1000);
     }
+}
+
+function isThreadNearBottom(thread) {
+    return thread.scrollHeight - thread.scrollTop - thread.clientHeight <= SCROLL_BOTTOM_THRESHOLD;
+}
+
+function scrollThreadToBottom({ force = false } = {}) {
+    const thread = document.getElementById('messageThread');
+    if (!thread) return;
+    if (force || isThreadNearBottom(thread)) {
+        thread.scrollTop = thread.scrollHeight;
+    }
+    updateScrollBottomButton();
+}
+
+function updateScrollBottomButton() {
+    const thread = document.getElementById('messageThread');
+    const btn = document.getElementById('scrollToBottomBtn');
+    if (!thread || !btn) return;
+    if (!state.activeJid) {
+        btn.hidden = true;
+        return;
+    }
+    const hasScrollableContent = thread.scrollHeight > thread.clientHeight + 20;
+    btn.hidden = !hasScrollableContent || isThreadNearBottom(thread);
 }
 
 function refreshChatTimes() {
@@ -107,7 +144,7 @@ async function fetchChats() {
     try {
         const data = await api.fetchChats();
         state.chats = sortedChats(data.chats || []);
-        state.filteredChats = state.chats;
+        applyChatFilter(document.getElementById('chatSearch')?.value || '');
         renderChatList();
     } catch (e) {
         console.error('fetchChats failed', e);
@@ -207,8 +244,10 @@ function renderChatList() {
     for (const jid of newJids) fetchProfilePic(jid, avatarElId(jid));
 }
 
-function handleSearch(e) {
-    const q = e.target.value.trim().toLowerCase();
+function applyChatFilter(rawQuery) {
+    const q = String(rawQuery || '')
+        .trim()
+        .toLowerCase();
     state.filteredChats = sortedChats(
         !q
             ? state.chats
@@ -217,6 +256,10 @@ function handleSearch(e) {
                   return name.includes(q) || (c.lastMsgSnippet || '').toLowerCase().includes(q);
               }),
     );
+}
+
+function handleSearch(e) {
+    applyChatFilter(e?.target?.value || '');
     renderChatList();
 }
 
@@ -274,7 +317,7 @@ function updateChatInList(data) {
             ...state.chats,
         ]);
     }
-    state.filteredChats = state.chats;
+    applyChatFilter(document.getElementById('chatSearch')?.value || '');
     renderChatList();
 }
 
@@ -349,6 +392,7 @@ async function selectChat(chat) {
     document.getElementById('typingIndicator').innerHTML = '';
     const thread = document.getElementById('messageThread');
     thread.innerHTML = '<div class="empty-state">Loading messages…</div>';
+    updateScrollBottomButton();
     const loadOlderBtn = document.getElementById('loadOlderBtn');
     loadOlderBtn.hidden = true;
 
@@ -364,7 +408,7 @@ async function selectChat(chat) {
         state.chatPage.set(chat.jid, data.page || { hasMore: false, before: null });
         const msgs = data.messages || [];
         msgs.forEach((m) => appendMessage(m, { autoScroll: false }));
-        thread.scrollTop = thread.scrollHeight;
+        scrollThreadToBottom({ force: true });
         document.getElementById('messageInput').focus();
         loadOlderBtn.hidden = !data.page?.hasMore;
         const lastIncoming = [...msgs].reverse().find((m) => !m.key.fromMe);
@@ -377,8 +421,10 @@ async function selectChat(chat) {
     } catch (e) {
         if (e?.code === 'ERR_CANCELED' || e?.name === 'AbortError') return;
         thread.innerHTML = '<div class="empty-state">Failed to load messages</div>';
+        updateScrollBottomButton();
         loadOlderBtn.hidden = true;
     } finally {
+        document.getElementById('messageInput').focus();
         if (activeChatRequest === controller) activeChatRequest = null;
     }
 }
@@ -406,6 +452,7 @@ async function loadOlderMessages() {
         btn.hidden = !data.page?.hasMore;
         const newHeight = thread.scrollHeight;
         thread.scrollTop = Math.max(0, newHeight - prevHeight);
+        updateScrollBottomButton();
     } catch (e) {
         console.error('loadOlderMessages failed', e);
     } finally {
@@ -423,6 +470,27 @@ async function toggleActivePin() {
     } catch (e) {}
 }
 
+async function renameActiveChat() {
+    if (!state.activeJid) return;
+    const current = state.chats.find((c) => c.jid === state.activeJid);
+    const currentAlias = String(chatAliases[state.activeJid] || '').trim();
+    const suggested = currentAlias || current?.name || jidShort(state.activeJid);
+    const raw = window.prompt('Set chat label (leave blank to clear alias):', suggested);
+    if (raw === null) return;
+
+    const alias = raw.trim();
+    try {
+        const res = await api.setChatAlias(state.activeJid, alias);
+        chatAliases = res?.aliases || chatAliases;
+        await fetchChats();
+        const next = state.chats.find((c) => c.jid === state.activeJid);
+        document.getElementById('activeChatName').textContent =
+            next?.name || jidShort(state.activeJid);
+    } catch (e) {
+        console.error('renameActiveChat failed', e);
+    }
+}
+
 // ── Bubble rendering ──────────────────────────────────────────────
 function appendMessage(m, options = {}) {
     const prepend = !!options.prepend;
@@ -431,6 +499,7 @@ function appendMessage(m, options = {}) {
     state.renderedMsgIds.add(m.key.id);
 
     const thread = document.getElementById('messageThread');
+    const shouldStickBottom = autoScroll && isThreadNearBottom(thread);
     const placeholder = thread.querySelector('.placeholder, .empty-state');
     if (placeholder) placeholder.remove();
 
@@ -519,7 +588,8 @@ function appendMessage(m, options = {}) {
 
     if (prepend) thread.insertBefore(b, thread.firstChild);
     else thread.appendChild(b);
-    if (autoScroll) thread.scrollTop = thread.scrollHeight;
+    if (autoScroll && shouldStickBottom) thread.scrollTop = thread.scrollHeight;
+    updateScrollBottomButton();
 }
 
 // ── Reactions ─────────────────────────────────────────────────────
@@ -590,7 +660,9 @@ async function sendMessage() {
     } catch (e) {
         state.renderedMsgIds.delete(tempId);
         document.querySelector(`[data-id="${tempId}"]`)?.remove();
+        updateScrollBottomButton();
     }
+    input.focus();
 }
 
 function cancelReply() {
