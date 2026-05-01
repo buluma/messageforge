@@ -11,8 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2026-05-01
 
+### Added
+- `feat(baileys)`: Add owner-only Baileys gap command surface via `plugins/baileys-gap.js`
+  - privacy controls (`lastseen`, `online`, `profile`, `status`, `readreceipts`, `groupsadd`, `disappearing`)
+  - chat controls (`chatarchive`, `chatunarchive`, `chatmute`, `chatunmute`, `chatread`, `chatunread`, `chatstar`, `chatunstar`, `chatdelete`, `chatclear`)
+  - broadcast list inspection (`broadcastlist`, `blistinfo`)
+  - profile-picture removal (`removepp`, `clearpp`)
+  - explicit message edit (`msgedit`)
+  - selected primitives (`waon`, `statusof`, `bizprofileof`, `ppurlof`, `presub`, `sendpresence`, `readmsg`)
+
+### Changed
+- `refactor(baileys)`: Consolidate socket-local event handling to `sock.ev.process()` dispatch in `createWhatsAppSocket()`
+
 ### Fixed
 - `fix`: Wire runtime status mode and normalize command parsing
+- `fix(baileys)`: Handle list-shaped `fetchStatus()` response correctly in `.statusof`
+- `fix(baileys)`: Reset pairing retry flag when `requestPairingCode` fails to allow in-session retries
+
+### Documentation
+- `docs`: Add Baileys gap manual verification runbook (`docs/08-BAILEYS-GAP-VERIFICATION.md`)
+- `docs`: Refresh command reference in `docs/03-COMMANDS.md`
 
 ---
 
