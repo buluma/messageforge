@@ -1,0 +1,17 @@
+# Default owner for all files
+* @buluma
+
+# CI and repo policy files
+.github/** @buluma
+
+# Runtime/core bot logic
+messageforge.js @buluma
+handler.js @buluma
+config.js @buluma
+lib/** @buluma
+
+# Plugin surface
+plugins/** @buluma
+
+# Docs
+/docs/** @buluma

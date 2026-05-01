@@ -1,0 +1,35 @@
+core:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'messageforge.js'
+          - 'handler.js'
+          - 'config.js'
+          - 'lib/**'
+
+plugins:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'plugins/**'
+
+dashboard:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'smm/**'
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+          - '*.md'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+
+infra:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'Dockerfile'
+          - 'docker-compose.yml'
+          - 'app.json'
