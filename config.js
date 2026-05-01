@@ -33,7 +33,7 @@ module.exports = {
     AUTO_UNFOLLOW_NEWSLETTER: toBool(process.env.AUTO_UNFOLLOW_NEWSLETTER, false),
     NEWSLETTER_JID: process.env.NEWSLETTER_JID || '120363200367779016@newsletter',
     ANTI_BAD: toBool(process.env.ANTI_BAD, false),
-    ALWAYS_ONLINE: toBool(process.env.ALWAYS_ONLINE, true),
+    ALWAYS_ONLINE: toBool(process.env.ALWAYS_ONLINE, false),
     AUTO_TYPING: toBool(process.env.AUTO_TYPING, true),
     AUTO_RECORDING: toBool(process.env.AUTO_RECORDING, false),
     DELETE_LINKS: toBool(process.env.DELETE_LINKS, false),

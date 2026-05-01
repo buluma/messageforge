@@ -76,6 +76,8 @@ const P = require('pino');
 const NodeCache = require('node-cache');
 const { handleMessages } = require('./handler');
 const { handleStatusBroadcast } = require('./lib/statusManager');
+const { connectDB, getPgPool } = require('./lib/database');
+const { usePostgresAuthState } = require('./lib/baileysPostgresAuth');
 const {
     downloadMediaBuffer,
     enqueueAntiViewOnceJob,
@@ -85,7 +87,6 @@ const {
 } = require('./lib/viewonce');
 const messengerStore = require('./lib/messengerStore');
 const config = require('./config.js');
-const { connectDB } = require('./lib/database');
 const BRAND_NAME = 'MessageForge';
 const BRAND_ICON = '◉';
 
@@ -113,8 +114,11 @@ let lastProfileSyncAt = 0;
 const STARTUP_WELCOME_MIN_INTERVAL_MS = 10 * 60 * 1000;
 const PROFILE_SYNC_MIN_INTERVAL_MS = 30 * 60 * 1000;
 const SEND_GUARD_MAX_PER_MIN = 30;
+const SEND_GUARD_PRIORITY_MAX_PER_MIN = 120;
 const SEND_GUARD_JITTER_MIN_MS = 100;
 const SEND_GUARD_JITTER_MAX_MS = 500;
+const SEND_GUARD_PRIORITY_JITTER_MIN_MS = 20;
+const SEND_GUARD_PRIORITY_JITTER_MAX_MS = 80;
 
 function clearReconnectTimer() {
     if (!reconnectTimer) return;
@@ -146,41 +150,58 @@ function closeSocket(sock) {
     } catch {}
 }
 
-function createSendPacer() {
+function createSendPacer(maxPerMinute, jitterMinMs, jitterMaxMs) {
     const sentAt = [];
     return async function paceSend() {
         let now = Date.now();
         while (sentAt.length && now - sentAt[0] > 60000) sentAt.shift();
-        if (sentAt.length >= SEND_GUARD_MAX_PER_MIN) {
+        if (sentAt.length >= maxPerMinute) {
             const wait = Math.max(0, 60000 - (now - sentAt[0])) + 50;
             await new Promise((resolve) => setTimeout(resolve, wait));
             now = Date.now();
             while (sentAt.length && now - sentAt[0] > 60000) sentAt.shift();
         }
 
-        const jitter =
-            Math.floor(Math.random() * (SEND_GUARD_JITTER_MAX_MS - SEND_GUARD_JITTER_MIN_MS + 1)) +
-            SEND_GUARD_JITTER_MIN_MS;
+        const jitter = Math.floor(Math.random() * (jitterMaxMs - jitterMinMs + 1)) + jitterMinMs;
         await new Promise((resolve) => setTimeout(resolve, jitter));
         sentAt.push(Date.now());
     };
+}
+
+function isPrioritySend(content) {
+    return !!(content?.delete || content?.react);
 }
 
 function installSendGuard(sock) {
     if (!sock?.sendMessage || sock.__messageforgeSendGuarded) return sock;
 
     const rawSendMessage = sock.sendMessage.bind(sock);
-    const paceSend = createSendPacer();
+    const paceNormalSend = createSendPacer(
+        SEND_GUARD_MAX_PER_MIN,
+        SEND_GUARD_JITTER_MIN_MS,
+        SEND_GUARD_JITTER_MAX_MS,
+    );
+    const pacePrioritySend = createSendPacer(
+        SEND_GUARD_PRIORITY_MAX_PER_MIN,
+        SEND_GUARD_PRIORITY_JITTER_MIN_MS,
+        SEND_GUARD_PRIORITY_JITTER_MAX_MS,
+    );
     let queue = Promise.resolve();
+    let priorityQueue = Promise.resolve();
 
     sock.sendMessage = (jid, content, opts) => {
         const task = async () => {
-            await paceSend();
+            await (isPrioritySend(content) ? pacePrioritySend() : paceNormalSend());
             return rawSendMessage(jid, content, opts);
         };
 
-        const result = queue.then(task, task);
-        queue = result.catch(() => {});
+        const selectedQueue = isPrioritySend(content) ? priorityQueue : queue;
+        const result = selectedQueue.then(task, task);
+        if (isPrioritySend(content)) {
+            priorityQueue = result.catch(() => {});
+        } else {
+            queue = result.catch(() => {});
+        }
         return result;
     };
 
@@ -604,6 +625,28 @@ async function updateProfileStatus(sock) {
     }
 }
 
+async function getBaileysAuthState() {
+    if (config.DATABASE_TYPE === 'postgres') {
+        const pool = getPgPool();
+        if (pool) {
+            try {
+                const authState = await usePostgresAuthState(pool, sessionDir);
+                logMessage('INFO', 'Using PostgreSQL-backed Baileys auth state.');
+                return authState;
+            } catch (err) {
+                logMessage(
+                    'WARN',
+                    `PostgreSQL Baileys auth unavailable, falling back to session files: ${err.message}`,
+                );
+            }
+        } else {
+            logMessage('WARN', 'DATABASE_TYPE=postgres but PostgreSQL pool is unavailable.');
+        }
+    }
+
+    return useMultiFileAuthState(sessionDir);
+}
+
 async function connectToWhatsApp() {
     if (isConnectingToWhatsApp) return currentSock;
     isConnectingToWhatsApp = true;
@@ -622,7 +665,7 @@ async function createWhatsAppSocket() {
     let seenCleanupTimer = null;
 
     // Use the session directory for multi-file auth state
-    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+    const { state, saveCreds } = await getBaileysAuthState();
     const { version } = await fetchLatestBaileysVersion();
     const baileysLogger = P({ level: config.DEBUG ? 'debug' : 'silent' });
 
@@ -657,6 +700,11 @@ async function createWhatsAppSocket() {
             const stored = store.loadMessage(key.remoteJid, key.id);
             return stored?.message || undefined;
         },
+        shouldIgnoreJid: (jid) =>
+            typeof jid === 'string' &&
+            isJidBroadcast(jid) &&
+            !isJidStatusBroadcast(jid) &&
+            !jid.endsWith('@newsletter'),
         ...cryptoOptions,
     });
     installSendGuard(sock);
