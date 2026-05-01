@@ -111,6 +111,47 @@ const GLOBAL_CONTEXT_INFO = {};
 const plugins = [];
 const pluginDir = path.join(__dirname, 'plugins');
 
+function reportCommandCollisions(loadedPlugins) {
+    const ownersByCommand = new Map();
+    for (const plugin of loadedPlugins) {
+        const file = plugin.__pluginFile || 'unknown-file';
+        const aliases = Array.isArray(plugin.commands) ? plugin.commands : [];
+        for (const raw of aliases) {
+            const cmd = String(raw || '').trim().toLowerCase();
+            if (!cmd) continue;
+            if (!ownersByCommand.has(cmd)) ownersByCommand.set(cmd, []);
+            ownersByCommand.get(cmd).push({
+                file,
+                primary: plugin.commands?.[0] || cmd,
+            });
+        }
+    }
+
+    const collisions = [...ownersByCommand.entries()]
+        .filter(([, owners]) => owners.length > 1)
+        .sort((a, b) => a[0].localeCompare(b[0]));
+
+    if (!collisions.length) return;
+
+    console.warn(`[Plugin] Command collision report: ${collisions.length} duplicate aliases found.`);
+    for (const [cmd, owners] of collisions) {
+        const ownerList = owners
+            .map((owner, index) => `${index + 1}. ${owner.file} (${owner.primary})`)
+            .join(' | ');
+        // Dispatch scans plugins in load order and executes the first match.
+        const winner = owners[0];
+        console.warn(
+            `[Plugin] Duplicate command "${cmd}" -> ${ownerList} | active: ${winner.file} (${winner.primary})`,
+        );
+    }
+
+    if (config.STRICT_COMMAND_COLLISIONS) {
+        throw new Error(
+            `[Plugin] STRICT_COMMAND_COLLISIONS=true and ${collisions.length} duplicate command aliases were found.`,
+        );
+    }
+}
+
 function loadPlugins() {
     if (!fs.existsSync(pluginDir)) return;
     const files = fs.readdirSync(pluginDir).filter((f) => f.endsWith('.js'));
@@ -146,6 +187,7 @@ function loadPlugins() {
         }
     }
     // Plugin file/command totals are logged by messageforge.js; avoid duplicate startup noise.
+    reportCommandCollisions(plugins);
 }
 
 loadPlugins();
