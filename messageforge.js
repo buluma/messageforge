@@ -31,6 +31,7 @@ const {
     isJidStatusBroadcast,
     areJidsSameUser,
     jidNormalizedUser,
+    makeCacheableSignalKeyStore,
     downloadContentFromMessage,
     proto,
     generateMessageIDV2,
@@ -72,8 +73,11 @@ const zlib = require('zlib'); // Added for session decompression
 const express = require('express');
 const axios = require('axios');
 const P = require('pino');
+const NodeCache = require('node-cache');
 const { handleMessages } = require('./handler');
 const { handleStatusBroadcast } = require('./lib/statusManager');
+const { connectDB, getPgPool } = require('./lib/database');
+const { usePostgresAuthState } = require('./lib/baileysPostgresAuth');
 const {
     downloadMediaBuffer,
     enqueueAntiViewOnceJob,
@@ -83,7 +87,6 @@ const {
 } = require('./lib/viewonce');
 const messengerStore = require('./lib/messengerStore');
 const config = require('./config.js');
-const { connectDB } = require('./lib/database');
 const BRAND_NAME = 'MessageForge';
 const BRAND_ICON = '◉';
 
@@ -96,6 +99,137 @@ function getDisplayBotName() {
 
 if (typeof global.antivvEnabled === 'undefined') global.antivvEnabled = config.ANTIVV !== false;
 const store = makeInMemoryStore({ logger: P({ level: 'silent' }) });
+const msgRetryCounterCache = new NodeCache({
+    stdTTL: 60 * 60,
+    checkperiod: 5 * 60,
+    useClones: false,
+});
+
+let currentSock = null;
+let isConnectingToWhatsApp = false;
+let reconnectTimer = null;
+let flushRuntimeCaches = () => {};
+let lastStartupWelcomeAt = 0;
+let lastProfileSyncAt = 0;
+const STARTUP_WELCOME_MIN_INTERVAL_MS = 10 * 60 * 1000;
+const PROFILE_SYNC_MIN_INTERVAL_MS = 30 * 60 * 1000;
+const SEND_GUARD_MAX_PER_MIN = 30;
+const SEND_GUARD_PRIORITY_MAX_PER_MIN = 120;
+const SEND_GUARD_JITTER_MIN_MS = 100;
+const SEND_GUARD_JITTER_MAX_MS = 500;
+const SEND_GUARD_PRIORITY_JITTER_MIN_MS = 20;
+const SEND_GUARD_PRIORITY_JITTER_MAX_MS = 80;
+
+function clearReconnectTimer() {
+    if (!reconnectTimer) return;
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+}
+
+function scheduleReconnect(delayMs = 5000) {
+    if (reconnectTimer || isConnectingToWhatsApp) return;
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connectToWhatsApp().catch((e) => {
+            logMessage('CRITICAL', `Reconnect failed: ${e.stack || e.message}`);
+            scheduleReconnect(Math.min(delayMs * 2, 60000));
+        });
+    }, delayMs);
+}
+
+function closeSocket(sock) {
+    if (!sock) return;
+    if (sock.__messageforgeSeenCleanupTimer) {
+        clearInterval(sock.__messageforgeSeenCleanupTimer);
+        sock.__messageforgeSeenCleanupTimer = null;
+    }
+    if (sock.__messageforgeCacheTimerEarly) {
+        clearTimeout(sock.__messageforgeCacheTimerEarly);
+        sock.__messageforgeCacheTimerEarly = null;
+    }
+    if (sock.__messageforgeWelcomeOffTimer) {
+        clearTimeout(sock.__messageforgeWelcomeOffTimer);
+        sock.__messageforgeWelcomeOffTimer = null;
+    }
+    try {
+        sock.ev?.removeAllListeners?.();
+    } catch {}
+    try {
+        sock.end?.();
+    } catch {}
+    try {
+        sock.ws?.close?.();
+    } catch {}
+}
+
+function createSendPacer(maxPerMinute, jitterMinMs, jitterMaxMs) {
+    const sentAt = [];
+    return async function paceSend() {
+        let now = Date.now();
+        while (sentAt.length && now - sentAt[0] > 60000) sentAt.shift();
+        if (sentAt.length >= maxPerMinute) {
+            const wait = Math.max(0, 60000 - (now - sentAt[0])) + 50;
+            await new Promise((resolve) => setTimeout(resolve, wait));
+            now = Date.now();
+            while (sentAt.length && now - sentAt[0] > 60000) sentAt.shift();
+        }
+
+        const jitter = Math.floor(Math.random() * (jitterMaxMs - jitterMinMs + 1)) + jitterMinMs;
+        await new Promise((resolve) => setTimeout(resolve, jitter));
+        sentAt.push(Date.now());
+    };
+}
+
+function isPrioritySend(content) {
+    return !!(content?.delete || content?.react);
+}
+
+function installSendGuard(sock) {
+    if (!sock?.sendMessage || sock.__messageforgeSendGuarded) return sock;
+
+    const rawSendMessage = sock.sendMessage.bind(sock);
+    const paceNormalSend = createSendPacer(
+        SEND_GUARD_MAX_PER_MIN,
+        SEND_GUARD_JITTER_MIN_MS,
+        SEND_GUARD_JITTER_MAX_MS,
+    );
+    const pacePrioritySend = createSendPacer(
+        SEND_GUARD_PRIORITY_MAX_PER_MIN,
+        SEND_GUARD_PRIORITY_JITTER_MIN_MS,
+        SEND_GUARD_PRIORITY_JITTER_MAX_MS,
+    );
+    let queue = Promise.resolve();
+    let priorityQueue = Promise.resolve();
+
+    sock.sendMessage = (jid, content, opts) => {
+        const task = async () => {
+            await (isPrioritySend(content) ? pacePrioritySend() : paceNormalSend());
+            return rawSendMessage(jid, content, opts);
+        };
+
+        const selectedQueue = isPrioritySend(content) ? priorityQueue : queue;
+        const result = selectedQueue.then(task, task);
+        if (isPrioritySend(content)) {
+            priorityQueue = result.catch(() => {});
+        } else {
+            queue = result.catch(() => {});
+        }
+        return result;
+    };
+
+    Object.defineProperty(sock, '__messageforgeSendGuarded', {
+        value: true,
+        enumerable: false,
+        configurable: false,
+    });
+    Object.defineProperty(sock, '__messageforgeRawSendMessage', {
+        value: rawSendMessage,
+        enumerable: false,
+        configurable: false,
+    });
+
+    return sock;
+}
 
 const prefix = config.PREFIX || '.';
 const tempDir = path.join(os.tmpdir(), 'messageforge-cache');
@@ -238,13 +372,16 @@ function logMessage(type, message) {
     else if (typeStr === 'SUCCESS') success(message);
     else custom(typeStr, message);
 
-    const plainMsg = message instanceof Error ? (message.stack || message.message) : message;
+    const plainMsg = message instanceof Error ? message.stack || message.message : message;
     const plainLog = `[${ts}] [${typeStr}] ${plainMsg}\n`;
     let logFile = path.join(logDir, getLogFileName(new Date()));
     try {
         // Check line count and rotate if at limit
         if (fs.existsSync(logFile)) {
-            const lines = fs.readFileSync(logFile, 'utf8').split('\n').filter(l => l.trim()).length;
+            const lines = fs
+                .readFileSync(logFile, 'utf8')
+                .split('\n')
+                .filter((l) => l.trim()).length;
             if (lines >= LOG_MESSAGE_LIMIT) {
                 // Rotate: append timestamp to current file and start fresh
                 const rotatedFile = logFile.replace('.log', `_${Date.now()}.log`);
@@ -475,13 +612,16 @@ async function sendWelcomeMessage(sock) {
         logMessage('SUCCESS', 'Owner welcome sent (auto-delete: 20s).');
 
         // Turn disappearing messages back off after the welcome has expired
-        setTimeout(async () => {
+        sock.__messageforgeWelcomeOffTimer = setTimeout(async () => {
             try {
+                if (currentSock !== sock) return;
                 await sock.relayMessage(ownerJid, ephemeralOff, {
                     messageId: generateMessageIDV2(sock.user?.id),
                 });
             } catch {
                 /* ok */
+            } finally {
+                if (sock.__messageforgeWelcomeOffTimer) sock.__messageforgeWelcomeOffTimer = null;
             }
         }, 25_000);
     } catch (e) {
@@ -500,22 +640,49 @@ async function updateProfileStatus(sock) {
     }
 }
 
-// ✅ Connect to WhatsApp (main)
+async function getBaileysAuthState() {
+    if (config.DATABASE_TYPE === 'postgres') {
+        const pool = getPgPool();
+        if (pool) {
+            try {
+                const authState = await usePostgresAuthState(pool, sessionDir);
+                logMessage('INFO', 'Using PostgreSQL-backed Baileys auth state.');
+                return authState;
+            } catch (err) {
+                logMessage(
+                    'WARN',
+                    `PostgreSQL Baileys auth unavailable, falling back to session files: ${err.message}`,
+                );
+            }
+        } else {
+            logMessage('WARN', 'DATABASE_TYPE=postgres but PostgreSQL pool is unavailable.');
+        }
+    }
+
+    return useMultiFileAuthState(sessionDir);
+}
+
 async function connectToWhatsApp() {
+    if (isConnectingToWhatsApp) return currentSock;
+    isConnectingToWhatsApp = true;
+    clearReconnectTimer();
+    try {
+        return await createWhatsAppSocket();
+    } finally {
+        isConnectingToWhatsApp = false;
+    }
+}
+
+// ✅ Connect to WhatsApp (main)
+async function createWhatsAppSocket() {
     const seenStatusIds = new Set();
     const seenCmdIds = new Set();
-
-    setInterval(
-        () => {
-            if (seenCmdIds.size > 5000) seenCmdIds.clear();
-            if (seenStatusIds.size > 5000) seenStatusIds.clear();
-        },
-        10 * 60 * 1000,
-    );
+    let seenCleanupTimer = null;
 
     // Use the session directory for multi-file auth state
-    const { state, saveCreds } = await useMultiFileAuthState(sessionDir);
+    const { state, saveCreds } = await getBaileysAuthState();
     const { version } = await fetchLatestBaileysVersion();
+    const baileysLogger = P({ level: config.DEBUG ? 'debug' : 'silent' });
 
     const cryptoOptions = {
         maxSharedKeys: 1000,
@@ -527,11 +694,17 @@ async function connectToWhatsApp() {
     };
 
     const sock = makeWASocket({
-        logger: P({ level: config.DEBUG ? 'debug' : 'silent' }),
+        logger: baileysLogger,
         // QR printing in terminal is deprecated upstream; handle via connection.update instead.
         browser: Browsers.macOS('Safari'),
-        auth: state,
+        auth: {
+            creds: state.creds,
+            keys: makeCacheableSignalKeyStore(state.keys, baileysLogger),
+        },
         version,
+        msgRetryCounterCache,
+        connectTimeoutMs: 30000,
+        defaultQueryTimeoutMs: 90000,
         markOnlineOnConnect: config.ALWAYS_ONLINE,
         syncFullHistory: false,
         generateHighQualityLinkPreview: false,
@@ -542,10 +715,28 @@ async function connectToWhatsApp() {
             const stored = store.loadMessage(key.remoteJid, key.id);
             return stored?.message || undefined;
         },
+        shouldIgnoreJid: (jid) =>
+            typeof jid === 'string' &&
+            isJidBroadcast(jid) &&
+            !isJidStatusBroadcast(jid) &&
+            !jid.endsWith('@newsletter'),
         ...cryptoOptions,
     });
+    installSendGuard(sock);
 
+    if (currentSock && currentSock !== sock) {
+        closeSocket(currentSock);
+    }
+    currentSock = sock;
     global.sock = sock;
+    seenCleanupTimer = setInterval(
+        () => {
+            if (seenCmdIds.size > 5000) seenCmdIds.clear();
+            if (seenStatusIds.size > 5000) seenStatusIds.clear();
+        },
+        10 * 60 * 1000,
+    );
+    sock.__messageforgeSeenCleanupTimer = seenCleanupTimer;
 
     // ── Persist messenger history and realtime dashboard events ──────────────
     sock.ev.on('messages.upsert', ({ messages: newMsgs }) => {
@@ -586,9 +777,7 @@ async function connectToWhatsApp() {
     if (!global.pushNameCache) global.pushNameCache = new Map();
     let _globalLidMapping;
     try {
-        ({
-            globalLidMapping: _globalLidMapping,
-        } = require('./lib/lid-mapping-store'));
+        ({ globalLidMapping: _globalLidMapping } = require('./lib/lid-mapping-store'));
     } catch {}
 
     const CACHE_DIR_EARLY = path.join(__dirname, 'data');
@@ -643,23 +832,15 @@ async function connectToWhatsApp() {
         }
     }
 
-    let _cacheTimerEarly = null;
     function scheduleCacheSave() {
-        if (_cacheTimerEarly) return;
-        _cacheTimerEarly = setTimeout(() => {
-            _cacheTimerEarly = null;
+        if (sock.__messageforgeCacheTimerEarly) return;
+        sock.__messageforgeCacheTimerEarly = setTimeout(() => {
+            sock.__messageforgeCacheTimerEarly = null;
             flushCachesToDisk();
         }, 30000);
     }
 
-    process.once('SIGINT', () => {
-        flushCachesToDisk();
-        process.exit(0);
-    });
-    process.once('SIGTERM', () => {
-        flushCachesToDisk();
-        process.exit(0);
-    });
+    flushRuntimeCaches = flushCachesToDisk;
 
     const trackContacts = (contacts, source) => {
         let mapped = 0;
@@ -728,13 +909,19 @@ async function connectToWhatsApp() {
             }
         }
         if (connection === 'close') {
+            closeSocket(sock);
+            seenCleanupTimer = null;
+            if (currentSock === sock) {
+                currentSock = null;
+                if (global.sock === sock) global.sock = null;
+            }
             logMessage(
                 'WARN',
                 `Connection closed: ${lastDisconnect?.error?.output?.statusCode || 'Unknown'}`,
             );
             if (lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut) {
                 logMessage('INFO', 'Reconnecting...');
-                setTimeout(() => connectToWhatsApp(), 2000);
+                scheduleReconnect(2000);
             }
         } else if (connection === 'open') {
             logMessage('SUCCESS', 'Connected to WhatsApp.');
@@ -765,9 +952,20 @@ async function connectToWhatsApp() {
                 logMessage('INFO', `Owner: ${config.OWNER_NUMBER} | Bot number: ${rawNum}`);
             }
 
-            // Update profile & send welcome
-            await updateProfileStatus(sock);
-            await sendWelcomeMessage(sock);
+            const now = Date.now();
+            if (now - lastProfileSyncAt > PROFILE_SYNC_MIN_INTERVAL_MS) {
+                lastProfileSyncAt = now;
+                await updateProfileStatus(sock);
+            } else {
+                logMessage('DEBUG', 'Skipped profile bio sync; recently updated.');
+            }
+
+            if (now - lastStartupWelcomeAt > STARTUP_WELCOME_MIN_INTERVAL_MS) {
+                lastStartupWelcomeAt = now;
+                await sendWelcomeMessage(sock);
+            } else {
+                logMessage('DEBUG', 'Skipped owner welcome; recently sent.');
+            }
 
             // Auto-join support group on startup (disabled)
             // try {
@@ -1252,14 +1450,23 @@ async function connectToWhatsApp() {
                         enqueueAntiViewOnceJob(
                             async () => {
                                 if (!ownerJid) throw new Error('OWNER_NUMBER is not configured');
-                                const buffer = await downloadMediaBuffer(reveal.content, reveal.mediaType, {
-                                    maxBytes: config.ANTIVV_MAX_BYTES,
-                                });
-                                await sendRevealedMedia(sock, ownerJid, {
-                                    ...reveal,
-                                    buffer,
-                                    caption: header,
-                                }, { audioCaptionAsText: true });
+                                const buffer = await downloadMediaBuffer(
+                                    reveal.content,
+                                    reveal.mediaType,
+                                    {
+                                        maxBytes: config.ANTIVV_MAX_BYTES,
+                                    },
+                                );
+                                await sendRevealedMedia(
+                                    sock,
+                                    ownerJid,
+                                    {
+                                        ...reveal,
+                                        buffer,
+                                        caption: header,
+                                    },
+                                    { audioCaptionAsText: true },
+                                );
                                 logMessage(
                                     'INFO',
                                     `Anti-VV: forwarded ${reveal.type} from ${senderNum} to owner`,
@@ -1267,7 +1474,8 @@ async function connectToWhatsApp() {
                             },
                             {
                                 maxQueue: config.ANTIVV_QUEUE_LIMIT,
-                                onDrop: () => logMessage('WARN', 'Anti-VV queue full; dropped media forward'),
+                                onDrop: () =>
+                                    logMessage('WARN', 'Anti-VV queue full; dropped media forward'),
                                 onError: (e) => {
                                     logMessage('WARN', `Anti-VV failed: ${e.message}`);
                                 },
@@ -1301,7 +1509,10 @@ async function connectToWhatsApp() {
                                     const emsg = e.message || '';
                                     if (/not follow|not subscribed|404|400|already/i.test(emsg)) {
                                         global._unfollowedNewsletters.add(nlJid);
-                                        logMessage('INFO', `Already unfollowed newsletter: ${nlJid}`);
+                                        logMessage(
+                                            'INFO',
+                                            `Already unfollowed newsletter: ${nlJid}`,
+                                        );
                                     } else {
                                         logMessage(
                                             'WARN',
@@ -1543,10 +1754,16 @@ app.get('/api/profile-pic/:jid', async (req, res) => {
         if (cached && cached.expires > now) {
             profilePicCacheTouch(jid);
             if (cached.miss) {
-                res.set('Cache-Control', `private, max-age=${Math.floor((cached.expires - now) / 1000)}`);
+                res.set(
+                    'Cache-Control',
+                    `private, max-age=${Math.floor((cached.expires - now) / 1000)}`,
+                );
                 return res.status(404).end();
             }
-            res.set('Cache-Control', `private, max-age=${Math.floor((cached.expires - now) / 1000)}`);
+            res.set(
+                'Cache-Control',
+                `private, max-age=${Math.floor((cached.expires - now) / 1000)}`,
+            );
             res.set('ETag', cached.etag);
             if (req.headers['if-none-match'] === cached.etag) return res.status(304).end();
             res.set('Content-Type', cached.mime);
@@ -1557,7 +1774,10 @@ app.get('/api/profile-pic/:jid', async (req, res) => {
         const url = await global.sock.profilePictureUrl(jid, 'image').catch(() => null);
         if (!url) {
             profilePicCacheSet(jid, { miss: true, expires: now + PROFILE_PIC_MISS_TTL_MS });
-            res.set('Cache-Control', `private, max-age=${Math.floor(PROFILE_PIC_MISS_TTL_MS / 1000)}`);
+            res.set(
+                'Cache-Control',
+                `private, max-age=${Math.floor(PROFILE_PIC_MISS_TTL_MS / 1000)}`,
+            );
             return res.status(404).end();
         }
 
@@ -1843,13 +2063,7 @@ process.on('uncaughtException', (err) => {
     try {
         logMessage('CRITICAL', `Uncaught Exception: ${err.stack || err.message}`);
     } catch (_) {}
-    setTimeout(() => {
-        connectToWhatsApp().catch((e) => {
-            try {
-                logMessage('CRITICAL', `Reconnect failed: ${e.message}`);
-            } catch (_) {}
-        });
-    }, 5000);
+    scheduleReconnect(5000);
 });
 
 // ✅ Graceful Shutdown
@@ -1862,12 +2076,12 @@ async function shutdown(signal) {
             await state.save();
         } catch {}
 
-        // Flush caches if they exist
-        if (typeof flushLidCache === 'function') await flushLidCache();
+        clearReconnectTimer();
+        flushRuntimeCaches();
 
-        // Disconnect socket if active
-        // Note: sock is scoped inside connectToWhatsApp, so we might need a global ref if we want to close it here
-        // but for now, flushing data is the priority.
+        closeSocket(currentSock || global.sock);
+        currentSock = null;
+        global.sock = null;
 
         logMessage('INFO', 'Clean shutdown complete.');
         process.exit(0);
@@ -1938,6 +2152,6 @@ function renderStartupBanner() {
         await connectToWhatsApp();
     } catch (e) {
         logMessage('CRITICAL', `Bot Init Failed: ${e.stack || e.message}`);
-        setTimeout(() => connectToWhatsApp(), 5000);
+        scheduleReconnect(5000);
     }
 })();
