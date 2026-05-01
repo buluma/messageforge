@@ -1,7 +1,7 @@
 # MessageForge TODO
 
-Spec: [docs/07-BAILEYS-GAP-SPEC.md](/Users/shadowwalker/Documents/GitHub/messageforge/docs/07-BAILEYS-GAP-SPEC.md)  
-Verification: [docs/08-BAILEYS-GAP-VERIFICATION.md](/Users/shadowwalker/Documents/GitHub/messageforge/docs/08-BAILEYS-GAP-VERIFICATION.md)
+Spec: [docs/07-BAILEYS-GAP-SPEC.md](docs/07-BAILEYS-GAP-SPEC.md)  
+Verification: [docs/08-BAILEYS-GAP-VERIFICATION.md](docs/08-BAILEYS-GAP-VERIFICATION.md)
 
 ## Active
 - [ ] Rework event handling around `sock.ev.process()` across the remaining handler-level listeners
