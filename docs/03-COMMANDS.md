@@ -198,7 +198,7 @@ MessageForge features **1000+ commands** across 175+ specialized plugins. Use yo
 | `.antibad` | | Anti-badwords filter | Admin |
 | `.antibadwords` | | Configure word filter | Admin |
 | `.antifake` | | Filter fake numbers | Admin |
-| `.antiflood` | | Anti-spam flood | Admin |
+| `.antiflood` | `.flood`, `.floodon` | Anti-spam flood | Admin |
 | `.antigm` | | Anti-group-mention | Admin |
 | `.antispam` | | Anti-spam detection | Admin |
 
@@ -305,7 +305,7 @@ MessageForge features **1000+ commands** across 175+ specialized plugins. Use yo
 | `.block` | | Block user | Owner |
 | `.unblock` | | Unblock user | Owner |
 | `.setmode` | | Set bot mode | Owner |
-| `.setprefix` | | Change prefix | Owner |
+| `.setprefix` | `.prefix`, `.changeprefix` | Change prefix | Owner |
 | `.setbotname` | | Set bot name | Owner |
 | `.join` | | Join group via link | Owner |
 | `.cmd` | | Run hidden command | Owner |
@@ -486,7 +486,7 @@ MessageForge features **1000+ commands** across 175+ specialized plugins. Use yo
 
 | Command | Aliases | Description | Usage |
 |---------|---------|-------------|-------|
-| `.summarize` | `.tldr` | Summarize content | Reply to link/text |
+| `.summarize` | `.tldr`, `.brief` | Summarize content | Reply to link/text |
 | `.linkpreview` | | Preview link info | `.linkpreview <url>` |
 | `.linksummary` | | Get link summary | Reply to link |
 | `.url` | | URL info | `.url <url>` |

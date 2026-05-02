@@ -68,5 +68,8 @@ MessageForge uses environment variables for configuration. You can set these in 
 | `LOG_MAX_FILE_BYTES`    | Rotate app log file after this many bytes.                   | `5242880`      |
 | `LOG_MAX_AGE_DAYS`      | Delete app log files older than this many days.              | `2`            |
 | `LOG_MAX_TOTAL_BYTES`   | Prune oldest app logs when total log size exceeds this cap.  | `209715200`    |
+| `LOG_FORMAT`           | Console log style: `text` (default) or `json`.               | `text`         |
+| `DB_POOL_MAX`          | Maximum concurrent PostgreSQL connections in the pool.       | `20`           |
+| `MEDIA_MAX_MB`         | Maximum size of media files to download (in MB).             | `100`          |
 | `PORT`                  | The port for the internal health check server.               | `25680`        |
 | `APP_URL`               | Your deployment URL (used for Heroku keep-alive).            | _(None)_       |
