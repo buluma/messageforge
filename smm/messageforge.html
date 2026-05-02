@@ -319,6 +319,15 @@
                         </div>
                         <div id="peopleGrid" class="people-grid"></div>
                     </div>
+
+                    <!-- Duplicates section -->
+                    <div id="duplicatesSectionWrap">
+                        <div class="duplicates-header">
+                            <h2 class="people-title">Duplicate Files</h2>
+                            <button id="scanDuplicatesBtn" class="ghost-btn">Scan duplicates</button>
+                        </div>
+                        <div id="duplicatesGrid" class="duplicates-grid"></div>
+                    </div>
                 </section>
 
                 <!-- ── Media lightbox ────────────────────────────────────── -->
@@ -345,5 +354,16 @@
         </div>
 
         <script type="module" src="/js/main.js"></script>
+
+        <!-- Auth token modal -->
+        <div id="authModal" class="auth-modal" hidden>
+            <div class="auth-modal-box">
+                <h3>Dashboard Token Required</h3>
+                <input type="password" id="authTokenInput" placeholder="Enter token…" autocomplete="current-password" />
+                <div class="auth-modal-actions">
+                    <button id="authTokenSubmit" class="primary-btn">Connect</button>
+                </div>
+            </div>
+        </div>
     </body>
 </html>

@@ -1280,6 +1280,21 @@ input {
     font-size: 11px;
     color: var(--text-muted);
 }
+.person-confidence {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    margin-top: 2px;
+}
+.person-confidence--high {
+    color: var(--secondary);
+}
+.person-confidence--medium {
+    color: var(--accent);
+}
+.person-confidence--low {
+    color: var(--error);
+}
 .person-card {
     position: relative;
 }
@@ -1723,4 +1738,149 @@ input {
 .qr-modal-add input:focus,
 .qr-modal-add textarea:focus {
     border-color: var(--primary);
+}
+
+/* ── Media pagination ─────────────────────────────────────────────── */
+.media-load-more {
+    grid-column: 1 / -1;
+    display: block;
+    width: 100%;
+    padding: 12px 20px;
+    background: transparent;
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    margin-top: 8px;
+}
+.media-load-more:hover {
+    border-color: var(--primary);
+    color: var(--primary-hi);
+    background: rgba(99, 102, 241, 0.06);
+}
+
+/* ── Duplicates panel ─────────────────────────────────────────────── */
+#duplicatesSectionWrap {
+    margin-top: 32px;
+}
+.duplicates-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+.duplicates-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.duplicate-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius);
+    padding: 14px;
+    background: var(--bg-2);
+}
+.duplicate-thumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+.duplicate-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    max-width: 100px;
+}
+.duplicate-thumb {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--bg-3);
+}
+.duplicate-thumb-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+}
+.duplicate-item-name {
+    font-size: 11px;
+    color: var(--text-muted);
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+}
+.duplicate-item-size {
+    font-size: 10px;
+    color: var(--text-dim);
+}
+.duplicate-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* ── Auth token modal ─────────────────────────────────────────────── */
+.auth-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+}
+.auth-modal[hidden] {
+    display: none !important;
+}
+.auth-modal-box {
+    background: var(--bg-2);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-lg);
+    padding: 28px 32px;
+    min-width: 320px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.auth-modal-box h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+}
+.auth-modal-box input[type="password"] {
+    width: 100%;
+    background: var(--bg-3);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s;
+}
+.auth-modal-box input[type="password"]:focus {
+    border-color: var(--primary);
+}
+.auth-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
 }

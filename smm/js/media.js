@@ -15,6 +15,8 @@ function formatDate(ts) {
     return new Date(ts * 1000).toLocaleDateString();
 }
 
+const PAGE_SIZE = 50;
+
 let allFiles = [];
 let allPersons = [];
 let totalMediaBytes = 0;
@@ -23,6 +25,7 @@ let searchTerm = '';
 let activePerson = null;
 let sortKey = 'date-desc';
 let mergeSourceId = null;
+let mediaPage = 1;
 // JID of the person whose link picker is currently open (null = closed)
 let linkPickerOpenId = null;
 // Cached non-group chat list for the JID picker
@@ -56,18 +59,20 @@ function filtered() {
 
 function renderGrid() {
     const grid = document.getElementById('mediaGrid');
-    const files = filtered();
-    const countLabel = `${files.length} file${files.length !== 1 ? 's' : ''}`;
+    const allFiltered = filtered();
+    const countLabel = `${allFiltered.length} file${allFiltered.length !== 1 ? 's' : ''}`;
     const sizeLabel = totalMediaBytes > 0 ? ` · ${formatBytes(totalMediaBytes)}` : '';
     document.getElementById('mediaCount').textContent = countLabel + sizeLabel;
 
-    if (files.length === 0) {
+    if (allFiltered.length === 0) {
         grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No media found.</div>';
         grid.hidden = false;
         return;
     }
 
-    grid.innerHTML = files.map((f) => `
+    const visibleFiles = allFiltered.slice(0, PAGE_SIZE * mediaPage);
+
+    grid.innerHTML = visibleFiles.map((f) => `
         <div class="media-card" data-url="${f.url}" data-type="${f.type}" data-name="${f.name}">
             <button class="media-delete-btn" data-url="${f.url}" title="Delete">🗑</button>
             ${f.type === 'image' || f.type === 'video'
@@ -86,6 +91,19 @@ function renderGrid() {
             </div>
         </div>
     `).join('');
+
+    // Append "Load more" button if there are additional files beyond the current page
+    if (allFiltered.length > PAGE_SIZE * mediaPage) {
+        const remaining = allFiltered.length - PAGE_SIZE * mediaPage;
+        const loadMoreBtn = document.createElement('button');
+        loadMoreBtn.className = 'media-load-more';
+        loadMoreBtn.textContent = `Load more (${remaining} remaining)`;
+        loadMoreBtn.addEventListener('click', () => {
+            mediaPage += 1;
+            renderGrid();
+        });
+        grid.appendChild(loadMoreBtn);
+    }
 
     grid.querySelectorAll('img.media-thumb[data-icon]').forEach((img) => {
         img.onerror = function () {
@@ -213,6 +231,13 @@ function renderPeople() {
             <div class="person-name" contenteditable="false" data-person-id="${p.id}">${p.name}</div>
             ${linkedName ? `<div class="person-jid-label" title="${p.jid}">@${linkedName}</div>` : ''}
             <div class="person-count">${p.count} file${p.count !== 1 ? 's' : ''}</div>
+            ${p.confidence != null && p.count > 1
+                ? p.confidence < 0.25
+                    ? `<div class="person-confidence person-confidence--high">High confidence</div>`
+                    : p.confidence <= 0.40
+                        ? `<div class="person-confidence person-confidence--medium">Medium</div>`
+                        : `<div class="person-confidence person-confidence--low">Low confidence</div>`
+                : ''}
             ${mergeSourceId && mergeSourceId !== p.id
                 ? `<button class="person-merge-into-btn" data-person-id="${p.id}" title="Merge into this person">← Merge here</button>`
                 : ''}
@@ -355,11 +380,106 @@ async function loadMedia() {
     }
 }
 
+async function scanDuplicates() {
+    const btn = document.getElementById('scanDuplicatesBtn');
+    const wrap = document.getElementById('duplicatesSectionWrap');
+    const grid = document.getElementById('duplicatesGrid');
+
+    btn.disabled = true;
+    btn.textContent = 'Scanning…';
+    wrap.hidden = false;
+    grid.innerHTML = '<div class="empty-state">Scanning for duplicates…</div>';
+
+    try {
+        const data = await api.get('/api/media/duplicates').then((r) => r.data);
+        const groups = data.groups || [];
+
+        if (groups.length === 0) {
+            grid.innerHTML = '<div class="empty-state">No duplicates found.</div>';
+            return;
+        }
+
+        grid.innerHTML = '';
+        groups.forEach((urls, idx) => {
+            const files = urls.map((url) => allFiles.find((f) => f.url === url)).filter(Boolean);
+            if (files.length < 2) return;
+
+            const groupEl = document.createElement('div');
+            groupEl.className = 'duplicate-group';
+            groupEl.dataset.groupIdx = idx;
+
+            const thumbsHtml = files.map((f) => `
+                <div class="duplicate-item">
+                    ${f.type === 'image' || f.type === 'video'
+                        ? `<img class="duplicate-thumb" src="/api/media/thumb?url=${encodeURIComponent(f.url)}" alt="${f.name}" loading="lazy" />`
+                        : `<div class="duplicate-thumb duplicate-thumb-icon">${ICON[f.type] || '📄'}</div>`
+                    }
+                    <div class="duplicate-item-name" title="${f.name}">${f.name}</div>
+                    <div class="duplicate-item-size">${formatBytes(f.size)}</div>
+                </div>
+            `).join('');
+
+            groupEl.innerHTML = `
+                <div class="duplicate-thumbs">${thumbsHtml}</div>
+                <div class="duplicate-actions">
+                    <button class="ghost-btn duplicate-keep-btn" data-group-idx="${idx}">Keep first, delete rest</button>
+                </div>
+            `;
+            grid.appendChild(groupEl);
+        });
+
+        if (grid.children.length === 0) {
+            grid.innerHTML = '<div class="empty-state">No duplicates found.</div>';
+        }
+    } catch (err) {
+        grid.innerHTML = `<div class="empty-state">Error: ${err.response?.data?.error || err.message}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Scan duplicates';
+    }
+}
+
+async function keepFirstDeleteRest(groupIdx) {
+    const groupEl = document.querySelector(`.duplicate-group[data-group-idx="${groupIdx}"]`);
+    if (!groupEl) return;
+
+    const thumbs = groupEl.querySelectorAll('.duplicate-item');
+    // First item is kept; delete the rest
+    const toDelete = [];
+    thumbs.forEach((item, i) => {
+        if (i === 0) return;
+        const img = item.querySelector('img.duplicate-thumb');
+        if (img) {
+            // Decode the URL from the thumb src query param
+            const match = img.src.match(/url=([^&]+)/);
+            if (match) toDelete.push(decodeURIComponent(match[1]));
+        }
+    });
+
+    for (const url of toDelete) {
+        try {
+            await api.delete('/api/media', { data: { url } });
+            allFiles = allFiles.filter((f) => f.url !== url);
+        } catch (err) {
+            toast.error(`Delete failed: ${err.response?.data?.error || err.message}`);
+        }
+    }
+
+    groupEl.remove();
+    renderGrid();
+
+    const grid = document.getElementById('duplicatesGrid');
+    if (grid.children.length === 0) {
+        grid.innerHTML = '<div class="empty-state">No duplicates remaining.</div>';
+    }
+}
+
 export function mountMedia() {
     document.getElementById('mediaFilterPills').addEventListener('click', (e) => {
         const pill = e.target.closest('.pill');
         if (!pill) return;
         activeType = pill.dataset.type;
+        mediaPage = 1;
         document.querySelectorAll('#mediaFilterPills .pill').forEach((p) =>
             p.classList.toggle('active', p === pill),
         );
@@ -368,11 +488,13 @@ export function mountMedia() {
 
     document.getElementById('mediaSearch').addEventListener('input', (e) => {
         searchTerm = e.target.value.trim().toLowerCase();
+        mediaPage = 1;
         renderGrid();
     });
 
     document.getElementById('mediaSort').addEventListener('change', (e) => {
         sortKey = e.target.value;
+        mediaPage = 1;
         renderGrid();
     });
 
@@ -570,5 +692,13 @@ export function mountMedia() {
         btn.addEventListener('click', () => {
             if (allFiles.length === 0) loadMedia();
         });
+    });
+
+    document.getElementById('scanDuplicatesBtn').addEventListener('click', scanDuplicates);
+
+    document.getElementById('duplicatesGrid').addEventListener('click', (e) => {
+        const keepBtn = e.target.closest('.duplicate-keep-btn');
+        if (!keepBtn) return;
+        keepFirstDeleteRest(Number(keepBtn.dataset.groupIdx));
     });
 }

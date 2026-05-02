@@ -247,20 +247,22 @@ function reloadAllPlugins() {
 
 // Watch plugins/ directory for file changes and auto-reload
 if (fs.existsSync(pluginDir)) {
-    fs.watch(pluginDir, (eventType, filename) => {
-        if (!filename || !filename.endsWith('.js')) return;
-        // Debounce: ignore rapid successive events for the same file
-        const debounceKey = filename;
-        if (reloadPlugin._debounceTimers) {
-            clearTimeout(reloadPlugin._debounceTimers.get(debounceKey));
-        } else {
-            reloadPlugin._debounceTimers = new Map();
-        }
-        reloadPlugin._debounceTimers.set(debounceKey, setTimeout(() => {
-            reloadPlugin._debounceTimers.delete(debounceKey);
+    const chokidar = require('chokidar');
+    const _debounceTimers = new Map();
+
+    function _scheduleReload(filepath) {
+        const filename = path.basename(filepath);
+        if (!filename.endsWith('.js')) return;
+        clearTimeout(_debounceTimers.get(filename));
+        _debounceTimers.set(filename, setTimeout(() => {
+            _debounceTimers.delete(filename);
             reloadPlugin(filename);
         }, 300));
-    });
+    }
+
+    const watcher = chokidar.watch(pluginDir, { ignoreInitial: true, persistent: false });
+    watcher.on('change', _scheduleReload);
+    watcher.on('add', _scheduleReload);
     logger.custom('PluginReload', 'Watching plugins/ directory for changes');
 }
 

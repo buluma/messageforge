@@ -6,6 +6,25 @@ export const events = new EventTarget();
 const FORWARD = ['new-message', 'presence-update', 'reaction-update'];
 let authPromptShown = false;
 
+function showAuthModal(sock) {
+    const modal = document.getElementById('authModal');
+    modal.hidden = false;
+    const input = document.getElementById('authTokenInput');
+    const btn = document.getElementById('authTokenSubmit');
+    input.focus();
+    const submit = () => {
+        const token = input.value.trim();
+        if (!token) return;
+        modal.hidden = true;
+        setDashboardToken(token);
+        sock.auth = { token };
+        authPromptShown = false;
+        sock.connect();
+    };
+    btn.onclick = submit;
+    input.onkeydown = (e) => { if (e.key === 'Enter') submit(); };
+}
+
 export function initSocket() {
     if (state.socket) return state.socket;
     const token = getDashboardToken();
@@ -19,13 +38,7 @@ export function initSocket() {
         if (err?.message !== 'unauthorized') return;
         if (authPromptShown) return;
         authPromptShown = true;
-        const input = window.prompt('Dashboard token required');
-        if (!input || !input.trim()) return;
-        const nextToken = input.trim();
-        setDashboardToken(nextToken);
-        sock.auth = { token: nextToken };
-        authPromptShown = false;
-        sock.connect();
+        showAuthModal(sock);
     });
     for (const name of FORWARD) {
         sock.on(name, (data) => events.dispatchEvent(new CustomEvent(name, { detail: data })));

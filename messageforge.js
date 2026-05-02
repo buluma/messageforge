@@ -2478,7 +2478,10 @@ app.post('/api/media/upload', requireDashboardAuth, (req, res) => {
 
     try {
         fs.writeFileSync(dest, buf);
-        res.json({ url: `/media-files/${basename}` });
+        const uploadedUrl = `/media-files/${basename}`;
+        res.json({ url: uploadedUrl });
+        // Trigger incremental face indexing for the uploaded file
+        facesBuildIndex([{ url: uploadedUrl, type: MEDIA_EXTS.get(ext) }]).catch(() => {});
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -2839,6 +2842,26 @@ httpSrv.listen(port, () => {
 
         logMessage('INFO', `Heroku keep-alive enabled: ${pingUrl}`);
     }
+
+    // ── Auto-index faces on new media files ─────────────────────────────────
+    // Watch the data/ directory and trigger incremental face indexing whenever
+    // a supported media file is written (e.g. by TikTok plugin or upload endpoint).
+    const chokidar = require('chokidar');
+    const mediaWatcher = chokidar.watch(MEDIA_DATA_DIR, {
+        ignoreInitial: true,
+        ignored: /(^|[/\\])\../,  // skip dot-dirs (face models, thumbs, etc.)
+        persistent: true,
+        awaitWriteFinish: { stabilityThreshold: 1500, pollInterval: 200 },
+    });
+    mediaWatcher.on('add', (filepath) => {
+        const ext = path.extname(filepath).toLowerCase();
+        if (!MEDIA_EXTS.has(ext)) return;
+        const rel = path.relative(MEDIA_DATA_DIR, filepath).replace(/\\/g, '/');
+        const url = `/media-files/${rel}`;
+        const type = MEDIA_EXTS.get(ext);
+        facesBuildIndex([{ url, type }]).catch(() => {});
+    });
+    logMessage('INFO', 'Watching data/ for new media to auto-index faces.');
 });
 
 // ✅ Error handling
