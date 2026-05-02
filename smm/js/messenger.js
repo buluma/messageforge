@@ -733,7 +733,7 @@ function appendMessage(m, options = {}) {
     ${media}
     ${text ? `<div class="msg-text">${formatWAText(text)}</div>` : ''}
     <div class="msg-time">${safeMomentFormat(m.messageTimestamp)}</div>
-    <div class="msg-reactions" id="reactions-${m.key.id}"></div>
+    <div class="msg-reactions" id="reactions-${escapeHtml(m.key.id)}"></div>
     <div class="msg-bottom-bar">
       ${reactionPickerHtml}
       ${actionsHtml}
@@ -785,7 +785,7 @@ function updateReactionBadge(msgId, emoji, sender) {
     const counts = {};
     for (const e of reacts.values()) counts[e] = (counts[e] || 0) + 1;
     container.innerHTML = Object.entries(counts)
-        .map(([e, c]) => `<span class="msg-reaction-badge">${e}${c > 1 ? ` ${c}` : ''}</span>`)
+        .map(([e, c]) => `<span class="msg-reaction-badge">${escapeHtml(e)}${c > 1 ? ` ${c}` : ''}</span>`)
         .join('');
 }
 

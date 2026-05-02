@@ -183,7 +183,10 @@ function openLightbox(file) {
     content.innerHTML = '';
 
     if (file.type === 'image') {
-        content.innerHTML = `<img src="${file.url}" alt="${escapeHtml(file.name)}" />`;
+        const img = document.createElement('img');
+        img.src = file.url;
+        img.alt = file.name;
+        content.appendChild(img);
     } else if (file.type === 'video') {
         const vid = document.createElement('video');
         vid.src = file.url;
@@ -199,7 +202,11 @@ function openLightbox(file) {
         });
         content.appendChild(vid);
     } else if (file.type === 'audio') {
-        content.innerHTML = `<audio src="${file.url}" controls autoplay></audio>`;
+        const aud = document.createElement('audio');
+        aud.src = file.url;
+        aud.controls = true;
+        aud.autoplay = true;
+        content.appendChild(aud);
     }
 
     lb.hidden = false;
