@@ -2090,6 +2090,9 @@ app.get('/api/profile-pic/:jid', async (req, res) => {
     }
 });
 
+const { buildIndex: facesBuildIndex, getPersons, renamePerson, mergePerson, deletePerson, getStatus: facesStatus, FACES_DIR } = require('./lib/faceIndexer');
+app.use('/api/media/face', express.static(FACES_DIR));
+
 app.get('/api/media/:jid/:msgId', async (req, res) => {
     const { jid, msgId } = req.params;
     try {
@@ -2208,6 +2211,7 @@ function scanMediaDir(dir, baseDir, results) {
     for (const entry of entries) {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) {
+            if (entry.name.startsWith('.')) continue;
             scanMediaDir(full, baseDir, results);
         } else if (entry.isFile()) {
             const ext = path.extname(entry.name).toLowerCase();
@@ -2236,6 +2240,86 @@ app.get('/api/media', (req, res) => {
     res.json({ files: results, total: results.length });
 });
 
+const THUMB_DIR = path.join(__dirname, 'data', '.thumbs');
+const crypto = require('crypto');
+
+function thumbPath(relPath) {
+    const hash = crypto.createHash('sha1').update(relPath).digest('hex');
+    return path.join(THUMB_DIR, `${hash}.jpg`);
+}
+
+// Concurrency limiter: max 3 simultaneous ffmpeg thumbnail processes
+const THUMB_CONCURRENCY = 3;
+let thumbActive = 0;
+const thumbQueue = [];
+
+function runThumb(src, dest, cb) {
+    if (thumbActive >= THUMB_CONCURRENCY) {
+        thumbQueue.push(() => runThumb(src, dest, cb));
+        return;
+    }
+    thumbActive++;
+
+    // Probe duration so we can seek to 10% — avoids black opening frames
+    execFile('ffprobe', [
+        '-v', 'error', '-show_entries', 'format=duration',
+        '-of', 'default=noprint_wrappers=1:nokey=1', src,
+    ], { timeout: 10000 }, (probeErr, stdout) => {
+        const duration = parseFloat(stdout) || 0;
+        const seekSec = duration > 1 ? (duration * 0.1).toFixed(3) : '0';
+        execFile('ffmpeg', [
+            '-y', '-ss', seekSec, '-i', src,
+            '-vframes', '1', '-vf', 'scale=320:-1',
+            '-f', 'image2', dest,
+        ], { timeout: 20000 }, (err) => {
+            thumbActive--;
+            if (thumbQueue.length) thumbQueue.shift()();
+            cb(err);
+        });
+    });
+}
+
+const thumbInProgress = new Map();
+
+app.get('/api/media/thumb', (req, res) => {
+    const { url } = req.query;
+    if (!url || !url.startsWith('/media-files/')) {
+        return res.status(400).json({ error: 'Invalid url' });
+    }
+    const rel = url.slice('/media-files/'.length);
+    const src = path.resolve(MEDIA_DATA_DIR, rel);
+    if (!src.startsWith(MEDIA_DATA_DIR + path.sep)) {
+        return res.status(400).json({ error: 'Path traversal rejected' });
+    }
+
+    const dest = thumbPath(rel);
+    const serve = () => {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        res.sendFile(dest);
+    };
+
+    if (fs.existsSync(dest)) return serve();
+
+    if (!fs.existsSync(THUMB_DIR)) fs.mkdirSync(THUMB_DIR, { recursive: true });
+
+    // Deduplicate concurrent requests for the same file
+    if (thumbInProgress.has(dest)) {
+        thumbInProgress.get(dest).push({ res, serve });
+        return;
+    }
+    thumbInProgress.set(dest, [{ res, serve }]);
+
+    runThumb(src, dest, (err) => {
+        const waiters = thumbInProgress.get(dest) || [];
+        thumbInProgress.delete(dest);
+        if (err || !fs.existsSync(dest)) {
+            for (const w of waiters) w.res.status(500).json({ error: 'Thumbnail generation failed' });
+            return;
+        }
+        for (const w of waiters) w.serve();
+    });
+});
+
 app.delete('/api/media', (req, res) => {
     const { url } = req.body;
     if (!url || !url.startsWith('/media-files/')) {
@@ -2248,10 +2332,52 @@ app.delete('/api/media', (req, res) => {
     }
     try {
         fs.unlinkSync(target);
+        const thumb = thumbPath(rel);
+        if (fs.existsSync(thumb)) fs.unlinkSync(thumb);
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// ── Face recognition ──────────────────────────────────────────────────────────
+
+app.get('/api/media/persons', (req, res) => {
+    try {
+        res.json({ persons: getPersons() });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.get('/api/media/index-status', (req, res) => {
+    res.json(facesStatus());
+});
+
+app.post('/api/media/index-faces', (req, res) => {
+    const files = [];
+    scanMediaDir(MEDIA_DATA_DIR, MEDIA_DATA_DIR, files);
+    facesBuildIndex(files).catch(() => {});
+    res.json({ started: true, total: files.length });
+});
+
+app.patch('/api/media/persons/:id', (req, res) => {
+    const { name, mergeInto } = req.body;
+    if (mergeInto) {
+        const ok = mergePerson(req.params.id, mergeInto);
+        if (!ok) return res.status(404).json({ error: 'Person not found' });
+        return res.json({ success: true });
+    }
+    if (!name || !name.trim()) return res.status(400).json({ error: 'name required' });
+    const ok = renamePerson(req.params.id, name.trim());
+    if (!ok) return res.status(404).json({ error: 'Person not found' });
+    res.json({ success: true });
+});
+
+app.delete('/api/media/persons/:id', (req, res) => {
+    const ok = deletePerson(req.params.id);
+    if (!ok) return res.status(404).json({ error: 'Person not found' });
+    res.json({ success: true });
 });
 
 app.get('/api/me', (req, res) => {

@@ -265,9 +265,30 @@
                             <button class="pill" data-type="audio">Audio</button>
                         </div>
                         <input id="mediaSearch" class="plugin-search-input" type="search" placeholder="Search files…" autocomplete="off" />
+                        <select id="mediaSort" class="media-sort-select">
+                            <option value="date-desc">Newest first</option>
+                            <option value="date-asc">Oldest first</option>
+                            <option value="size-desc">Largest first</option>
+                            <option value="size-asc">Smallest first</option>
+                            <option value="name-asc">Name A–Z</option>
+                            <option value="name-desc">Name Z–A</option>
+                        </select>
                     </div>
                     <div id="mediaLoading" class="empty-state">Loading media…</div>
                     <div id="mediaGrid" class="media-grid" hidden></div>
+
+                    <!-- People section -->
+                    <div id="peopleSectionWrap">
+                        <div class="people-header">
+                            <h2 class="people-title">People</h2>
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <span id="indexStatus" class="muted" style="font-size:12px"></span>
+                                <button id="mergeCancelBtn" class="ghost-btn" hidden>Cancel merge</button>
+                                <button id="indexFacesBtn" class="ghost-btn" title="Scan thumbnails for faces">Scan faces</button>
+                            </div>
+                        </div>
+                        <div id="peopleGrid" class="people-grid"></div>
+                    </div>
                 </section>
 
                 <!-- ── Media lightbox ────────────────────────────────────── -->
@@ -275,10 +296,15 @@
                     <div class="media-lightbox-backdrop"></div>
                     <div class="media-lightbox-box">
                         <button class="media-lightbox-close">✕</button>
+                        <button class="media-lightbox-nav media-lightbox-prev" id="lbPrev">‹</button>
+                        <button class="media-lightbox-nav media-lightbox-next" id="lbNext">›</button>
                         <div id="mediaLightboxContent" class="media-lightbox-content"></div>
                         <div class="media-lightbox-meta">
                             <div id="mediaLightboxName" class="media-lightbox-name"></div>
-                            <div style="display:flex;gap:10px;align-items:center">
+                            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                                <button id="lbAutoplay" class="lb-toggle" title="Toggle autoplay">⏭ Auto</button>
+                                <button id="lbLoop" class="lb-toggle" title="Toggle loop">🔁 Loop</button>
+                                <span id="lbCounter" class="media-lightbox-counter"></span>
                                 <a id="mediaLightboxDownload" class="media-lightbox-download" download>↓ Download</a>
                                 <button id="mediaLightboxDelete" class="media-lightbox-del">🗑 Delete</button>
                             </div>
