@@ -457,7 +457,7 @@ function validateEnv() {
     }
 }
 
-const VALID_JID_RE = /^[^@]+@(s\.whatsapp\.net|g\.us|lid)$/;
+const VALID_JID_RE = /^[^@]+@(s\.whatsapp\.net|g\.us|lid|newsletter)$/;
 function isValidJid(jid) {
     return typeof jid === 'string' && VALID_JID_RE.test(jid);
 }

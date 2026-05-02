@@ -20,17 +20,21 @@ function trackMessage(jid, participant) {
     const jidMap = floodMap.get(jid);
 
     const now    = Date.now();
-    const record = jidMap.get(participant) || { count: 0, resetAt: now + gs.window * 1000 };
+    // Support both 'limit/window' (standalone) and 'maxMsg/timeWindow' (bundle) keys
+    const limit  = gs.limit || gs.maxMsg || DEFAULT_LIMIT;
+    const window = gs.window || gs.timeWindow || DEFAULT_WINDOW;
+
+    const record = jidMap.get(participant) || { count: 0, resetAt: now + window * 1000 };
 
     if (now > record.resetAt) {
         record.count   = 1;
-        record.resetAt = now + gs.window * 1000;
+        record.resetAt = now + window * 1000;
     } else {
         record.count++;
     }
 
     jidMap.set(participant, record);
-    return record.count > gs.limit;
+    return record.count > limit;
 }
 
 // Expose tracker for messageforge.js messages.upsert hook
@@ -38,7 +42,7 @@ global.antifloodTrack = trackMessage;
 global.antifloodSettings = settings;
 
 module.exports = {
-    commands: [ 'antiflood' ,'floodoff', 'floodon', 'floodlimit'],
+    commands: [ 'antiflood' ,'floodoff', 'floodon', 'floodlimit', 'flood'],
     description: 'Auto-kick members who spam messages too fast',
     usage:       '.antiflood on | .antiflood off | .antiflood limit 5 10',
     permission:  'admin',
