@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-    commands: [ 'setabout', 'about'],
+    commands: [ 'setbio', 'setabout', 'about'],
     description: 'Set the bot WhatsApp About/Bio',
     permission:  'owner',
     group:       false,

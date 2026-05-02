@@ -18,7 +18,6 @@ module.exports = {
         if (!meta) return reply(fmt('❌ Could not fetch group info.'));
 
         const participants = meta.participants || [];
-        const admins    = participants.filter(p => p.admin);
         const superAdmins = participants.filter(p => p.admin === 'superadmin');
         const regularAdmins = participants.filter(p => p.admin === 'admin');
         const members   = participants.filter(p => !p.admin);

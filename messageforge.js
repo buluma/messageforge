@@ -29,7 +29,6 @@ const {
     isJidGroup,
     isJidBroadcast,
     isJidStatusBroadcast,
-    areJidsSameUser,
     jidNormalizedUser,
     makeCacheableSignalKeyStore,
     downloadContentFromMessage,
@@ -413,11 +412,9 @@ function cleanupLogs() {
             })
             .sort((a, b) => a.mtimeMs - b.mtimeMs);
 
-        let totalBytes = files.reduce((sum, f) => sum + f.size, 0);
         for (const item of files) {
             if (now - item.mtimeMs > LOG_MAX_AGE_MS) {
                 fs.unlinkSync(item.filePath);
-                totalBytes -= item.size;
                 logMessage('INFO', `Cleaned old log: ${item.file}`);
             }
         }
@@ -460,15 +457,6 @@ function validateEnv() {
     }
 }
 
-// ✅ Safe Get User JID
-function safeGetUserJid(sock) {
-    try {
-        return sock.user?.id || null;
-    } catch {
-        return null;
-    }
-}
-
 const VALID_JID_RE = /^[^@]+@(s\.whatsapp\.net|g\.us|lid)$/;
 function isValidJid(jid) {
     return typeof jid === 'string' && VALID_JID_RE.test(jid);
@@ -483,7 +471,7 @@ setInterval(
     () => {
         try {
             fs.readdirSync(tempDir).forEach((file) => fs.unlinkSync(path.join(tempDir, file)));
-        } catch (e) {
+        } catch {
             /* ignore */
         }
     },
@@ -522,60 +510,6 @@ function loadPlugins() {
     logMessage('INFO', `Loaded ${plugins.size} plugin files (${totalCmds} commands)`);
 }
 loadPlugins();
-
-// ✅ Utility helpers
-async function downloadAsBuffer(messageObj, typeHint = 'file') {
-    try {
-        const stream = await downloadContentFromMessage(messageObj, typeHint);
-        let buffer = Buffer.from([]);
-        for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
-        return buffer;
-    } catch (err) {
-        logMessage('ERROR', `downloadAsBuffer error: ${err.message}`);
-        return null;
-    }
-}
-
-function isBotMentioned(message, botJid) {
-    try {
-        const extended = message?.extendedTextMessage;
-        if (!extended) return false;
-        const mentions = extended.contextInfo?.mentionedJid || [];
-        return mentions.includes(botJid);
-    } catch (e) {
-        return false;
-    }
-}
-
-// ✅ Generate Config Table
-function generateConfigTable() {
-    const configs = [
-        { name: 'MODE', value: config.MODE },
-        { name: 'ANTIDELETE_GROUP', value: config.ANTIDELETE_GROUP },
-        { name: 'ANTIDELETE_PRIVATE', value: config.ANTIDELETE_PRIVATE },
-        { name: 'AUTO_STATUS_SEEN', value: config.AUTO_STATUS_SEEN },
-        { name: 'AUTO_STATUS_REACT', value: config.AUTO_STATUS_REACT },
-        { name: 'AUTO_STATUS_REPLY', value: config.AUTO_STATUS_REPLY },
-        { name: 'AUTO_REACT_NEWSLETTER', value: config.AUTO_REACT_NEWSLETTER },
-        { name: 'AUTO_UNFOLLOW_NEWSLETTER', value: config.AUTO_UNFOLLOW_NEWSLETTER },
-        { name: 'ANTILINK', value: config.ANTILINK },
-        { name: 'ALWAYS_ONLINE', value: config.ALWAYS_ONLINE },
-        { name: 'GROUP_COMMANDS', value: config.GROUP_COMMANDS },
-    ];
-
-    let table = '╔══════════════════════════╦═══════════╗\n';
-    table += '║        Config Name       ║   Value   ║\n';
-    table += '╠══════════════════════════╬═══════════╣\n';
-
-    for (const c of configs) {
-        const paddedName = c.name.padEnd(24, ' ');
-        const paddedValue = String(c.value).padEnd(9, ' ');
-        table += `║ ${paddedName} ║ ${paddedValue} ║\n`;
-    }
-
-    table += '╚══════════════════════════╩═══════════╝';
-    return table;
-}
 
 // ✅ Fancy Bio Generator
 function generateFancyBio() {
@@ -948,7 +882,7 @@ async function createWhatsAppSocket() {
     try {
         const { setupConnectionHandlers } = require('./handler');
         if (typeof setupConnectionHandlers === 'function') setupConnectionHandlers(sock);
-    } catch (e) {
+    } catch {
         logMessage('DEBUG', 'No setupConnectionHandlers exported from handler (ok).');
     }
 
@@ -982,7 +916,7 @@ async function createWhatsAppSocket() {
             try {
                 const asciiQR = await QRCode.toString(qr, { type: 'terminal', small: true });
                 console.log(asciiQR); // Keep QR art in console for readability
-            } catch (e) {
+            } catch {
                 logMessage('INFO', `QR Code string: ${qr}`);
             }
         }
@@ -1453,7 +1387,7 @@ async function createWhatsAppSocket() {
                 if (config.READ_MESSAGE) {
                     try {
                         await sock.readMessages([m.key]);
-                    } catch (e) {
+                    } catch {
                         /* ignore */
                     }
                 }
@@ -1934,7 +1868,7 @@ app.get('/api/profile-pic/:jid', async (req, res) => {
         if (req.headers['if-none-match'] === etag) return res.status(304).end();
         res.set('Content-Type', mime);
         res.send(buf);
-    } catch (e) {
+    } catch {
         profilePicCacheSet(jid, { miss: true, expires: Date.now() + PROFILE_PIC_MISS_TTL_MS });
         res.set('Cache-Control', `private, max-age=${Math.floor(PROFILE_PIC_MISS_TTL_MS / 1000)}`);
         res.status(404).end();
@@ -2389,7 +2323,7 @@ httpSrv.listen(port, () => {
                         .on('error', (e) => {
                             logMessage('WARN', `[KeepAlive] ping failed: ${e.message}`);
                         });
-                } catch (e) {
+                } catch {
                     /* ignore */
                 }
             },
@@ -2424,7 +2358,7 @@ httpSrv.listen(port, () => {
 process.on('uncaughtException', (err) => {
     try {
         logMessage('CRITICAL', `Uncaught Exception: ${err.stack || err.message}`);
-    } catch (_) {}
+    } catch {}
     scheduleReconnect(5000);
 });
 
@@ -2456,10 +2390,10 @@ async function shutdown(signal) {
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason, _promise) => {
     try {
         logMessage('WARN', `Unhandled Rejection: ${reason}`);
-    } catch (_) {}
+    } catch {}
 });
 
 function renderStartupBanner() {

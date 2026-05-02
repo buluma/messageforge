@@ -81,7 +81,7 @@ module.exports = {
     group: true,
     private: false,
 
-    run: async (sock, message, args, ctx) => {
+    run: async (sock, message, _args, ctx) => {
         const { jid, sender, contextInfo } = ctx;
         const rawCmd = getCommand(ctx);
 

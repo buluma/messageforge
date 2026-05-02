@@ -19,8 +19,8 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, groupId, contextInfo }) => {
-        const chatId = groupId || sender;
+    run: async (sock, message, args, { sender, contextInfo }) => {
+        const chatId = sender;
         const arg    = args[0]?.toLowerCase();
 
         if (arg && arg !== 'start' && arg !== 'hint') {
@@ -41,7 +41,7 @@ module.exports = {
 
         const word     = WORDS[Math.floor(Math.random() * WORDS.length)];
         const scrambled = scramble(word);
-        sessions.set(chatId, { word, scrambled, startedAt: Date.now() });
+        sessions.set(chatId, { word, scrambled });
         setTimeout(() => {
             const s = sessions.get(chatId);
             if (s && s.word === word) {

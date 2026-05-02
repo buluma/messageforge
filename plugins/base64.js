@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-    commands: [ 'b64'],
+    commands: [ 'base64', 'b64'],
     description: 'Encode or decode Base64 text',
     usage:       '.base64 encode <text>  •  .base64 decode <base64>',
     permission:  'public',

@@ -26,7 +26,6 @@ module.exports = {
         const uptime = `${h}h ${m}m ${s}s`;
 
         const totalRam = (os.totalmem() / 1073741824).toFixed(2);
-        const freeRam  = (os.freemem()  / 1073741824).toFixed(2);
         const usedRam  = (os.totalmem() - os.freemem()) / 1073741824;
 
         const mode   = (config.MODE || 'PUBLIC').toUpperCase();

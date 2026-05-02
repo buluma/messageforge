@@ -1,6 +1,6 @@
 'use strict';
 
-const { fmt, getStr } = require('../lib/theme');
+const { fmt } = require('../lib/theme');
 const { jidDecode, jidNormalizedUser } = require('@whiskeysockets/baileys');
 
 // ─── Phone-number → country lookup ───────────────────────────────────────────
@@ -326,7 +326,7 @@ module.exports = {
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, from, isAdmin, isOwner, mentionedJid, contextInfo, reply } = ctx;
+        const { jid, isAdmin, mentionedJid, contextInfo, reply } = ctx;
         const config = require('../config');
 
         // ── Resolve target ────────────────────────────────────────────────────
@@ -334,21 +334,21 @@ module.exports = {
         const rawArg = args[0]?.replace(/[^0-9+]/g, '');
 
         let targetJid = null;
-        let resolvedFrom = 'chat';
+        let _resolvedFrom = 'chat';
 
         if (quotedParticipant) {
             targetJid   = jidNormalizedUser(quotedParticipant);
-            resolvedFrom = 'quoted message';
+            _resolvedFrom = 'quoted message';
         } else if (mentionedJid?.length) {
             targetJid   = jidNormalizedUser(mentionedJid[0]);
-            resolvedFrom = 'mention';
+            _resolvedFrom = 'mention';
         } else if (rawArg && /^\+?\d{5,15}$/.test(rawArg)) {
             const num   = rawArg.replace('+', '');
             targetJid   = `${num}@s.whatsapp.net`;
-            resolvedFrom = 'number';
+            _resolvedFrom = 'number';
         } else {
             targetJid   = jid;
-            resolvedFrom = 'current chat';
+            _resolvedFrom = 'current chat';
         }
 
         const isGroup     = targetJid.endsWith('@g.us');

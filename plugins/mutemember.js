@@ -13,7 +13,7 @@ module.exports = {
     private:     false,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, isAdmin, isBotAdmin, mentionedJid, reply, contextInfo, fmt } = ctx;
+        const { jid, isAdmin, mentionedJid, reply, contextInfo, fmt } = ctx;
 
         if (!isAdmin) return reply(fmt('⛔ Only admins can mute/unmute members.'));
 

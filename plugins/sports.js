@@ -113,10 +113,6 @@ module.exports = {
 
         if (cmd === 'surebet') {
             const league = text || 'today';
-            const tips = [
-                { match: 'Check betensured.com for verified tips', tip: 'Visit site', odds: 'Variable' },
-                { match: 'Follow verified tipsters on Telegram', tip: 'Research', odds: 'Variable' }
-            ];
             const disclaimer = `\n\n⚠️ _Gambling disclaimer: Bet responsibly. Never bet more than you can afford to lose._`;
             return send(
                 `💰 *Sure Bets: ${league}*\n\n` +

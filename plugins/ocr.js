@@ -8,7 +8,8 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, contextInfo }) => {
+    run: async (sock, message, _args, ctx) => {
+        const { sender, contextInfo } = ctx;
         const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage
             || message.message?.imageMessage;
         const imgMsg = quoted?.imageMessage || (message.message?.imageMessage);

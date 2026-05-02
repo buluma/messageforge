@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-    commands:    ['poststatus', 'textstatus', 'mystatustext'],
+    commands:    ['setstatus', 'poststatus', 'textstatus', 'mystatustext'],
     description: 'Post a text WhatsApp status from the bot',
     permission:  'owner',
     group:       false,

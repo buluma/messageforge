@@ -38,7 +38,7 @@ module.exports = {
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, isOwner, reply, fmt, config } = ctx;
+        const { isOwner, reply, fmt, config } = ctx;
 
         if (!isOwner) return reply(fmt('⛔ Only the bot owner can change the prefix.'));
 

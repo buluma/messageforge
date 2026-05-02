@@ -36,9 +36,9 @@ const LOGO_STYLES = {
 };
 
 const LOGO_APIS = [
-    (text, fg, bg) => `https://api.siputzx.my.id/api/maker/brat?text=${encodeURIComponent(text)}`,
+    (text, _fg, _bg) => `https://api.siputzx.my.id/api/maker/brat?text=${encodeURIComponent(text)}`,
     (text, fg, bg) => `https://api.siputzx.my.id/api/maker/ttp?text=${encodeURIComponent(text)}&color=${fg.replace('#','')}&bgcolor=${bg.replace('#','')}`,
-    (text, fg, bg) => `https://api.ryzendesu.vip/api/sticker/carbon?text=${encodeURIComponent(text)}`,
+    (text, _fg, _bg) => `https://api.ryzendesu.vip/api/sticker/carbon?text=${encodeURIComponent(text)}`,
 ];
 
 module.exports = {

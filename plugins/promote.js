@@ -10,7 +10,7 @@ module.exports = {
     group:       true,
     private:     false,
 
-    run: async (sock, message, args, ctx) => {
+    run: async (sock, message, _args, ctx) => {
         const { jid, isAdmin, isBotAdmin, contextInfo, mentionedJid, theme, fmt } = ctx;
         const command = getCommand(ctx);
         const isPromote = command === 'promote' || command === 'admin';

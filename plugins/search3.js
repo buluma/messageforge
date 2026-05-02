@@ -45,7 +45,6 @@ module.exports = {
                 const res = await axios.get(`https://registry.npmjs.org/${encodeURIComponent(query)}`, { timeout: 10000 });
                 const d   = res.data;
                 const latest = d?.['dist-tags']?.latest;
-                const v   = d?.versions?.[latest] || {};
                 return send(
                     `📦 *NPM: ${d.name}*\n\n` +
                     `📝 ${d.description?.slice(0, 200) || 'No description'}\n\n` +

@@ -38,7 +38,6 @@ module.exports = [
 
         run: async (sock, message, args, ctx) => {
             const { reply, isBotAdmin } = ctx;
-            const jid = message.key.remoteJid;
 
             if (!isBotAdmin) return reply(`⛔ I need to be an admin to delete messages.`);
 

@@ -23,9 +23,9 @@ module.exports = {
         if (!meta) {
             try {
                 meta = await sock.groupMetadata(jid);
-            } catch (e) {
+            } catch {
                 return sock.sendMessage(jid, {
-                    text: `❌ Could not fetch group members: ${e.message}`,
+                    text: `❌ Could not fetch group members.`,
                     contextInfo
                 }, { quoted: message });
             }

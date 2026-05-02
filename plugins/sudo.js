@@ -23,7 +23,7 @@ module.exports = {
     description: 'Manage sudo users - grant owner-level access to trusted users',
     permission: 'owner',
     run: async (sock, message, args, ctx) => {
-        const { jid, reply, safeSend, mentionedJid } = ctx;
+        const { jid, reply, mentionedJid } = ctx;
         const sub = (args[0] || '').toLowerCase();
 
         if (!sub || sub === 'help') {

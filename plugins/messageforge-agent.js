@@ -1,8 +1,6 @@
 'use strict';
 const config = require('../config');
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
 const { askTextAI } = require('../lib/aiClient');
 
 // ── Conversation memory (per JID, keeps last 8 exchanges) ────────────────────

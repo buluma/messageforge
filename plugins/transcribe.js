@@ -10,7 +10,7 @@ module.exports = {
     group: true,
     private: true,
 
-    run: async (sock, message, args, ctx) => {
+    run: async (sock, message, _args, ctx) => {
         const { jid, contextInfo } = ctx;
         const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
 
@@ -56,7 +56,7 @@ module.exports = {
                 contextInfo
             }, { quoted: message });
 
-        } catch (err) {
+        } catch {
             await sock.sendMessage(jid, {
                 text: '❌ Failed to process voice message. Make sure you replied to a voice note.',
                 contextInfo

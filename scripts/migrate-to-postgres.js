@@ -179,7 +179,7 @@ async function migrateMessages(pool) {
                         ],
                     );
                     totalMessages++;
-                } catch (err) {
+                } catch {
                     // Skip individual message errors
                 }
             }

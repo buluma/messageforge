@@ -8,7 +8,7 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, prefix, command, contextInfo, getStr }) => {
+    run: async (sock, message, args, { sender, prefix, _command, contextInfo, getStr }) => {
         const url = args[0];
         if (!url) {
             return sock.sendMessage(sender, {

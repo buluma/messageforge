@@ -10,7 +10,7 @@ module.exports = {
 
     async run(sock, message, args, ctx) {
         const { reply, prefix } = ctx;
-        const cmd = (message.key?.id && ctx.text === undefined)
+        const _cmd = (message.key?.id && ctx.text === undefined)
             ? '' : (args[0] || '').toLowerCase();
         const command = ctx.text?.trim().split(/\s+/)[0]?.toLowerCase().replace(prefix, '') || '';
 

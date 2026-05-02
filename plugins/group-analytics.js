@@ -87,8 +87,6 @@ module.exports = {
         const duration = formatDuration(Date.now() - data.since);
         const memberCount = Object.keys(data.members).length;
         const sorted = Object.entries(data.members).sort((a, b) => b[1].count - a[1].count);
-        const topMember = sorted[0];
-        const topNum = topMember[0].split('@')[0];
         const peakHour = data.hourly.indexOf(Math.max(...data.hourly));
         const avgPerMember = Math.round(data.totalMessages / memberCount);
 

@@ -38,7 +38,7 @@ global.antifloodTrack = trackMessage;
 global.antifloodSettings = settings;
 
 module.exports = {
-    commands: [ 'floodoff', 'floodon', 'floodlimit'],
+    commands: [ 'antiflood' ,'floodoff', 'floodon', 'floodlimit'],
     description: 'Auto-kick members who spam messages too fast',
     usage:       '.antiflood on | .antiflood off | .antiflood limit 5 10',
     permission:  'admin',
@@ -46,7 +46,7 @@ module.exports = {
     private:     false,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, isAdmin, isBotAdmin, reply, command, fmt } = ctx;
+        const { jid, isAdmin, reply, fmt } = ctx;
         if (!isAdmin) return reply(fmt('⛔ Only admins can manage flood protection.'));
 
         const rawCmd = (message.message?.extendedTextMessage?.text ||

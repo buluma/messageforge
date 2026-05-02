@@ -28,10 +28,6 @@ function warnKey(jid, user) {
     return `${jid}::${user}`;
 }
 
-function getWarnCount(jid, user) {
-    return warnData[warnKey(jid, user)] || 0;
-}
-
 function addWarn(jid, user) {
     const key = warnKey(jid, user);
     warnData[key] = (warnData[key] || 0) + 1;
@@ -60,8 +56,7 @@ module.exports = {
     botAdmin:    true,
 
     async run(sock, message, args, ctx) {
-        const { jid, isAdmin, isBotAdmin, mentionedJid, reply, command, theme, fmt } = ctx;
-        const cmd = command || (args[-1]);
+        const { jid, isAdmin, mentionedJid, reply, theme, fmt } = ctx;
 
         if (!isAdmin) return reply(fmt(theme.admin || '⛔ Only admins can use this command.'));
 
@@ -69,7 +64,6 @@ module.exports = {
 
         const quotedParticipant = message.message?.extendedTextMessage?.contextInfo?.participant;
         const target = quotedParticipant || mentionedJid?.[0];
-        const sub = (args[0] || '').toLowerCase();
 
         if (rawCmd === 'warnlist') {
             const warns = getAllWarns(jid);

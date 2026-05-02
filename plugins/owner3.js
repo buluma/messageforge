@@ -50,7 +50,7 @@ module.exports = {
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, contextInfo, isOwner, mentionedJid, groupMetadata, fmt } = ctx;
+        const { jid, contextInfo, isOwner, mentionedJid, fmt } = ctx;
         const cmd = getCommand(ctx);
         const text = args.join(' ').trim();
         const send = (t) => sock.sendMessage(jid, { text: fmt(t), contextInfo }, { quoted: message });
@@ -77,8 +77,8 @@ module.exports = {
 
         if (cmd === 'forward') {
             const quotedMsg = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
-            const stanzaId  = message.message?.extendedTextMessage?.contextInfo?.stanzaId;
-            const participant = message.message?.extendedTextMessage?.contextInfo?.participant;
+            const _stanzaId  = message.message?.extendedTextMessage?.contextInfo?.stanzaId;
+            const _participant = message.message?.extendedTextMessage?.contextInfo?.participant;
             if (!quotedMsg) return send('❌ Reply to a message to forward it.\n\n*Usage:* `.forward <number or group JID>`');
             const dest = text.includes('@') ? text : `${text.replace(/\D/g, '')}@s.whatsapp.net`;
             await sock.sendMessage(dest, quotedMsg).catch(() => {});

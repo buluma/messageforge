@@ -1,6 +1,5 @@
 'use strict';
 
-const db = require('../lib/dbManager');
 const { getCommand } = require('../lib/command');
 
 if (!global.bannedUsers) global.bannedUsers = new Set();
@@ -14,7 +13,7 @@ module.exports = {
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, isOwner, contextInfo, mentionedJid, fmt } = ctx;
+        const { jid, contextInfo, mentionedJid, fmt } = ctx;
 
         const rawCmd = getCommand(ctx);
 

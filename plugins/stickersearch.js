@@ -7,8 +7,8 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, groupId, contextInfo, config }) => {
-        const chatId = groupId || sender;
+    run: async (sock, message, args, { sender, contextInfo, config }) => {
+        const chatId = sender;
         const query  = args.join(' ');
         if (!query) {
             return sock.sendMessage(chatId, {

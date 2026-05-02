@@ -8,7 +8,7 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { jid, contextInfo, safeSend, fmt }) => {
+    run: async (sock, message, args, { _jid, contextInfo, safeSend, fmt }) => {
         const start = performance.now();
         await safeSend({ text: fmt('🏓 _Pinging..._') }, { quoted: message });
         const ms = (performance.now() - start).toFixed(2);

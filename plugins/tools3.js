@@ -1,8 +1,6 @@
 'use strict';
 
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
 const { getCommand } = require('../lib/command');
 
 const FANCY_MAP = {
@@ -204,7 +202,7 @@ module.exports = {
     private: true,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, contextInfo, reply, fmt } = ctx;
+        const { jid, contextInfo, fmt } = ctx;
         const cmd = getCommand(ctx);
         const text = args.join(' ').trim();
         const send = (t) =>
@@ -443,7 +441,7 @@ module.exports = {
             try {
                 const { dlBuffer } = require('../lib/dlmedia');
                 const buf = await dlBuffer(imgMsg, 'image');
-                const form = new FormData();
+                const _form = new FormData();
                 const { default: fetch2 } = await import('node-fetch').catch(() => ({
                     default: null,
                 }));

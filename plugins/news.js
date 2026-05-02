@@ -57,8 +57,8 @@ module.exports = {
     permission: 'public',
     group: true,
     private: true,
-    run: async (sock, message, args, { sender, groupId, contextInfo }) => {
-        const chatId = groupId || sender;
+    run: async (sock, message, args, { sender, contextInfo }) => {
+        const chatId = sender;
         const category = (args[0] || 'world').toLowerCase();
         const feedUrl = FEEDS[category] || FEEDS.world;
         try {

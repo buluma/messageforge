@@ -1,7 +1,6 @@
 'use strict';
 
 function toBinary(str) { return str.split('').map(c => c.charCodeAt(0).toString(2).padStart(8, '0')).join(' '); }
-function fromBinary(str) { return str.split(' ').map(b => String.fromCharCode(parseInt(b, 2))).join(''); }
 function toHex(str) { return Buffer.from(str).toString('hex'); }
 function fromHex(str) { return Buffer.from(str, 'hex').toString('utf8'); }
 function rot13(str) { return str.replace(/[a-zA-Z]/g, c => String.fromCharCode(c.charCodeAt(0) + (c.toLowerCase() < 'n' ? 13 : -13))); }

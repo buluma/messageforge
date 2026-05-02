@@ -8,7 +8,7 @@ module.exports = {
     permission:  'owner',
     group:       false,
     private:     true,
-    run: async (sock, message, args, { sender, contextInfo }) => {
+    run: async (sock, message, _args, { sender, contextInfo }) => {
         try {
             const blocklist = await sock.fetchBlocklist();
 
@@ -24,11 +24,11 @@ module.exports = {
             for (const num of blocklist) {
                 const n = num.split('@')[0];
                 txt += `▢ @${n}\n`;
-                mentions.push(`${n}@s.whatsapp.net`);
+                mentions.push(num); // Use original JID for mentions
             }
             txt += '└───────────';
 
-            await sock.sendMessage(sender, { text: txt, contextInfo }, { quoted: message });
+            await sock.sendMessage(sender, { text: txt, mentions, contextInfo }, { quoted: message });
         } catch (err) {
             console.error('[Blocklist]', err.message);
             await sock.sendMessage(sender, {

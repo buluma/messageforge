@@ -9,7 +9,7 @@ function extractShortcode(url) {
 }
 
 // ─── Helper: convert shortcode → media ID ───────────────────────────────────
-function shortcodeToId(code) {
+function _shortcodeToId(code) {
     const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
     let id = BigInt(0);
     for (const ch of code) id = id * BigInt(64) + BigInt(ALPHABET.indexOf(ch));

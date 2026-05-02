@@ -149,8 +149,6 @@ module.exports = {
 
         let videoMsg  = null;
         let audioMsg  = null;
-        let videoSrc  = 'video';   // for dlBuffer
-        let audioSrc  = 'audio';
 
         if (curVid && qAud) {
             videoMsg = curVid;

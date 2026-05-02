@@ -11,8 +11,6 @@ module.exports = {
 
     run: async (sock, message, args, ctx) => {
         const { reply, safeSend, download } = ctx;
-        const jid = message.key.remoteJid;
-
         // Find image — either direct or quoted
         const msg = message.message;
         const imgMsg =

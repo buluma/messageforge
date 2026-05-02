@@ -11,10 +11,9 @@ module.exports = {
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, ctx) => {
-        const { jid, contextInfo, isOwner, fmt } = ctx;
+    run: async (sock, message, _args, ctx) => {
+        const { jid, contextInfo, fmt } = ctx;
         const cmd = getCommand(ctx);
-        const text = args.join(' ').trim();
         const send = (t) => sock.sendMessage(jid, { text: fmt(t), contextInfo }, { quoted: message });
 
         const msg    = message.message;
@@ -41,7 +40,7 @@ module.exports = {
                     });
                     url = res.data?.data?.url;
                 } else {
-                    const { default: catbox } = await import('../../lib/catbox.js').catch(() => ({ default: null }));
+                    await import('../../lib/catbox.js').catch(() => ({ default: null }));
                     const FormData = require('form-data');
                     const form = new FormData();
                     form.append('reqtype', 'fileupload');

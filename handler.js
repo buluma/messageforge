@@ -10,6 +10,8 @@ let isJidGroup, areJidsSameUser, jidNormalizedUser;
 try {
     ({ isJidGroup, areJidsSameUser, jidNormalizedUser } = require('@whiskeysockets/baileys'));
 } catch {
+    // These should always be available in this project's environment.
+    // Falls back to rudimentary regex only if require fails during build checks.
     isJidGroup = (jid) => typeof jid === 'string' && jid.endsWith('@g.us');
     jidNormalizedUser = (jid) => (jid || '').replace(/:[^@]+@/, '@');
     areJidsSameUser = (a, b) => jidNormalizedUser(a) === jidNormalizedUser(b);
@@ -18,7 +20,8 @@ try {
 // Extract the bare phone-number string from any JID format
 function jidToNum(jid) {
     if (!jid) return '';
-    return jidNormalizedUser(jid).split('@')[0].replace(/\D/g, '');
+    const norm = jidNormalizedUser(jid);
+    return (norm || '').split('@')[0].replace(/\D/g, '');
 }
 
 // True when two phone numbers refer to the same subscriber.
@@ -64,10 +67,6 @@ async function getCachedGroupMetadata(sock, jid) {
     } catch {
         return null;
     }
-}
-
-function bindGroupCacheInvalidation(_sock) {
-    // Cache invalidation and plugin hooks are handled via sock.ev.process() in messageforge.js
 }
 
 const sendTimestamps = [];
@@ -707,6 +706,9 @@ async function handleMessages(sock, message) {
             (botLid && jidNormalizedUser(resolvedFrom) === botLid) ||
             (fromNum && ownerNum && (fromNum === ownerNum || sameNumber(fromNum, ownerNum))) ||
             (fromNum && botNum && (fromNum === botNum || sameNumber(fromNum, botNum))) ||
+            (from && jidNormalizedUser(from) === jidNormalizedUser(`${ownerNum}@s.whatsapp.net`)) ||
+            (resolvedFrom &&
+                jidNormalizedUser(resolvedFrom) === jidNormalizedUser(`${ownerNum}@s.whatsapp.net`)) ||
             isSudo;
 
         // ── Resolve group admin status ────────────────────────────────────────

@@ -1,12 +1,9 @@
 'use strict';
 
-const fs = require('fs');
-const path = require('path');
 const moment = require('moment-timezone');
 const baileys = require('@whiskeysockets/baileys');
 const { proto, generateMessageIDV2 } = baileys;
 
-const REPO = 'https://github.com/buluma/messageforge';
 const WEBSITE = 'https://github.com/buluma/messageforge';
 const TZ = 'Africa/Nairobi';
 

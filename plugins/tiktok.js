@@ -5,7 +5,6 @@ const { pipeline }  = require('stream');
 const { promisify } = require('util');
 const streamPipeline = promisify(pipeline);
 const fs            = require('fs');
-const os            = require('os');
 const path          = require('path');
 
 const DATA_DIR = path.join(__dirname, '..', 'data', 'tiktok');
@@ -22,7 +21,7 @@ function getTelegramConfig() {
 /**
  * Send video to Telegram channel/group
  */
-async function sendToTelegram(filePath, caption, fileMetadata) {
+async function sendToTelegram(filePath, caption, _fileMetadata) {
     const config = getTelegramConfig();
     
     if (!config.botToken || config.botToken === 'YOUR_BOT_TOKEN_HERE') {
@@ -50,7 +49,7 @@ async function sendToTelegram(filePath, caption, fileMetadata) {
         formData.append('caption', tgCaption);
         formData.append('parse_mode', 'Markdown');
         
-        const videoBuffer = fs.readFileSync(filePath);
+        const _videoBuffer = fs.readFileSync(filePath);
         const fileName = path.basename(filePath);
         
         // Use axios to send multipart form data
@@ -191,7 +190,7 @@ function parseTiklydown(data) {
 }
 
 // Musicaldown API - Alternative no-watermark source
-const MUSICALDOWN_API = (u) => `https://api.musicaldown.com/download`;
+const MUSICALDOWN_API = (_u) => `https://api.musicaldown.com/download`;
 
 function parseMusicaldown(data) {
     if (!data?.videoUrl) return null;
@@ -293,7 +292,7 @@ module.exports = {
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { sender, contextInfo, reply, command: ctxCommand, fmt, getStr, prefix }) => {
+    run: async (sock, message, args, { sender, contextInfo, reply, command: ctxCommand, fmt, getStr, prefix: _prefix }) => {
         // Use ctx.command for accurate command detection
         const command = (ctxCommand || (args[0] || '')).toLowerCase();
 

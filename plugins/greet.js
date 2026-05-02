@@ -157,7 +157,7 @@ module.exports = {
     },
 
     // ── onMessage hook — fires for every incoming private message ─────────────
-    onMessage: async (sock, message, text, { jid, isGroup }) => {
+    onMessage: async (sock, message, _text, { jid, isGroup }) => {
         if (isGroup) return;
         if (message.key.fromMe) return;
 

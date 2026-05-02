@@ -14,7 +14,7 @@ module.exports = {
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { sender, contextInfo }) => {
+    run: async (sock, message, args, { _sender, contextInfo }) => {
         const jid = message.key.remoteJid;
 
         const sub = (args[0] || '').toLowerCase();

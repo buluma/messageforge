@@ -18,7 +18,7 @@ module.exports = {
     private: false,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, isAdmin, contextInfo, isOwner } = ctx;
+        const { jid, isAdmin, contextInfo } = ctx;
 
         const rawCmd = getCommand(ctx);
 

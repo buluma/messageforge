@@ -26,7 +26,7 @@ module.exports = {
             }, { quoted: message });
         }
 
-        const wait = await sock.sendMessage(sender, {
+        const _wait = await sock.sendMessage(sender, {
             text: `🔍 Searching: *${query}*...`,
             contextInfo
         }, { quoted: message });

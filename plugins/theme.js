@@ -14,7 +14,6 @@ module.exports = {
         const { jid, contextInfo } = ctx;
 
         const sub  = (args[0] || '').toLowerCase();
-        const name = (args[1] || args[0] || '').toLowerCase();
 
         // ── .theme / .themes / .theme list ───────────────────────────────────
         if (!sub || sub === 'list' || sub === 'themes') {

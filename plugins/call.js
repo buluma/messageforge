@@ -10,7 +10,6 @@ module.exports = {
     private:     true,
     run: async (sock, message, args, { sender, contextInfo, getStr }) => {
         const botName = getStr('botName') || 'MessageForge';
-        const pic     = getStr('pic1') || '';
 
         const nairobiTime = new Date().toLocaleTimeString('en-KE', {
             hour: 'numeric', minute: 'numeric', hour12: true, timeZone: 'Africa/Nairobi'

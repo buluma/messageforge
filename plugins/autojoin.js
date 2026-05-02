@@ -7,7 +7,7 @@ module.exports = {
     group:       false,
     private:     true,
 
-    run: async (sock, message, args, { sender, contextInfo, config }) => {
+    run: async (sock, message, _args, { sender, contextInfo, config }) => {
         const codes = (config.AUTO_JOIN_GROUPS || '').split(',').map(c => c.trim()).filter(Boolean);
         if (!codes.length) {
             return sock.sendMessage(sender, {

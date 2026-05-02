@@ -330,11 +330,9 @@ module.exports = {
                 seen.add(phone);
 
                 let name = cachedName;
-                let source = name ? 'WhatsApp' : '';
 
                 if (!name) {
                     name = await lookupTruecaller(phone);
-                    if (name) source = 'Truecaller';
                 }
 
                 if (!name) {

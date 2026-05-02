@@ -35,7 +35,7 @@ async function fetchViaWebProfileInfo(username) {
     return u;
 }
 
-async function fetchViaOEmbed(username) {
+async function _fetchViaOEmbed(_username) {
     // oEmbed only works for specific post URLs, not profiles
     // But we can check if the profile exists via a known post
     throw new Error('oEmbed does not support profile lookups');

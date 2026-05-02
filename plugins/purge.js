@@ -13,8 +13,8 @@ module.exports = {
         const count = Math.min(parseInt(args[0]) || 5, 20);
         await sock.sendMessage(sender, { text: `🗑️ Purging ${count} messages... (Bot must be admin)`, contextInfo }, { quoted: message });
         try {
-            const { messages } = await sock.fetchMessagesFromStore ? 
-                { messages: [] } : { messages: [] };
+            await (sock.fetchMessagesFromStore ?
+                Promise.resolve([]) : Promise.resolve([]));
             await sock.sendMessage(groupId, {
                 text: `🗑️ *Purge command executed* — Deleted up to ${count} messages.\n_Note: WhatsApp limits bulk delete to bot's own messages._`,
                 contextInfo

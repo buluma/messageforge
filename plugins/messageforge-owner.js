@@ -8,7 +8,7 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, jid, contextInfo }) => {
+    run: async (sock, message, args, { sender, _jid, contextInfo }) => {
         const ownerNumber = (config.OWNER_NUMBER || '').replace(/\D/g, '');
         const ownerName   = config.OWNER_NAME || '✦ SHADOWNET ✦';
 

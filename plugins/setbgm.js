@@ -70,7 +70,7 @@ module.exports = {
     private:     true,
 
     // ── Management commands ────────────────────────────────────────────────────
-    run: async (sock, message, args, { jid, reply, command, fmt }) => {
+    run: async (sock, message, args, { _jid, reply, command, fmt }) => {
         const cmd  = command || '';
         const word = args[0]?.toLowerCase().trim();
 
@@ -151,7 +151,7 @@ module.exports = {
     },
 
     // ── onMessage — fires on every incoming message, checks for trigger words ──
-    onMessage: async (sock, message, text, { jid, isGroup, contextInfo }) => {
+    onMessage: async (sock, message, text, { jid, _isGroup, contextInfo }) => {
         // Skip empty text
         if (!text || !text.trim()) return;
 

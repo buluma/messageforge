@@ -9,7 +9,7 @@ module.exports = {
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { sender, contextInfo, prefix }) => {
+    run: async (sock, message, args, { _sender, contextInfo, prefix }) => {
         const jid = message.key.remoteJid;
         const cmd = message.key.id
             ? (message.message?.conversation || message.message?.extendedTextMessage?.text || '')

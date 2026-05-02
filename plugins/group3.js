@@ -414,7 +414,7 @@ module.exports = {
 
         if (cmd === 'list') {
             const { loadPlugins: lp } = require('../handler');
-            const pl = lp ? lp() : null;
+            const _pl = lp ? lp() : null;
             const allCmds = [];
             const dir = path.join(__dirname);
             fs.readdirSync(dir).filter(f => f.endsWith('.js')).forEach(f => {
