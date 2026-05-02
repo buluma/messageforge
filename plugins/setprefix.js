@@ -3,13 +3,19 @@
 const fs   = require('fs');
 const path = require('path');
 
-const ENV_FILE = path.join(__dirname, '..', '.env');
+const ROOT = path.join(__dirname, '..');
+// Write to whichever env file config.js loaded from (config.env takes precedence when present)
+function resolveEnvFile() {
+    const legacy = path.join(ROOT, 'config.env');
+    return fs.existsSync(legacy) ? legacy : path.join(ROOT, '.env');
+}
 
 function persistPrefix(value) {
+    const envFile = resolveEnvFile();
     try {
         let content = '';
-        if (fs.existsSync(ENV_FILE)) {
-            content = fs.readFileSync(ENV_FILE, 'utf8');
+        if (fs.existsSync(envFile)) {
+            content = fs.readFileSync(envFile, 'utf8');
             content = content
                 .split('\n')
                 .filter(l => !l.trim().startsWith('PREFIX='))
@@ -17,9 +23,9 @@ function persistPrefix(value) {
                 .trim();
         }
         content = content ? content + `\nPREFIX=${value}` : `PREFIX=${value}`;
-        fs.writeFileSync(ENV_FILE, content + '\n');
+        fs.writeFileSync(envFile, content + '\n');
     } catch (e) {
-        console.warn('[setprefix] Could not persist to .env:', e.message);
+        console.warn('[setprefix] Could not persist to env file:', e.message);
     }
 }
 
