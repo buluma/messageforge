@@ -183,8 +183,11 @@ function lbNavigate(dir) {
 function renderPeople() {
     const wrap = document.getElementById('peopleSectionWrap');
     const grid = document.getElementById('peopleGrid');
-    if (allPersons.length === 0) { wrap.hidden = true; return; }
     wrap.hidden = false;
+    if (allPersons.length === 0) {
+        grid.innerHTML = '';
+        return;
+    }
 
     grid.innerHTML = allPersons.map((p) => `
         <div class="person-card ${activePerson === p.id ? 'active' : ''} ${mergeSourceId === p.id ? 'merge-source' : ''}"
