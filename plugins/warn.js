@@ -2,7 +2,6 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { fmt, getStr } = require('../lib/theme');
 const { getCommand } = require('../lib/command');
 
 const DATA_PATH  = path.join(__dirname, '../data/warns.json');
@@ -61,7 +60,7 @@ module.exports = {
     botAdmin:    true,
 
     async run(sock, message, args, ctx) {
-        const { jid, isAdmin, isBotAdmin, mentionedJid, reply, command, theme } = ctx;
+        const { jid, isAdmin, isBotAdmin, mentionedJid, reply, command, theme, fmt } = ctx;
         const cmd = command || (args[-1]);
 
         if (!isAdmin) return reply(fmt(theme.admin || '⛔ Only admins can use this command.'));

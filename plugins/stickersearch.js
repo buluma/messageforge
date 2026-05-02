@@ -1,6 +1,5 @@
 'use strict';
 const axios = require('axios');
-const config = require('../config');
 
 module.exports = {
     commands:    ['stickersearch', 'findsticker', 'giphy'],
@@ -8,7 +7,7 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, groupId, contextInfo }) => {
+    run: async (sock, message, args, { sender, groupId, contextInfo, config }) => {
         const chatId = groupId || sender;
         const query  = args.join(' ');
         if (!query) {

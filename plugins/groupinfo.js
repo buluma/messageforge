@@ -1,17 +1,15 @@
 'use strict';
 
-const { fmt } = require('../lib/theme');
-
 module.exports = {
     commands:    ['groupinfo', 'ginfo', 'groupstats', 'gcinfo'],
     description: 'Show detailed group information and statistics',
     usage:       '.groupinfo',
-    permission:  'member',
+    permission:  'public',
     group:       true,
     private:     false,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, groupMetadata, reply, contextInfo } = ctx;
+        const { jid, groupMetadata, reply, contextInfo, fmt } = ctx;
 
         let meta = groupMetadata;
         if (!meta) {

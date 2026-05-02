@@ -1,7 +1,5 @@
 'use strict';
 
-const { fmt } = require('../lib/theme');
-
 module.exports = {
     commands:    ['hidetag', 'htag', 'stag', 'silenttag'],
     description: 'Silently mention all group members — they get notified but are not visibly tagged',
@@ -11,7 +9,7 @@ module.exports = {
     private:     false,
 
     run: async (sock, message, args, ctx) => {
-        const { groupMetadata, jid, isAdmin, isBotAdmin, contextInfo, theme } = ctx;
+        const { groupMetadata, jid, isAdmin, isBotAdmin, contextInfo, theme, fmt } = ctx;
 
         if (!isAdmin && !message.key.fromMe) {
             return sock.sendMessage(jid, {

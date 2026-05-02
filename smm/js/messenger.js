@@ -8,6 +8,7 @@ import {
     getAvatarColor,
     jidShort,
     safeMomentFormat,
+    setupFocusTrap,
     toast,
 } from './utils.js';
 
@@ -195,6 +196,9 @@ function avatarElId(jid) {
 function buildChatItemNode(chat) {
     const item = document.createElement('div');
     item.dataset.jid = chat.jid;
+    item.tabIndex = 0;
+    item.role = 'button';
+    item.ariaLabel = `Chat with ${chat.name || jidShort(chat.jid)}`;
     const avId = avatarElId(chat.jid);
     item.innerHTML = `
       <div class="avatar avatar-md" id="${avId}"></div>
@@ -212,6 +216,12 @@ function buildChatItemNode(chat) {
         </div>
       </div>`;
     item.onclick = () => selectChat(chat);
+    item.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectChat(chat);
+        }
+    };
     return item;
 }
 
@@ -355,6 +365,8 @@ async function runFullTextSearch(q) {
         for (const r of results) {
             const item = document.createElement('div');
             item.className = 'search-result-item';
+            item.tabIndex = 0;
+            item.role = 'button';
             const name = escapeHtml(r.pushName || jidShort(r.jid));
             const snippet = escapeHtml((r.message?.text || '').slice(0, 80));
             const ts = r.message?.timestamp
@@ -367,13 +379,20 @@ async function runFullTextSearch(q) {
                 </div>
                 <span class="search-result-snippet">${snippet}</span>
             `;
-            item.onclick = () => {
+            const onClick = () => {
                 const chat = state.chats.find((c) => c.jid === r.jid) || {
                     jid: r.jid,
                     name: r.pushName || jidShort(r.jid),
                 };
                 clearSearchResults();
                 selectChat(chat);
+            };
+            item.onclick = onClick;
+            item.onkeydown = (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick();
+                }
             };
             frag.appendChild(item);
         }
@@ -831,6 +850,7 @@ function handleTyping() {
 
 // ── Quick-reply templates ─────────────────────────────────────────
 
+let qrPopupCleanup = null;
 function mountQuickReplies() {
     const triggerBtn = document.getElementById('quickReplyBtn');
     const popup = document.getElementById('qrPopup');
@@ -844,6 +864,10 @@ function mountQuickReplies() {
         popup.hidden = !qrPopupOpen;
         if (qrPopupOpen) {
             loadQuickReplies();
+            qrPopupCleanup = setupFocusTrap(popup, manageBtn);
+        } else if (qrPopupCleanup) {
+            qrPopupCleanup();
+            qrPopupCleanup = null;
         }
     };
 
@@ -851,6 +875,10 @@ function mountQuickReplies() {
         e.stopPropagation();
         popup.hidden = true;
         qrPopupOpen = false;
+        if (qrPopupCleanup) {
+            qrPopupCleanup();
+            qrPopupCleanup = null;
+        }
         openQrModal();
     };
 
@@ -858,6 +886,21 @@ function mountQuickReplies() {
         if (qrPopupOpen && !popup.contains(e.target) && e.target !== triggerBtn) {
             popup.hidden = true;
             qrPopupOpen = false;
+            if (qrPopupCleanup) {
+                qrPopupCleanup();
+                qrPopupCleanup = null;
+            }
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        if (!qrPopupOpen) return;
+        popup.hidden = true;
+        qrPopupOpen = false;
+        if (qrPopupCleanup) {
+            qrPopupCleanup();
+            qrPopupCleanup = null;
         }
     });
 
@@ -960,16 +1003,22 @@ function insertQuickReply(text) {
     qrPopupOpen = false;
 }
 
+let qrModalCleanup = null;
 function openQrModal() {
     const modal = document.getElementById('qrModal');
     if (!modal) return;
     modal.hidden = false;
     renderQrModalList();
+    qrModalCleanup = setupFocusTrap(modal, document.getElementById('qrModalClose'));
 }
 
 function closeQrModal() {
     const modal = document.getElementById('qrModal');
     if (modal) modal.hidden = true;
+    if (qrModalCleanup) {
+        qrModalCleanup();
+        qrModalCleanup = null;
+    }
     // Clear add form
     const labelInput = document.getElementById('qrNewLabel');
     const textInput = document.getElementById('qrNewText');

@@ -1,10 +1,8 @@
 'use strict';
 
-const config = require('../config');
-const { fmt } = require('../lib/theme');
 const { askTextAI } = require('../lib/aiClient');
 
-function preferredModels(key) {
+function preferredModels(key, config) {
     const map = {
         gemini: ['google/gemini-2.5-flash-preview'],
         gpt4: ['openai/gpt-4o', 'openai/gpt-4o-mini'],
@@ -58,7 +56,7 @@ function buildPlugin(cmds, label, key) {
         private: true,
 
         run: async (sock, message, args, ctx) => {
-            const { jid, contextInfo } = ctx;
+            const { jid, contextInfo, fmt, config } = ctx;
             const query = args.join(' ').trim();
 
             if (!query) {
@@ -78,7 +76,7 @@ function buildPlugin(cmds, label, key) {
 
             const ai = await askTextAI({
                 messages: buildMessages(query),
-                openRouterModels: preferredModels(key),
+                openRouterModels: preferredModels(key, config),
                 maxTokens: 700,
                 temperature: 0.75,
                 trace: `ai2:${cmds[0]}`,

@@ -75,10 +75,14 @@ const express = require('express');
 const axios = require('axios');
 const P = require('pino');
 const NodeCache = require('node-cache');
-const { handleMessages } = require('./handler');
+const { handleMessages, groupCache, plugins: handlerPlugins } = require('./handler');
 const { handleStatusBroadcast } = require('./lib/statusManager');
 const { connectDB, getPgPool } = require('./lib/database');
 const { usePostgresAuthState } = require('./lib/baileysPostgresAuth');
+const { createMediaRoutes, MEDIA_EXTS, scanMediaDir } = require('./lib/mediaRoutes');
+const { makeMessageCache, makeGetMessage, bindAntiDelete } = require('./lib/antiDelete');
+const { createStatusSaver } = require('./lib/statusRoutes');
+const { createFaceRoutes } = require('./lib/faceRoutes');
 const {
     downloadMediaBuffer,
     enqueueAntiViewOnceJob,
@@ -114,7 +118,7 @@ let lastStartupWelcomeAt = 0;
 let lastProfileSyncAt = 0;
 const STARTUP_WELCOME_MIN_INTERVAL_MS = 10 * 60 * 1000;
 const PROFILE_SYNC_MIN_INTERVAL_MS = 30 * 60 * 1000;
-const SEND_GUARD_MAX_PER_MIN = 30;
+const SEND_GUARD_MAX_PER_MIN = config.SEND_GUARD_MAX_PER_MIN;
 const SEND_GUARD_PRIORITY_MAX_PER_MIN = 120;
 const SEND_GUARD_JITTER_MIN_MS = 100;
 const SEND_GUARD_JITTER_MAX_MS = 500;
@@ -234,7 +238,7 @@ function installSendGuard(sock) {
 
 const prefix = config.PREFIX || '.';
 const tempDir = path.join(os.tmpdir(), 'messageforge-cache');
-const port = process.env.PORT || 25680;
+const port = config.PORT;
 const pluginsDir = path.join(__dirname, 'plugins');
 const dashboardToken = String(process.env.DASHBOARD_TOKEN || '').trim();
 const DASHBOARD_ROOM = 'dashboard-authenticated';
@@ -347,7 +351,7 @@ async function loadSession() {
 }
 
 // ✅ Message Cache for Anti-Delete
-const messageCache = new Map();
+const messageCache = makeMessageCache({ ttlMs: config.MESSAGE_CACHE_TTL_MS });
 
 // ✅ Message Logger Setup
 const logDir = path.join(__dirname, 'logs');
@@ -464,6 +468,14 @@ function safeGetUserJid(sock) {
         return null;
     }
 }
+
+const VALID_JID_RE = /^[^@]+@(s\.whatsapp\.net|g\.us|lid)$/;
+function isValidJid(jid) {
+    return typeof jid === 'string' && VALID_JID_RE.test(jid);
+}
+
+const VALID_PRESENCE_STATES = new Set(['typing', 'recording', 'paused', 'composing']);
+
 
 // ✅ Ensure Temp Directory Exists
 if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
@@ -748,18 +760,12 @@ async function createWhatsAppSocket() {
         },
         version,
         msgRetryCounterCache,
-        connectTimeoutMs: 30000,
-        defaultQueryTimeoutMs: 90000,
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 120000,
         markOnlineOnConnect: config.ALWAYS_ONLINE,
         syncFullHistory: false,
         generateHighQualityLinkPreview: false,
-        getMessage: async (key) => {
-            const cacheKey = `${key.remoteJid}-${key.id}`;
-            const cached = messageCache.get(cacheKey);
-            if (cached?.message) return cached.message;
-            const stored = store.loadMessage(key.remoteJid, key.id);
-            return stored?.message || undefined;
-        },
+        getMessage: makeGetMessage({ messageCache, store }),
         shouldIgnoreJid: (jid) =>
             typeof jid === 'string' &&
             isJidBroadcast(jid) &&
@@ -785,7 +791,9 @@ async function createWhatsAppSocket() {
 
     // ── Persist messenger history and realtime dashboard events ──────────────
     const onPersistMessagesUpsert = ({ messages: newMsgs }) => {
-        void messengerStore.persistMessages(newMsgs);
+        messengerStore.persistMessages(newMsgs).catch((e) =>
+            logMessage('WARN', `[persist] failed to save messages: ${e.message}`)
+        );
     };
 
     const onDashboardMessagesUpsert = async ({ messages: newMsgs, type }) => {
@@ -911,6 +919,18 @@ async function createWhatsAppSocket() {
             }
         }
         if (contacts.length > 0 && mapped > 0) {
+            const LID_JID_MAP_MAX = config.LID_JID_MAP_MAX;
+            const LID_PHONE_CACHE_MAX = config.LID_PHONE_CACHE_MAX;
+            if (global.lidJidMap.size > LID_JID_MAP_MAX) {
+                const evict = Math.floor(LID_JID_MAP_MAX * 0.1);
+                const keys = Array.from(global.lidJidMap.keys()).slice(0, evict);
+                for (const k of keys) global.lidJidMap.delete(k);
+            }
+            if (global.lidPhoneCache.size > LID_PHONE_CACHE_MAX) {
+                const evict = Math.floor(LID_PHONE_CACHE_MAX * 0.1);
+                const keys = Array.from(global.lidPhoneCache.keys()).slice(0, evict);
+                for (const k of keys) global.lidPhoneCache.delete(k);
+            }
             logMessage(
                 'INFO',
                 `[LID] ${source}: mapped ${mapped}/${contacts.length} LID→JID (total: ${global.lidJidMap.size})`,
@@ -958,12 +978,12 @@ async function createWhatsAppSocket() {
         // Handle QR code
         if (qr) {
             const QRCode = require('qrcode');
-            console.log('\n📱 SCAN THIS QR CODE WITH YOUR WHATSAPP:\n');
+            logMessage('INFO', '📱 SCAN THIS QR CODE WITH YOUR WHATSAPP:');
             try {
                 const asciiQR = await QRCode.toString(qr, { type: 'terminal', small: true });
-                console.log(asciiQR);
+                console.log(asciiQR); // Keep QR art in console for readability
             } catch (e) {
-                console.log('QR Code string:', qr);
+                logMessage('INFO', `QR Code string: ${qr}`);
             }
         }
         if (connection === 'close') {
@@ -1049,28 +1069,6 @@ async function createWhatsAppSocket() {
 
     const onCredsUpdate = (credsUpdate) => saveCreds(credsUpdate);
 
-    // ✅ Cache messages for anti-delete
-    const onCacheMessagesUpsert = ({ messages }) => {
-        if (!Array.isArray(messages)) return;
-
-        for (const m of messages) {
-            if (!m.message || !m.key.id) continue;
-
-            const cacheKey = `${m.key.remoteJid}-${m.key.id}`;
-            messageCache.set(cacheKey, {
-                message: m.message,
-                timestamp: Date.now(),
-            });
-        }
-
-        const now = Date.now();
-        for (const [key, value] of messageCache.entries()) {
-            if (now - value.timestamp > 3 * 60 * 60 * 1000) {
-                messageCache.delete(key);
-            }
-        }
-    };
-
     // ✅ Anti-delete/anti-edit handler (messages.update)
     // Forward reactions to dashboard via the proper Baileys event
     const onMessagesReaction = (reactions) => {
@@ -1087,161 +1085,29 @@ async function createWhatsAppSocket() {
         }
     };
 
-    const onMessagesUpdate = async (updates) => {
-        for (const { key, update } of updates) {
-            if (key.remoteJid === 'status@broadcast') continue;
-            if (key.fromMe) continue;
-
-            const isGroup = key.remoteJid?.endsWith('@g.us');
-            if ((isGroup && !config.ANTIDELETE_GROUP) || (!isGroup && !config.ANTIDELETE_PRIVATE))
-                continue;
-
-            const ownerJid = `${config.OWNER_NUMBER}@s.whatsapp.net`;
-            const cacheKey = `${key.remoteJid}-${key.id}`;
-            const original = messageCache.get(cacheKey);
-            const sender = key.participant || key.remoteJid;
-            const senderNum = sender.split('@')[0];
-
-            // ── Deleted message ──────────────────────────────────────────────
-            if (update?.message === null) {
-                if (!original?.message) continue;
-                const msgObj = original.message;
-                const mType = Object.keys(msgObj)[0];
-                const label = isGroup ? `Group: ${key.remoteJid.split('@')[0]}` : 'Private';
-
-                try {
-                    await sock.sendMessage(ownerJid, {
-                        text: `🗑️ *Deleted Message Recovered*\n👤 From: @${senderNum}\n📌 ${label}`,
-                        contextInfo: globalContextInfo,
-                        mentions: [sender],
-                    });
-                    if (['conversation', 'extendedTextMessage'].includes(mType)) {
-                        const text = msgObj.conversation || msgObj.extendedTextMessage?.text || '';
-                        await sock.sendMessage(ownerJid, { text, contextInfo: globalContextInfo });
-                    } else if (
-                        [
-                            'imageMessage',
-                            'videoMessage',
-                            'audioMessage',
-                            'stickerMessage',
-                            'documentMessage',
-                        ].includes(mType)
-                    ) {
-                        const stream = await downloadContentFromMessage(
-                            msgObj[mType],
-                            mType.replace('Message', ''),
-                        );
-                        let buffer = Buffer.from([]);
-                        for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
-                        const field = mType.replace('Message', '');
-                        const payload = { [field]: buffer, contextInfo: globalContextInfo };
-                        if (msgObj[mType]?.caption) payload.caption = msgObj[mType].caption;
-                        await sock.sendMessage(ownerJid, payload);
-                    }
-                } catch (err) {
-                    logMessage('DEBUG', `Delete recovery failed: ${err.message}`);
-                }
-            }
-
-            // ── Edited message ───────────────────────────────────────────────
-            const editedMsg = update?.message?.protocolMessage?.editedMessage;
-            if (editedMsg) {
-                const oldText =
-                    original?.message?.conversation ||
-                    original?.message?.extendedTextMessage?.text ||
-                    '(unknown)';
-                const newText =
-                    editedMsg.conversation || editedMsg.extendedTextMessage?.text || '(media)';
-                const label = isGroup ? `Group: ${key.remoteJid.split('@')[0]}` : 'Private';
-                try {
-                    await sock.sendMessage(ownerJid, {
-                        text: `✏️ *Edited Message*\n👤 From: @${senderNum}\n📌 ${label}\n\n*Before:* ${oldText}\n*After:* ${newText}`,
-                        contextInfo: globalContextInfo,
-                        mentions: [sender],
-                    });
-                } catch (err) {
-                    logMessage('DEBUG', `Edit recovery failed: ${err.message}`);
-                }
-            }
-        }
-    };
-
-    const onMessagesDelete = async (item) => {
-        try {
-            logMessage('DEBUG', 'messages.delete triggered');
-            const keys = Array.isArray(item) ? item.map((i) => i.key) : item?.keys || [];
-            for (const key of keys) {
-                const from = key.remoteJid;
-                const isGroupChat = from?.endsWith?.('@g.us');
-                if (
-                    (isGroupChat && !config.ANTIDELETE_GROUP) ||
-                    (!isGroupChat && !config.ANTIDELETE_PRIVATE)
-                )
-                    continue;
-
-                const cacheKey = `${from}-${key.id}`;
-                const cached = messageCache.get(cacheKey);
-                const storedMsg = cached?.message || store.loadMessage(from, key.id)?.message;
-                if (!storedMsg) {
-                    logMessage('WARN', `No cached message for anti-delete: ${key.id}`);
-                    continue;
-                }
-
-                const ownerJid = `${config.OWNER_NUMBER}@s.whatsapp.net`;
-                const sender = key.participant || from;
-                const senderName = (sender || '').split('@')[0];
-                const msgType = Object.keys(storedMsg)[0];
-                const caption = `🗑️ *Anti-Delete Alert!*\n\n👤 *Sender:* @${senderName}\n📌 *Chat:* ${isGroupChat ? 'Group' : 'Private'}\n\n💬 *Restored Message:*`;
-                const opts = { contextInfo: { mentionedJid: [sender] } };
-
-                try {
-                    if (['conversation', 'extendedTextMessage'].includes(msgType)) {
-                        const text =
-                            storedMsg.conversation || storedMsg.extendedTextMessage?.text || '';
-                        await sock.sendMessage(ownerJid, {
-                            text: `${caption}\n\n${text}`,
-                            ...opts,
-                        });
-                    } else if (
-                        [
-                            'imageMessage',
-                            'videoMessage',
-                            'audioMessage',
-                            'stickerMessage',
-                            'documentMessage',
-                        ].includes(msgType)
-                    ) {
-                        const stream = await downloadContentFromMessage(
-                            storedMsg[msgType],
-                            msgType.replace('Message', ''),
-                        );
-                        let buffer = Buffer.from([]);
-                        for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
-                        const field = msgType.replace('Message', '');
-                        const payload = { [field]: buffer, ...opts };
-                        if (storedMsg[msgType]?.caption)
-                            payload.caption = `${caption}\n\n${storedMsg[msgType].caption}`;
-                        else payload.caption = caption;
-                        await sock.sendMessage(ownerJid, payload);
-                    } else {
-                        await sock.sendMessage(ownerJid, {
-                            text: `${caption}\n\n[${msgType}]`,
-                            ...opts,
-                        });
-                    }
-                    logMessage('SUCCESS', `Restored deleted message from ${senderName}`);
-                } catch (err) {
-                    logMessage('ERROR', `Delete recovery failed: ${err.message}`);
-                }
-            }
-        } catch (err) {
-            logMessage('ERROR', `Anti-Delete Error: ${err.stack || err.message}`);
-        }
-    };
+    const antiDelete = bindAntiDelete(sock, messageCache, {
+        store,
+        logMessage,
+        globalContextInfo,
+        downloadContentFromMessage,
+    });
+    const onCacheMessagesUpsert = antiDelete.onCacheMessagesUpsert;
+    const onMessagesUpdate = antiDelete.onMessagesUpdate;
+    const onMessagesDelete = antiDelete.onMessagesDelete;
 
     // ✅ Group participant events: anti-demote, welcome, goodbye
-    const onGroupParticipantsUpdate = async ({ id, participants, action }) => {
+    const onGroupParticipantsUpdate = async (update) => {
+        const { id, participants, action } = update;
         try {
+            // Invalidate group metadata cache so next fetch reflects new membership
+            groupCache.delete(id);
+
+            // Run plugin onGroupParticipantsUpdate hooks (e.g. greet, antibot)
+            for (const p of handlerPlugins) {
+                if (typeof p.onGroupParticipantsUpdate !== 'function') continue;
+                try { await p.onGroupParticipantsUpdate(sock, update); } catch { /* ignore */ }
+            }
+
             // --- Anti-Demote ---
             if (action === 'demote' && global.antiDemoteGroups?.has(id)) {
                 logMessage(
@@ -1284,68 +1150,11 @@ async function createWhatsAppSocket() {
         }
     };
 
-    // Status saver dir
-    const statusSaverDir = path.join(__dirname, 'status_saver');
-    if (!fs.existsSync(statusSaverDir)) fs.mkdirSync(statusSaverDir, { recursive: true });
-
-    async function saveMedia(message, msgType, sockLocal, caption) {
-        try {
-            const stream = await downloadContentFromMessage(
-                message.message[msgType],
-                msgType.replace('Message', ''),
-            );
-
-            let buffer = Buffer.from([]);
-            for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
-
-            const extMap = {
-                imageMessage: 'jpg',
-                videoMessage: 'mp4',
-                audioMessage: 'ogg',
-            };
-
-            const filename = `${Date.now()}.${extMap[msgType]}`;
-            const filePath = path.join(statusSaverDir, filename);
-            fs.writeFileSync(filePath, buffer);
-
-            const selfJid = sockLocal.user.id.includes(':')
-                ? `${sockLocal.user.id.split(':')[0]}@s.whatsapp.net`
-                : sockLocal.user.id;
-            const rawTarget = String(config.STATUS_INBOX_JID || '').trim();
-            let targetJid = selfJid;
-            if (rawTarget && rawTarget.toLowerCase() !== 'me') {
-                if (rawTarget.toLowerCase() === 'owner' && config.OWNER_NUMBER) {
-                    targetJid = String(config.OWNER_NUMBER).includes('@')
-                        ? String(config.OWNER_NUMBER)
-                        : `${String(config.OWNER_NUMBER).replace(/\D/g, '')}@s.whatsapp.net`;
-                } else {
-                    targetJid = rawTarget.includes('@')
-                        ? rawTarget
-                        : `${rawTarget.replace(/\D/g, '')}@s.whatsapp.net`;
-                }
-            }
-
-            await sockLocal.sendMessage(targetJid, {
-                [msgType.replace('Message', '')]: { url: filePath },
-                caption: caption,
-                mimetype: message.message[msgType].mimetype,
-            });
-            return true;
-        } catch (error) {
-            logMessage('ERROR', `Media Save Error: ${error.message}`);
-            return false;
-        }
-    }
-
-    function unwrapStatus(msg) {
-        const inner =
-            msg.message?.viewOnceMessageV2?.message ||
-            msg.message?.viewOnceMessage?.message ||
-            msg.message ||
-            {};
-        const msgType = Object.keys(inner)[0] || '';
-        return { inner, msgType };
-    }
+    const { saveMedia } = createStatusSaver({
+        rootDir: __dirname,
+        downloadContentFromMessage,
+        logMessage,
+    });
 
     function cacheLidPhone(lid, phone) {
         if (!lid || !phone) return;
@@ -1407,14 +1216,9 @@ async function createWhatsAppSocket() {
 
                 // RAW diagnostic — confirms statuses enter the loop at all
                 if (config.DEBUG) {
-                    console.log(
-                        '[DEBUG upsert]',
-                        type,
-                        remoteJid,
-                        '| fromMe:',
-                        m.key?.fromMe,
-                        '| participant:',
-                        m.key?.participant,
+                    logMessage(
+                        'DEBUG',
+                        `[upsert] ${type} ${remoteJid} | fromMe: ${m.key?.fromMe} | participant: ${m.key?.participant}`,
                     );
                 }
 
@@ -1493,9 +1297,9 @@ async function createWhatsAppSocket() {
                     const reveal = findViewOnceMedia(m.message, { allowPlainMedia: true });
 
                     if (config.DEBUG) {
-                        console.log(
-                            '[DEBUG Anti-VV] Keys:',
-                            reveal?.message ? Object.keys(reveal.message) : 'none',
+                        logMessage(
+                            'DEBUG',
+                            `[Anti-VV] Keys: ${reveal?.message ? Object.keys(reveal.message).join(', ') : 'none'}`,
                         );
                     }
 
@@ -2138,7 +1942,22 @@ app.get('/api/profile-pic/:jid', async (req, res) => {
 });
 
 const { buildIndex: facesBuildIndex, getPersons, renamePerson, mergePerson, deletePerson, linkPersonJid, getStatus: facesStatus, FACES_DIR } = require('./lib/faceIndexer');
-app.use('/api/media/face', express.static(FACES_DIR));
+app.use(
+    '/api/media',
+    createFaceRoutes({
+        mediaDataDir: path.join(__dirname, 'data'),
+        scanMediaDir,
+        mediaExts: MEDIA_EXTS,
+        facesDir: FACES_DIR,
+        facesBuildIndex,
+        facesStatus,
+        getPersons,
+        renamePerson,
+        mergePerson,
+        deletePerson,
+        linkPersonJid,
+    }),
+);
 
 app.get('/api/media/:jid/:msgId', async (req, res) => {
     const { jid, msgId } = req.params;
@@ -2164,11 +1983,14 @@ app.get('/api/media/:jid/:msgId', async (req, res) => {
 app.post('/api/send', async (req, res) => {
     const { jid, text, quoted } = req.body;
     if (!jid || !text) return res.status(400).json({ error: 'Missing jid or text' });
+    if (!isValidJid(jid)) return res.status(400).json({ error: 'Invalid jid' });
     try {
         if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
         const { safeSend } = require('./handler');
         const result = await safeSend(global.sock, jid, { text }, quoted ? { quoted } : {});
-        if (result) void messengerStore.persistMessages([result]);
+        if (result) messengerStore.persistMessages([result]).catch((e) =>
+            logMessage('WARN', `[persist] send persist failed: ${e.message}`)
+        );
         res.json({ success: !!result, messageId: result?.key?.id });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -2178,6 +2000,7 @@ app.post('/api/send', async (req, res) => {
 app.post('/api/toggle-pin', async (req, res) => {
     const { jid } = req.body;
     if (!jid) return res.status(400).json({ error: 'Missing jid' });
+    if (!isValidJid(jid)) return res.status(400).json({ error: 'Invalid jid' });
     try {
         const db = require('./lib/dbManager');
         let pinned = await db.get('messenger_pinned', []);
@@ -2196,6 +2019,7 @@ app.post('/api/toggle-pin', async (req, res) => {
 app.post('/api/react', async (req, res) => {
     const { jid, msgId, fromMe, participant, emoji } = req.body;
     if (!jid || !msgId || !emoji) return res.status(400).json({ error: 'Missing params' });
+    if (!isValidJid(jid)) return res.status(400).json({ error: 'Invalid jid' });
     try {
         if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
         const key = { remoteJid: jid, id: msgId, fromMe: !!fromMe };
@@ -2210,6 +2034,7 @@ app.post('/api/react', async (req, res) => {
 app.post('/api/delete-message', async (req, res) => {
     const { jid, msgId, fromMe, participant } = req.body;
     if (!jid || !msgId) return res.status(400).json({ error: 'Missing params' });
+    if (!isValidJid(jid)) return res.status(400).json({ error: 'Invalid jid' });
     try {
         if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
         const key = { remoteJid: jid, id: msgId, fromMe: !!fromMe };
@@ -2224,9 +2049,11 @@ app.post('/api/delete-message', async (req, res) => {
 app.post('/api/typing', async (req, res) => {
     const { jid, state } = req.body;
     if (!jid) return res.status(400).json({ error: 'Missing jid' });
+    if (!isValidJid(jid)) return res.status(400).json({ error: 'Invalid jid' });
+    const presenceState = VALID_PRESENCE_STATES.has(state) ? state : 'composing';
     try {
         if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
-        await global.sock.sendPresenceUpdate(state || 'composing', jid);
+        await global.sock.sendPresenceUpdate(presenceState, jid);
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -2236,6 +2063,7 @@ app.post('/api/typing', async (req, res) => {
 app.post('/api/subscribe-presence', async (req, res) => {
     const { jid } = req.body;
     if (!jid) return res.status(400).json({ error: 'Missing jid' });
+    if (!isValidJid(jid)) return res.status(400).json({ error: 'Invalid jid' });
     try {
         if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
         await global.sock.presenceSubscribe(jid);
@@ -2245,292 +2073,12 @@ app.post('/api/subscribe-presence', async (req, res) => {
     }
 });
 
-const MEDIA_EXTS = new Map([
-    ['.mp4', 'video'], ['.webm', 'video'], ['.mkv', 'video'], ['.mov', 'video'],
-    ['.jpg', 'image'], ['.jpeg', 'image'], ['.png', 'image'], ['.webp', 'image'], ['.gif', 'image'],
-    ['.mp3', 'audio'], ['.ogg', 'audio'], ['.opus', 'audio'], ['.wav', 'audio'], ['.m4a', 'audio'],
-]);
 const MEDIA_DATA_DIR = path.join(__dirname, 'data');
 
-function scanMediaDir(dir, baseDir, results) {
-    let entries;
-    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
-    for (const entry of entries) {
-        const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-            if (entry.name.startsWith('.')) continue;
-            scanMediaDir(full, baseDir, results);
-        } else if (entry.isFile()) {
-            const ext = path.extname(entry.name).toLowerCase();
-            const kind = MEDIA_EXTS.get(ext);
-            if (!kind) continue;
-            const rel = path.relative(baseDir, full).replace(/\\/g, '/');
-            const folder = path.relative(baseDir, dir).replace(/\\/g, '/') || '.';
-            let stat;
-            try { stat = fs.statSync(full); } catch { continue; }
-            results.push({
-                name: entry.name,
-                url: `/media-files/${rel}`,
-                type: kind,
-                folder,
-                size: stat.size,
-                mtime: Math.floor(stat.mtimeMs / 1000),
-            });
-        }
-    }
-}
-
-app.get('/api/media', (req, res) => {
-    const results = [];
-    scanMediaDir(MEDIA_DATA_DIR, MEDIA_DATA_DIR, results);
-    results.sort((a, b) => b.mtime - a.mtime);
-    const totalBytes = results.reduce((sum, f) => sum + (f.size || 0), 0);
-    res.json({ files: results, total: results.length, totalBytes });
-});
-
-const THUMB_DIR = path.join(__dirname, 'data', '.thumbs');
-const crypto = require('crypto');
-
-function thumbPath(relPath) {
-    const hash = crypto.createHash('sha1').update(relPath).digest('hex');
-    return path.join(THUMB_DIR, `${hash}.jpg`);
-}
-
-// Returns the hex SHA-256 digest of a file's contents.
-function computeFileHash(filePath) {
-    const buf = fs.readFileSync(filePath);
-    return crypto.createHash('sha256').update(buf).digest('hex');
-}
-
-// Concurrency limiter: max 3 simultaneous ffmpeg thumbnail processes
-const THUMB_CONCURRENCY = 3;
-let thumbActive = 0;
-const thumbQueue = [];
-
-function runThumb(src, dest, cb) {
-    if (thumbActive >= THUMB_CONCURRENCY) {
-        thumbQueue.push(() => runThumb(src, dest, cb));
-        return;
-    }
-    thumbActive++;
-
-    // Probe duration so we can seek to 10% — avoids black opening frames
-    execFile('ffprobe', [
-        '-v', 'error', '-show_entries', 'format=duration',
-        '-of', 'default=noprint_wrappers=1:nokey=1', src,
-    ], { timeout: 10000 }, (probeErr, stdout) => {
-        const duration = parseFloat(stdout) || 0;
-        const seekSec = duration > 1 ? (duration * 0.1).toFixed(3) : '0';
-        execFile('ffmpeg', [
-            '-y', '-ss', seekSec, '-i', src,
-            '-vframes', '1', '-vf', 'scale=320:-1',
-            '-f', 'image2', dest,
-        ], { timeout: 20000 }, (err) => {
-            thumbActive--;
-            if (thumbQueue.length) thumbQueue.shift()();
-            cb(err);
-        });
-    });
-}
-
-const thumbInProgress = new Map();
-
-app.get('/api/media/thumb', (req, res) => {
-    const { url } = req.query;
-    if (!url || !url.startsWith('/media-files/')) {
-        return res.status(400).json({ error: 'Invalid url' });
-    }
-    const rel = url.slice('/media-files/'.length);
-    const src = path.resolve(MEDIA_DATA_DIR, rel);
-    if (!src.startsWith(MEDIA_DATA_DIR + path.sep)) {
-        return res.status(400).json({ error: 'Path traversal rejected' });
-    }
-
-    const dest = thumbPath(rel);
-    const serve = () => {
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        res.sendFile(dest);
-    };
-
-    if (fs.existsSync(dest)) return serve();
-
-    if (!fs.existsSync(THUMB_DIR)) fs.mkdirSync(THUMB_DIR, { recursive: true });
-
-    // Deduplicate concurrent requests for the same file
-    if (thumbInProgress.has(dest)) {
-        thumbInProgress.get(dest).push({ res, serve });
-        return;
-    }
-    thumbInProgress.set(dest, [{ res, serve }]);
-
-    runThumb(src, dest, (err) => {
-        const waiters = thumbInProgress.get(dest) || [];
-        thumbInProgress.delete(dest);
-        if (err || !fs.existsSync(dest)) {
-            for (const w of waiters) w.res.status(500).json({ error: 'Thumbnail generation failed' });
-            return;
-        }
-        for (const w of waiters) w.serve();
-    });
-});
-
-// ── Duplicate media detection ─────────────────────────────────────────────────
-// Scans data/ (excluding dot-dirs), groups files by SHA-256, returns groups
-// that contain more than one file.
-app.get('/api/media/duplicates', (req, res) => {
-    try {
-        const hashMap = new Map();
-
-        function scanForDuplicates(dir, baseDir) {
-            let entries;
-            try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
-            for (const entry of entries) {
-                const full = path.join(dir, entry.name);
-                if (entry.isDirectory()) {
-                    if (entry.name.startsWith('.')) continue;
-                    scanForDuplicates(full, baseDir);
-                } else if (entry.isFile()) {
-                    let hash;
-                    try { hash = computeFileHash(full); } catch { continue; }
-                    const rel = path.relative(baseDir, full).replace(/\\/g, '/');
-                    const url = `/media-files/${rel}`;
-                    const existing = hashMap.get(hash) || [];
-                    existing.push(url);
-                    hashMap.set(hash, existing);
-                }
-            }
-        }
-
-        scanForDuplicates(MEDIA_DATA_DIR, MEDIA_DATA_DIR);
-
-        const groups = Array.from(hashMap.values()).filter((g) => g.length > 1);
-        res.json({ groups });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.delete('/api/media', (req, res) => {
-    const { url } = req.body;
-    if (!url || !url.startsWith('/media-files/')) {
-        return res.status(400).json({ error: 'Invalid url' });
-    }
-    const rel = url.slice('/media-files/'.length);
-    const target = path.resolve(MEDIA_DATA_DIR, rel);
-    if (!target.startsWith(MEDIA_DATA_DIR + path.sep) && target !== MEDIA_DATA_DIR) {
-        return res.status(400).json({ error: 'Path traversal rejected' });
-    }
-    try {
-        fs.unlinkSync(target);
-        const thumb = thumbPath(rel);
-        if (fs.existsSync(thumb)) fs.unlinkSync(thumb);
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ── Media upload ──────────────────────────────────────────────────────────────
-// Max 50 MB expressed as base64-decoded bytes
-const UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
-
-app.post('/api/media/upload', requireDashboardAuth, (req, res) => {
-    const { filename, data } = req.body;
-    if (!filename || typeof filename !== 'string') {
-        return res.status(400).json({ error: 'filename required' });
-    }
-    if (!data || typeof data !== 'string') {
-        return res.status(400).json({ error: 'data (base64) required' });
-    }
-
-    // Strip directory components — only keep the basename
-    const basename = path.basename(filename);
-    if (!basename || basename === '.' || basename === '..') {
-        return res.status(400).json({ error: 'Invalid filename' });
-    }
-
-    const ext = path.extname(basename).toLowerCase();
-    if (!MEDIA_EXTS.has(ext)) {
-        return res.status(400).json({ error: `Unsupported file type: ${ext}` });
-    }
-
-    // Rough size check before decoding (base64 inflates by ~4/3)
-    if (data.length * 0.75 > UPLOAD_MAX_BYTES) {
-        return res.status(413).json({ error: 'File too large (max 50 MB)' });
-    }
-
-    let buf;
-    try {
-        buf = Buffer.from(data, 'base64');
-    } catch {
-        return res.status(400).json({ error: 'Invalid base64 data' });
-    }
-
-    if (buf.length > UPLOAD_MAX_BYTES) {
-        return res.status(413).json({ error: 'File too large (max 50 MB)' });
-    }
-
-    const dest = path.join(MEDIA_DATA_DIR, basename);
-    // Final path traversal guard
-    if (!dest.startsWith(MEDIA_DATA_DIR + path.sep)) {
-        return res.status(400).json({ error: 'Path traversal rejected' });
-    }
-
-    try {
-        fs.writeFileSync(dest, buf);
-        const uploadedUrl = `/media-files/${basename}`;
-        res.json({ url: uploadedUrl });
-        // Trigger incremental face indexing for the uploaded file
-        facesBuildIndex([{ url: uploadedUrl, type: MEDIA_EXTS.get(ext) }]).catch(() => {});
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// ── Face recognition ──────────────────────────────────────────────────────────
-
-app.get('/api/media/persons', (req, res) => {
-    try {
-        res.json({ persons: getPersons() });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-app.get('/api/media/index-status', (req, res) => {
-    res.json(facesStatus());
-});
-
-app.post('/api/media/index-faces', (req, res) => {
-    const files = [];
-    scanMediaDir(MEDIA_DATA_DIR, MEDIA_DATA_DIR, files);
-    facesBuildIndex(files).catch(() => {});
-    res.json({ started: true, total: files.length });
-});
-
-app.patch('/api/media/persons/:id', (req, res) => {
-    const { name, mergeInto, jid } = req.body;
-    if (mergeInto) {
-        const ok = mergePerson(req.params.id, mergeInto);
-        if (!ok) return res.status(404).json({ error: 'Person not found' });
-        return res.json({ success: true });
-    }
-    if (jid !== undefined) {
-        const ok = linkPersonJid(req.params.id, jid || null);
-        if (!ok) return res.status(404).json({ error: 'Person not found' });
-        return res.json({ success: true });
-    }
-    if (!name || !name.trim()) return res.status(400).json({ error: 'name required' });
-    const ok = renamePerson(req.params.id, name.trim());
-    if (!ok) return res.status(404).json({ error: 'Person not found' });
-    res.json({ success: true });
-});
-
-app.delete('/api/media/persons/:id', (req, res) => {
-    const ok = deletePerson(req.params.id);
-    if (!ok) return res.status(404).json({ error: 'Person not found' });
-    res.json({ success: true });
-});
+app.use(
+    '/api/media',
+    createMediaRoutes({ mediaDataDir: MEDIA_DATA_DIR, requireDashboardAuth, facesBuildIndex }),
+);
 
 app.get('/api/me', (req, res) => {
     if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
@@ -2930,9 +2478,8 @@ function renderStartupBanner() {
 // ✅ Boot Bot
 (async () => {
     try {
-        console.log('\x1b[36m');
-        for (const row of renderStartupBanner()) console.log(row);
-        console.log('\x1b[0m');
+        const rows = renderStartupBanner();
+        logMessage('INFO', `\x1b[36m\n${rows.join('\n')}\x1b[0m`);
         logMessage('INFO', `Booting ${getDisplayBotName()} runtime...`);
         validateEnv();
 

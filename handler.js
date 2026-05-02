@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const config = require('./config');
-const { getStr, getActiveTheme } = require('./lib/theme');
+const { getStr, getActiveTheme, fmt } = require('./lib/theme');
 const logger = require('./lib/logger');
 
 let isJidGroup, areJidsSameUser, jidNormalizedUser;
@@ -40,7 +40,13 @@ const PERM = {
 
 // ─── Group metadata cache (5 min TTL) ───────────────────────────────────────
 const groupCache = new Map();
-const GROUP_CACHE_TTL = 5 * 60 * 1000;
+const GROUP_CACHE_TTL = config.GROUP_CACHE_TTL_MS;
+setInterval(() => {
+    const now = Date.now();
+    for (const [jid, entry] of groupCache.entries()) {
+        if (now >= entry.expiry) groupCache.delete(jid);
+    }
+}, GROUP_CACHE_TTL).unref();
 
 /**
  * Retrieves group metadata with a 5-minute in-memory cache.
@@ -60,12 +66,8 @@ async function getCachedGroupMetadata(sock, jid) {
     }
 }
 
-/**
- * Invalidate group cache when participants change.
- * @param {object} sock - The Baileys socket instance.
- */
-function bindGroupCacheInvalidation(sock) {
-    sock.ev.on('group-participants.update', ({ id }) => groupCache.delete(id));
+function bindGroupCacheInvalidation(_sock) {
+    // Cache invalidation and plugin hooks are handled via sock.ev.process() in messageforge.js
 }
 
 const sendTimestamps = [];
@@ -99,7 +101,7 @@ async function safeSend(sock, jid, content, opts = {}) {
         sendTimestamps.push(Date.now());
         return await sock.sendMessage(jid, content, opts);
     } catch (err) {
-        console.error(`[SafeSend] ${jid}: ${err.message}`);
+        logger.error(`[SafeSend] ${jid}: ${err.message}`);
         return null;
     }
 }
@@ -110,6 +112,29 @@ const GLOBAL_CONTEXT_INFO = {};
 // ─── Plugin loader ───────────────────────────────────────────────────────────
 const plugins = [];
 const pluginDir = path.join(__dirname, 'plugins');
+
+function checkPermission(plugin, ctx) {
+    const isGroup = !!ctx.isGroup;
+    const isAdmin = !!ctx.isAdmin;
+    const isOwner = !!ctx.isOwner;
+    const isBotAdmin = !!ctx.isBotAdmin;
+
+    const allowGroup = plugin.group !== false;
+    const allowPrivate = plugin.private !== false;
+
+    if (isGroup && !allowGroup) return { ok: false, reason: 'private' };
+    if (!isGroup && !allowPrivate) return { ok: false, reason: 'group' };
+
+    if (plugin.botAdmin && !isBotAdmin) return { ok: false, reason: 'botAdmin' };
+
+    const perm = (plugin.permission || PERM.PUBLIC).toLowerCase();
+    if (perm === PERM.PUBLIC) return { ok: true };
+    if (perm === PERM.ADMIN) return { ok: isAdmin || isOwner, reason: 'admin' };
+    if (perm === PERM.OWNER) return { ok: isOwner, reason: 'owner' };
+
+    // Unknown permission string: treat as public to avoid accidental lockouts.
+    return { ok: true };
+}
 
 function reportCommandCollisions(loadedPlugins) {
     const ownersByCommand = new Map();
@@ -136,14 +161,14 @@ function reportCommandCollisions(loadedPlugins) {
 
     if (!collisions.length) return;
 
-    console.warn(`[Plugin] Command collision report: ${collisions.length} duplicate aliases found.`);
+    logger.warn(`[Plugin] Command collision report: ${collisions.length} duplicate aliases found.`);
     for (const [cmd, owners] of collisions) {
         const ownerList = owners
             .map((owner, index) => `${index + 1}. ${owner.file} (${owner.primary})`)
             .join(' | ');
         // Dispatch scans plugins in load order and executes the first match.
         const winner = owners[0];
-        console.warn(
+        logger.warn(
             `[Plugin] Duplicate command "${cmd}" -> ${ownerList} | active: ${winner.file} (${winner.primary})`,
         );
     }
@@ -181,14 +206,14 @@ function loadPlugins() {
                 ) {
                     plugins.push(mod);
                 } else {
-                    if (mods.length === 1)
-                        console.warn(`[Plugin] Skipped: ${file} — missing commands or run/handler`);
+                    logger.warn(`[Plugin] Skipped: ${file} — missing commands or run/handler`);
                 }
             }
         } catch (err) {
-            console.error(`[Plugin] Error loading ${file}: ${err.message}`);
+            logger.error(`[Plugin] Error loading ${file}: ${err.message}`);
         }
     }
+
     // Plugin file/command totals are logged by messageforge.js; avoid duplicate startup noise.
     reportCommandCollisions(plugins);
 }
@@ -267,32 +292,21 @@ if (fs.existsSync(pluginDir)) {
 }
 
 async function emitCommandExecuted(event) {
-    for (const p of plugins) {
-        if (typeof p.onCommandExecuted !== 'function') continue;
+    for (const plugin of plugins) {
+        if (typeof plugin.onCommandExecuted !== 'function') continue;
         try {
-            await p.onCommandExecuted(event);
+            await plugin.onCommandExecuted(event);
         } catch (err) {
-            console.error(`[PluginHook:onCommandExecuted] ${err.message}`);
+            logger.error(`[PluginHook:onCommandExecuted] ${err.message}`);
         }
     }
 }
 
+
 // ─── Connection handlers ─────────────────────────────────────────────────────
-function setupConnectionHandlers(sock) {
-    bindGroupCacheInvalidation(sock);
-    sock.ev.on('connection.update', ({ connection }) => {
-        if (connection === 'open') logger.custom('Handler', 'WhatsApp connection open.');
-    });
-    sock.ev.on('group-participants.update', async (update) => {
-        for (const p of plugins) {
-            if (typeof p.onGroupParticipantsUpdate !== 'function') continue;
-            try {
-                await p.onGroupParticipantsUpdate(sock, update);
-            } catch {
-                /* ignore */
-            }
-        }
-    });
+function setupConnectionHandlers(_sock) {
+    // All event handling is via sock.ev.process() in messageforge.js to prevent
+    // double-firing on events that Baileys buffers during reconnect/sync.
 }
 
 // ─── Command predictor ───────────────────────────────────────────────────────
@@ -462,8 +476,9 @@ async function handleMessages(sock, message) {
                             mentions: [from],
                         });
                     } catch (e) {
-                        console.error('[Antilink] delete failed:', e.message);
+                        logger.error(`[Antilink] delete failed: ${e.message}`);
                     }
+
                     return;
                 }
             }
@@ -751,6 +766,9 @@ async function handleMessages(sock, message) {
             reply: (replyText) => safeSend(sock, jid, { text: replyText }, { quoted: message }),
             theme: getActiveTheme()?.global || {},
             getStr,
+            fmt,
+            config,
+            getActiveTheme,
             command: resolvedCommand,
         };
 
@@ -808,10 +826,8 @@ async function handleMessages(sock, message) {
             const th = getActiveTheme()?.global || {};
 
             // ── Scope guards — with themed alerts ────────────────────────────
-            const allowGroup = plugin.group !== false;
-            const allowPrivate = plugin.private !== false;
-
-            if (isGroup && !allowGroup) {
+            const permCheck = checkPermission(plugin, ctx);
+            if (!permCheck.ok && permCheck.reason === 'private') {
                 await safeSend(
                     sock,
                     jid,
@@ -832,7 +848,7 @@ async function handleMessages(sock, message) {
                 break;
             }
 
-            if (!isGroup && !allowPrivate) {
+            if (!permCheck.ok && permCheck.reason === 'group') {
                 await safeSend(
                     sock,
                     jid,
@@ -854,7 +870,7 @@ async function handleMessages(sock, message) {
             }
 
             // ── Bot admin guard ───────────────────────────────────────────────
-            if (plugin.botAdmin && !isBotAdmin) {
+            if (!permCheck.ok && permCheck.reason === 'botAdmin') {
                 await safeSend(
                     sock,
                     jid,
@@ -876,16 +892,10 @@ async function handleMessages(sock, message) {
             }
 
             // ── Permission check ──────────────────────────────────────────────
-            const perm = (plugin.permission || PERM.PUBLIC).toLowerCase();
-            let allowed = false;
-            if (perm === PERM.PUBLIC) allowed = true;
-            else if (perm === PERM.ADMIN) allowed = isAdmin || isOwner;
-            else if (perm === PERM.OWNER) allowed = isOwner;
-
-            if (!allowed) {
-                const alertKey = perm === PERM.OWNER ? 'owner' : 'admin';
+            if (!permCheck.ok && (permCheck.reason === 'owner' || permCheck.reason === 'admin')) {
+                const alertKey = permCheck.reason === 'owner' ? 'owner' : 'admin';
                 const fallback =
-                    perm === PERM.OWNER
+                    permCheck.reason === 'owner'
                         ? '⛔ This command is reserved for the bot owner.'
                         : '⛔ This command is for group admins only.';
                 await safeSend(
@@ -949,7 +959,7 @@ async function handleMessages(sock, message) {
                 });
                 executed = true;
             } catch (err) {
-                console.error(`[Plugin:${command}] ${err.stack || err.message}`);
+                logger.error(`[Plugin:${command}] ${err.stack || err.message}`);
                 const errTheme = getActiveTheme();
                 await safeSend(
                     sock,
@@ -999,8 +1009,8 @@ async function handleMessages(sock, message) {
             }
         }
     } catch (err) {
-        console.error('[Handler] Fatal:', err.stack || err.message);
+        logger.error(`[Handler] Fatal: ${err.stack || err.message}`);
     }
 }
 
-module.exports = { handleMessages, safeSend, setupConnectionHandlers, PERM, plugins, reloadPlugin, reloadAllPlugins, jidToNum, sameNumber };
+module.exports = { handleMessages, safeSend, setupConnectionHandlers, PERM, plugins, reloadPlugin, reloadAllPlugins, jidToNum, sameNumber, levenshtein, predictCommand, groupCache };

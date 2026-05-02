@@ -1,6 +1,5 @@
 'use strict';
 
-const { fmt } = require('../lib/theme');
 const { getCommandRaw } = require('../lib/command');
 
 module.exports = {
@@ -12,7 +11,7 @@ module.exports = {
     private:     false,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, isAdmin, isBotAdmin, contextInfo, theme } = ctx;
+        const { jid, isAdmin, isBotAdmin, contextInfo, theme, fmt } = ctx;
 
         const rawCmd = getCommandRaw(ctx);
 

@@ -1,9 +1,25 @@
 const fs = require('fs');
-if (fs.existsSync('config.env')) require('dotenv').config({ path: './config.env' });
+if (fs.existsSync('config.env')) {
+    require('dotenv').config({ path: './config.env' });
+} else {
+    require('dotenv').config();
+}
 
 function toBool(val, defaultOn = true) {
     if (val === undefined || val === null || val === '') return defaultOn;
     return val.toLowerCase() !== 'false';
+}
+
+function readSecretFile(filePath) {
+    if (!filePath) return '';
+    try {
+        const p = String(filePath).trim();
+        if (!p) return '';
+        if (!fs.existsSync(p)) return '';
+        return String(fs.readFileSync(p, 'utf8')).trim();
+    } catch {
+        return '';
+    }
 }
 
 module.exports = {
@@ -61,11 +77,23 @@ module.exports = {
     POSTGRES_HOST: process.env.POSTGRES_HOST || 'localhost',
     POSTGRES_PORT: Number(process.env.POSTGRES_PORT || 5432),
     POSTGRES_USER: process.env.POSTGRES_USER || 'shadowwalker',
-    POSTGRES_PASSWORD: process.env.POSTGRES_PASSWORD || '',
+    POSTGRES_PASSWORD:
+        process.env.POSTGRES_PASSWORD || readSecretFile(process.env.POSTGRES_PASSWORD_FILE) || '',
     POSTGRES_DB: process.env.POSTGRES_DB || 'messageforge',
     DASHBOARD_TOKEN: process.env.DASHBOARD_TOKEN || '',
     MESSENGER_HISTORY_MAX: Number(process.env.MESSENGER_HISTORY_MAX || 3000),
+    MESSENGER_CACHED_CHATS: Number(process.env.MESSENGER_CACHED_CHATS || 50),
     LOG_MAX_FILE_BYTES: Number(process.env.LOG_MAX_FILE_BYTES || 5 * 1024 * 1024),
     LOG_MAX_AGE_DAYS: Number(process.env.LOG_MAX_AGE_DAYS || 2),
     LOG_MAX_TOTAL_BYTES: Number(process.env.LOG_MAX_TOTAL_BYTES || 200 * 1024 * 1024),
+    LOG_FORMAT: (process.env.LOG_FORMAT || 'text').toLowerCase().trim(),
+    PORT: Number(process.env.PORT || 25680),
+    SEND_GUARD_MAX_PER_MIN: Number(process.env.SEND_GUARD_MAX_PER_MIN || 30),
+    LID_JID_MAP_MAX: Number(process.env.LID_JID_MAP_MAX || 20000),
+    LID_PHONE_CACHE_MAX: Number(process.env.LID_PHONE_CACHE_MAX || 60000),
+    GROUP_CACHE_TTL_MS: Number(process.env.GROUP_CACHE_TTL_MS || 5 * 60 * 1000),
+    MESSAGE_CACHE_TTL_MS: Number(process.env.MESSAGE_CACHE_TTL_MS || 3 * 60 * 60 * 1000),
+    FACE_MATCH_THRESHOLD: Number(process.env.FACE_MATCH_THRESHOLD || 0.45),
+    MEDIA_MAX_MB: Number(process.env.MEDIA_MAX_MB || 100),
+    DB_POOL_MAX: Number(process.env.DB_POOL_MAX || 20),
 };

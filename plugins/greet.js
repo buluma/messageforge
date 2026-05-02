@@ -2,7 +2,6 @@
 
 const fs     = require('fs');
 const path   = require('path');
-const { fmt } = require('../lib/theme');
 const config  = require('../config');
 
 const DATA_PATH = path.join(__dirname, '../data/greet.json');
@@ -79,7 +78,7 @@ module.exports = {
     private:     true,
 
     async run(sock, message, args, ctx) {
-        const { reply } = ctx;
+        const { reply, fmt } = ctx;
         const cmd = ctx.command;
 
         // ── Toggle ON ──────────────────────────────────────────────────────

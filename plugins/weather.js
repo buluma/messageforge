@@ -1,7 +1,6 @@
 'use strict';
 
 const axios    = require('axios');
-const { getStr } = require('../lib/theme');
 const OWM_KEY = '060a6bcfa19809c2cd4d97a212b19273';
 
 module.exports = {
@@ -10,7 +9,7 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, contextInfo }) => {
+    run: async (sock, message, args, { sender, contextInfo, getStr }) => {
         if (!args.length) {
             return sock.sendMessage(sender, {
                 text: '❌ Please provide a location.\nExample: .weather Nairobi',

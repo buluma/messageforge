@@ -49,19 +49,44 @@ Health check:
 curl http://127.0.0.1:25680/health
 ```
 
-## Deploy (Heroku)
+## Deploy (Production)
 
-1. [Generate Session ID](https://messageforge-session-selector.vercel.app/)
-2. [Fork this repository](https://github.com/MessageForgeB/messageforge/fork)
-3. [Deploy to Heroku](https://messageforge-md-fork-checker.vercel.app/)
+Docker is the canonical production deploy:
+
+```bash
+cp sample.env .env
+# Set SESSION_ID, OWNER_NUMBER, DASHBOARD_TOKEN, and any optional overrides
+docker compose up -d --build
+docker compose logs -f messageforge
+```
+
+Health check:
+
+```bash
+curl http://127.0.0.1:25680/health
+```
+
+PM2 (bare-metal alternative):
+
+```bash
+npm install
+cp sample.env .env
+pm2 start ecosystem.config.js
+pm2 logs messageforge --lines 50
+```
 
 ## Hack
 
 ```bash
+# run tests
+npm test
+
+# lint (0 errors required)
+npm run lint
+npm run lint:fix
+
 # format check
 npx prettier --check .
-
-# auto-format
 npx prettier --write .
 ```
 

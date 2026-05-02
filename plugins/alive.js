@@ -1,9 +1,7 @@
 'use strict';
 
 const os      = require('os');
-const config  = require('../config');
 const { performance } = require('perf_hooks');
-const { getActiveTheme } = require('../lib/theme');
 const moment  = require('moment-timezone');
 
 const TZ = 'Africa/Nairobi';
@@ -15,7 +13,7 @@ module.exports = {
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { sender, contextInfo }) => {
+    run: async (sock, message, args, { sender, contextInfo, config, getActiveTheme }) => {
         const t = getActiveTheme()?.global || {};
 
         const start = performance.now();

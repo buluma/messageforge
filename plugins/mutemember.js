@@ -1,7 +1,5 @@
 'use strict';
 
-const { fmt } = require('../lib/theme');
-
 // In-memory muted list per group: { jid: Set<participantJid> }
 const mutedMembers = new Map();
 global.groupMutedMembers = mutedMembers;
@@ -15,7 +13,7 @@ module.exports = {
     private:     false,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, isAdmin, isBotAdmin, mentionedJid, reply, contextInfo } = ctx;
+        const { jid, isAdmin, isBotAdmin, mentionedJid, reply, contextInfo, fmt } = ctx;
 
         if (!isAdmin) return reply(fmt('⛔ Only admins can mute/unmute members.'));
 

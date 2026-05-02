@@ -15,7 +15,6 @@ const ffmpeg      = require('fluent-ffmpeg');
 const fs          = require('fs');
 const path        = require('path');
 const os          = require('os');
-const { fmt }     = require('../lib/theme');
 const { dlBuffer } = require('../lib/dlmedia');
 
 // ─── Parse flags from args ───────────────────────────────────────────────────
@@ -131,7 +130,7 @@ module.exports = {
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { jid, contextInfo, reply }) => {
+    run: async (sock, message, args, { jid, contextInfo, reply, fmt }) => {
         const flags   = parseFlags(args);
         const msg     = message.message;
         const quoted  = msg?.extendedTextMessage?.contextInfo?.quotedMessage;

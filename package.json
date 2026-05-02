@@ -7,6 +7,8 @@
         "start": "node messageforge.js",
         "test": "jest",
         "test:watch": "jest --watch",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
         "pm2:start": "pm2 start ecosystem.config.js",
         "pm2:restart": "pm2 restart messageforge",
         "pm2:stop": "pm2 stop messageforge",
@@ -146,14 +148,30 @@
         "music-metadata": "^11.12.3"
     },
     "devDependencies": {
+        "eslint": "^9.39.4",
+        "eslint-config-prettier": "^10.1.8",
         "jest": "^30.3.0",
         "prettier": "^3.2.5"
     },
     "jest": {
         "testEnvironment": "node",
-        "testMatch": ["**/tests/**/*.test.js"],
+        "testMatch": [
+            "**/tests/**/*.test.js"
+        ],
+        "collectCoverage": true,
         "coverageDirectory": "coverage",
-        "testPathIgnorePatterns": ["/node_modules/", "/.claude/"],
+        "coverageThreshold": {
+            "global": {
+                "branches": 20,
+                "functions": 15,
+                "lines": 25,
+                "statements": 24
+            }
+        },
+        "testPathIgnorePatterns": [
+            "/node_modules/",
+            "/.claude/"
+        ],
         "moduleNameMapper": {
             "^chokidar$": "<rootDir>/tests/__mocks__/chokidar.js"
         }

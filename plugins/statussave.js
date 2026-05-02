@@ -1,6 +1,5 @@
 'use strict';
 
-const { getStr, fmt } = require('../lib/theme');
 const { dlBuffer }    = require('../lib/dlmedia');
 
 module.exports = {
@@ -10,7 +9,7 @@ module.exports = {
     group:       false,
     private:     true,
 
-    run: async (sock, message, args, { sender, contextInfo, reply }) => {
+    run: async (sock, message, args, { sender, contextInfo, reply, getStr, fmt }) => {
         try {
             const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
             if (!quoted) {

@@ -1,7 +1,6 @@
 'use strict';
 
 const axios  = require('axios');
-const { fmt } = require('../lib/theme');
 const { getCommand } = require('../lib/command');
 
 const LOGO_STYLES = {
@@ -34,7 +33,6 @@ const LOGO_STYLES = {
     writetext:       { style: 'handwriting',     color: '#1A1A1A', bg: '#FFFFF0' },
     logomaker:       { style: 'logo',            color: '#FF6600', bg: '#FFFFFF' },
     logolist:        null,
-    logo1917:        { style: 'retro',           color: '#C0A000', bg: '#1A1A1A' },
 };
 
 const LOGO_APIS = [
@@ -59,7 +57,7 @@ module.exports = {
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, contextInfo } = ctx;
+        const { jid, contextInfo, fmt } = ctx;
         const cmd = getCommand(ctx);
         const text  = args.join(' ').trim();
         const send  = (t) => sock.sendMessage(jid, { text: fmt(t), contextInfo }, { quoted: message });

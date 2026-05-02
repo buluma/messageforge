@@ -2,9 +2,8 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { fmt } = require('../lib/theme');
 
-const ENV_FILE = path.join(__dirname, '../config.env');
+const ENV_FILE = path.join(__dirname, '..', '.env');
 
 function persistPrefix(value) {
     try {
@@ -20,7 +19,7 @@ function persistPrefix(value) {
         content = content ? content + `\nPREFIX=${value}` : `PREFIX=${value}`;
         fs.writeFileSync(ENV_FILE, content + '\n');
     } catch (e) {
-        console.warn('[setprefix] Could not persist to config.env:', e.message);
+        console.warn('[setprefix] Could not persist to .env:', e.message);
     }
 }
 
@@ -33,8 +32,7 @@ module.exports = {
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, isOwner, reply, prefix, config: cfg } = ctx;
-        const config = require('../config');
+        const { jid, isOwner, reply, fmt, config } = ctx;
 
         if (!isOwner) return reply(fmt('⛔ Only the bot owner can change the prefix.'));
 

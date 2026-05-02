@@ -2,8 +2,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const config = require('../config');
-const { getStr, getActiveTheme } = require('../lib/theme');
 const moment = require('moment-timezone');
 const baileys = require('@whiskeysockets/baileys');
 const { proto, generateMessageIDV2 } = baileys;
@@ -275,7 +273,7 @@ function section(title, cmds) {
     return `${title}\n${cmds.join('  ·  ')}`;
 }
 
-function buildMenuText(plugins, pfx, botName, ownerNum, mode) {
+function buildMenuText(plugins, pfx, botName, ownerNum, mode, byText) {
     const allCmds = new Set(plugins.flatMap((p) => p.commands || []));
     const assigned = new Set();
     const modeEmoji = mode === 'PUBLIC' ? '🟢' : mode === 'PRIVATE' ? '🔒' : '🔵';
@@ -329,7 +327,7 @@ function buildMenuText(plugins, pfx, botName, ownerNum, mode) {
         `💡 \`${pfx}help <cmd>\` for details`,
         `🌐 ${WEBSITE}`,
         ``,
-        `> ⚡ _${getStr('by') || 'Made by: SHADOWNET Team'} © ${now.year()}_`,
+        `> ⚡ _${byText || 'Made by: SHADOWNET Team'} © ${now.year()}_`,
     ].join('\n');
 
     const body = catBlocks.join(`\n\n${DIVIDER}\n\n`);
@@ -381,14 +379,15 @@ module.exports = {
     private: true,
 
     run: async (sock, message, args, ctx) => {
-        const { prefix, contextInfo, jid } = ctx;
+        const { prefix, contextInfo, jid, config, getStr } = ctx;
         const { plugins } = require('../handler');
 
         const botName = getStr('botName') || config.BOT_NAME || 'MessageForge';
         const ownerNum = `+${(config.OWNER_NUMBER || '').replace(/\D/g, '')}`;
         const mode = (config.MODE || 'public').toUpperCase();
         const pfx = prefix || '.';
-        const menuText = buildMenuText(plugins, pfx, botName, ownerNum, mode);
+        const byText = getStr('by');
+        const menuText = buildMenuText(plugins, pfx, botName, ownerNum, mode, byText);
 
         // ── Primary: call log bubble → menu reply ──────────────────────────────
         try {

@@ -2,7 +2,6 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { getStr } = require('../lib/theme');
 
 const DATA_PATH = path.join(__dirname, '../data/antigm.json');
 
@@ -35,7 +34,7 @@ module.exports = {
     private:     false,
 
     async run(sock, message, args, ctx) {
-        const { reply, jid } = ctx;
+        const { reply, jid, getStr } = ctx;
         const botName = getStr('botName') || 'MessageForge';
         const footer  = getStr('footer')  || '';
 

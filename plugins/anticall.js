@@ -9,19 +9,19 @@ const DEFAULT_SETTINGS = {
     rejectCalls:    true,
     blockCaller:    false,
     notifyAdmin:    true,
-    autoReply:      "🚫 I don't accept calls. Please send a text message instead.",
+    autoReply:      '🚫 I don\'t accept calls. Please send a text message instead.',
     blockedUsers:   []
 };
 
 function loadSettings() {
     try {
         if (fs.existsSync(SETTINGS_PATH)) return JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf8'));
-    } catch { /* ignore */ }
+    } catch (e) { console.warn('[anticall] failed to load settings:', e.message); }
     return { ...DEFAULT_SETTINGS };
 }
 
 function saveSettings(s) {
-    try { fs.writeFileSync(SETTINGS_PATH, JSON.stringify(s, null, 2)); } catch { /* ignore */ }
+    try { fs.writeFileSync(SETTINGS_PATH, JSON.stringify(s, null, 2)); } catch (e) { console.warn('[anticall] failed to save settings:', e.message); }
 }
 
 const settings = loadSettings();
@@ -34,7 +34,7 @@ function initCallHandler(sock, ownerJid) {
             const caller = call.from;
 
             if (settings.blockedUsers.includes(caller) || settings.rejectCalls) {
-                try { await sock.rejectCall(call.id, caller); } catch { /* ignore */ }
+                try { await sock.rejectCall(call.id, caller); } catch (e) { console.warn('[anticall] rejectCall failed:', e.message); }
             }
 
             if (settings.autoReply) {
@@ -49,7 +49,7 @@ function initCallHandler(sock, ownerJid) {
                             }
                         }
                     });
-                } catch { /* ignore */ }
+                } catch (e) { console.warn('[anticall] autoReply failed:', e.message); }
             }
 
             if (settings.notifyAdmin && ownerJid) {
@@ -57,7 +57,7 @@ function initCallHandler(sock, ownerJid) {
                     await sock.sendMessage(ownerJid, {
                         text: `📞 *Anti-Call Alert*\n\nCaller: ${caller}\nType: ${call.isVideo ? 'video' : 'voice'}\nStatus: Rejected`
                     });
-                } catch { /* ignore */ }
+                } catch (e) { console.warn('[anticall] admin notify failed:', e.message); }
             }
 
             if (settings.blockCaller && !settings.blockedUsers.includes(caller)) {

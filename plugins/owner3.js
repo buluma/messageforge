@@ -3,7 +3,6 @@
 const fs     = require('fs');
 const path   = require('path');
 const config = require('../config');
-const { fmt } = require('../lib/theme');
 const { jidNormalizedUser } = require('@whiskeysockets/baileys');
 const { getCommand } = require('../lib/command');
 const {
@@ -53,7 +52,7 @@ module.exports = {
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, contextInfo, isOwner, mentionedJid, groupMetadata } = ctx;
+        const { jid, contextInfo, isOwner, mentionedJid, groupMetadata, fmt } = ctx;
         const cmd = getCommand(ctx);
         const text = args.join(' ').trim();
         const send = (t) => sock.sendMessage(jid, { text: fmt(t), contextInfo }, { quoted: message });

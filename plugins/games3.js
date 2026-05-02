@@ -1,6 +1,5 @@
 'use strict';
 
-const { fmt } = require('../lib/theme');
 const { getCommand } = require('../lib/command');
 
 const diceGames  = new Map();
@@ -27,7 +26,7 @@ module.exports = {
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, contextInfo } = ctx;
+        const { jid, contextInfo, fmt } = ctx;
         const from = message.key.participant || message.key.remoteJid;
         const cmd = getCommand(ctx);
         const send = (t) => sock.sendMessage(jid, { text: fmt(t), contextInfo }, { quoted: message });

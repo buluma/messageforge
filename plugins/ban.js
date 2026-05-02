@@ -1,6 +1,5 @@
 'use strict';
 
-const { fmt } = require('../lib/theme');
 const db = require('../lib/dbManager');
 const { getCommand } = require('../lib/command');
 
@@ -15,7 +14,7 @@ module.exports = {
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, isOwner, contextInfo, mentionedJid } = ctx;
+        const { jid, isOwner, contextInfo, mentionedJid, fmt } = ctx;
 
         const rawCmd = getCommand(ctx);
 

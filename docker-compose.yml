@@ -37,3 +37,41 @@ services:
       options:
         max-size: "10m"
         max-file: "5"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_TYPE: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: messageforge
+      POSTGRES_DB: messageforge
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: messageforge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: messageforge
+      POSTGRES_DB: messageforge
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U messageforge -d messageforge"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  postgres_data:
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password.txt

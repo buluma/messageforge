@@ -1,7 +1,6 @@
 'use strict';
 
 const os = require('os');
-const { getStr } = require('../lib/theme');
 
 module.exports = {
     commands:    ['call', 'support', 'ss'],
@@ -9,7 +8,7 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, contextInfo }) => {
+    run: async (sock, message, args, { sender, contextInfo, getStr }) => {
         const botName = getStr('botName') || 'MessageForge';
         const pic     = getStr('pic1') || '';
 

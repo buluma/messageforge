@@ -18,3 +18,6 @@ config.env
 /.claude
 /.gemini-tasks
 /.playwright-browsers
+/coverage
+secrets/
+/bin

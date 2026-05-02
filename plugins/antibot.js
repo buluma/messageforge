@@ -8,7 +8,7 @@ module.exports = {
     permission:  'admin',
     group:       true,
     private:     false,
-    run: async (sock, message, args, { sender, groupId, isAdmin, contextInfo }) => {
+    run: async (sock, message, args, { sender, groupId, isAdmin, safeSend, contextInfo }) => {
         if (!isAdmin) {
             return sock.sendMessage(sender, { text: '❌ Only admins can toggle anti-bot.', contextInfo }, { quoted: message });
         }
@@ -23,7 +23,7 @@ module.exports = {
         const enabled = antibotGroups.has(groupId);
         if (!global.antibotGroups) global.antibotGroups = new Set();
         enabled ? global.antibotGroups.add(groupId) : global.antibotGroups.delete(groupId);
-        await sock.sendMessage(groupId, {
+        await safeSend({
             text: `🤖 *Anti-bot:* ${enabled ? '✅ Enabled' : '❌ Disabled'}\n_Accounts that look like bots will be removed on join._`,
             contextInfo
         }, { quoted: message });

@@ -1,5 +1,4 @@
 'use strict';
-const config = require('../config');
 
 module.exports = {
     commands: ['readreceipt', 'bluetick', 'readtick', 'receipt'],
@@ -10,7 +9,7 @@ module.exports = {
     private: true,
 
     run: async (sock, message, args, ctx) => {
-        const { reply } = ctx;
+        const { reply, config } = ctx;
         const action = (args[0] || '').toLowerCase();
 
         if (action === 'on') {

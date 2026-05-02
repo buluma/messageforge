@@ -126,3 +126,39 @@ export function safeMomentFormat(ts, fmt = 'hh:mm A') {
     return '';
   }
 }
+
+/**
+ * Sets up a focus trap within an element.
+ * @param {HTMLElement} root - The container element to trap focus within.
+ * @param {HTMLElement} closeBtn - The button that closes the modal (focused on entry).
+ * @returns {Function} - A cleanup function to remove listeners.
+ */
+export function setupFocusTrap(root, closeBtn) {
+    const focusableEls = root.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    );
+    const firstFocusable = focusableEls[0];
+    const lastFocusable = focusableEls[focusableEls.length - 1];
+
+    const handleKeydown = (e) => {
+        if (e.key !== 'Tab') return;
+
+        if (e.shiftKey) {
+            if (document.activeElement === firstFocusable) {
+                lastFocusable.focus();
+                e.preventDefault();
+            }
+        } else {
+            if (document.activeElement === lastFocusable) {
+                firstFocusable.focus();
+                e.preventDefault();
+            }
+        }
+    };
+
+    root.addEventListener('keydown', handleKeydown);
+    if (closeBtn) closeBtn.focus();
+    else if (firstFocusable) firstFocusable.focus();
+
+    return () => root.removeEventListener('keydown', handleKeydown);
+}

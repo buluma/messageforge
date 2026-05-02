@@ -1,7 +1,5 @@
 'use strict';
 
-const config = require('../config');
-
 const VALID = ['composing', 'recording', 'paused', 'available', 'unavailable'];
 
 module.exports = {
@@ -11,7 +9,7 @@ module.exports = {
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { sender, contextInfo }) => {
+    run: async (sock, message, args, { sender, contextInfo, prefix }) => {
         const jid = message.key.remoteJid;
         const cmd = message.key.id
             ? (message.message?.conversation || message.message?.extendedTextMessage?.text || '')
@@ -32,15 +30,15 @@ module.exports = {
             return sock.sendMessage(jid, {
                 text:
                     `*Presence Command Usage:*\n\n` +
-                    `• \`${config.PREFIX}typing\` — show typing...\n` +
-                    `• \`${config.PREFIX}recording\` — show recording...\n` +
-                    `• \`${config.PREFIX}online\` — show online\n` +
-                    `• \`${config.PREFIX}offline\` — appear offline\n` +
-                    `• \`${config.PREFIX}presence composing\` — typing\n` +
-                    `• \`${config.PREFIX}presence recording\` — recording\n` +
-                    `• \`${config.PREFIX}presence paused\` — paused\n` +
-                    `• \`${config.PREFIX}presence available\` — online\n` +
-                    `• \`${config.PREFIX}presence unavailable\` — offline`,
+                    `• \`${prefix}typing\` — show typing...\n` +
+                    `• \`${prefix}recording\` — show recording...\n` +
+                    `• \`${prefix}online\` — show online\n` +
+                    `• \`${prefix}offline\` — appear offline\n` +
+                    `• \`${prefix}presence composing\` — typing\n` +
+                    `• \`${prefix}presence recording\` — recording\n` +
+                    `• \`${prefix}presence paused\` — paused\n` +
+                    `• \`${prefix}presence available\` — online\n` +
+                    `• \`${prefix}presence unavailable\` — offline`,
                 contextInfo
             }, { quoted: message });
         }

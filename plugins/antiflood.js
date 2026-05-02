@@ -1,7 +1,5 @@
 'use strict';
 
-const { fmt } = require('../lib/theme');
-
 // In-memory flood tracking: { jid: { participant: { count, resetAt } } }
 const floodMap  = new Map();
 // Per-group settings: { jid: { enabled: bool, limit: number, window: number } }
@@ -48,7 +46,7 @@ module.exports = {
     private:     false,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, isAdmin, isBotAdmin, reply, command } = ctx;
+        const { jid, isAdmin, isBotAdmin, reply, command, fmt } = ctx;
         if (!isAdmin) return reply(fmt('⛔ Only admins can manage flood protection.'));
 
         const rawCmd = (message.message?.extendedTextMessage?.text ||

@@ -1,7 +1,5 @@
 'use strict';
 
-const { fmt } = require('../lib/theme');
-
 module.exports = {
     commands:    ['kick', 'remove'],
     description: 'Remove a member from the group (reply to their message or mention them)',
@@ -11,7 +9,7 @@ module.exports = {
     private:     false,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, isAdmin, isBotAdmin, contextInfo, groupMetadata, mentionedJid, theme } = ctx;
+        const { jid, isAdmin, isBotAdmin, contextInfo, groupMetadata, mentionedJid, theme, fmt } = ctx;
 
         if (!isAdmin) {
             return sock.sendMessage(jid, { text: fmt(theme.admin || '⛔ Only admins can use this command.'), contextInfo }, { quoted: message });

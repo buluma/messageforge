@@ -1,6 +1,5 @@
 'use strict';
 
-const { fmt } = require('../lib/theme');
 const { getCommand } = require('../lib/command');
 
 module.exports = {
@@ -12,7 +11,7 @@ module.exports = {
     private:     false,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, isAdmin, isBotAdmin, contextInfo, mentionedJid, theme } = ctx;
+        const { jid, isAdmin, isBotAdmin, contextInfo, mentionedJid, theme, fmt } = ctx;
         const command = getCommand(ctx);
         const isPromote = command === 'promote' || command === 'admin';
 

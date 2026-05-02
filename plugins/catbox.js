@@ -5,7 +5,6 @@ const FormData = require('form-data');
 const fs       = require('fs');
 const os       = require('os');
 const path     = require('path');
-const { fmt }  = require('../lib/theme');
 const { dlBuffer, TYPE_MAP } = require('../lib/dlmedia');
 
 module.exports = {
@@ -15,7 +14,7 @@ module.exports = {
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { jid, contextInfo, reply }) => {
+    run: async (sock, message, args, { jid, contextInfo, reply, fmt }) => {
         const msg    = message.message;
         const quoted = msg?.extendedTextMessage?.contextInfo?.quotedMessage;
 

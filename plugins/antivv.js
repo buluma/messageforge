@@ -32,7 +32,7 @@ module.exports = {
         const icon   = state ? '✅' : '❌';
         const label  = state ? 'ENABLED' : 'DISABLED';
 
-        await sock.sendMessage(jid, { react: { text: state ? '👁️' : '🙈', key: message.key } }).catch(() => {});
+        await sock.sendMessage(jid, { react: { text: state ? '👁️' : '🙈', key: message.key } }).catch((e) => console.warn('[antivv] react failed:', e.message));
         await sock.sendMessage(jid, {
             text: `${icon} *Anti-ViewOnce ${label}*\n\n${state
                 ? '👁️ All view-once messages will be automatically revealed and forwarded to the owner.'

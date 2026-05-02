@@ -1,6 +1,4 @@
 'use strict';
-
-const config = require('../config');
 module.exports = {
     commands:    ['antidelete', 'antidel'],
     description: 'Toggle anti-delete — recovers deleted and edited messages and forwards them to you',
@@ -9,7 +7,7 @@ module.exports = {
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { safeSend, contextInfo } = ctx;
+        const { safeSend, contextInfo, config } = ctx;
         const action = (args[0] || '').toLowerCase();
 
         if (action === 'on') {

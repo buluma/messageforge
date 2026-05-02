@@ -2,7 +2,6 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { fmt } = require('../lib/theme');
 const { getCommand } = require('../lib/command');
 
 const BAD_WORDS_FILE = path.join(__dirname, '../data/badwords.json');
@@ -33,7 +32,7 @@ module.exports = {
     private:     false,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, isAdmin, isBotAdmin, contextInfo, groupMetadata, mentionedJid, theme, isOwner } = ctx;
+        const { jid, isAdmin, isBotAdmin, contextInfo, groupMetadata, mentionedJid, theme, isOwner, fmt } = ctx;
         const participants = groupMetadata?.participants || [];
         const cmd = getCommand(ctx);
 

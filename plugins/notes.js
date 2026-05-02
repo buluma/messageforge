@@ -2,7 +2,6 @@
 
 const fs   = require('fs');
 const path = require('path');
-const { fmt } = require('../lib/theme');
 const { getCommand } = require('../lib/command');
 
 const DATA_DIR  = path.join(__dirname, '../data/notes');
@@ -32,7 +31,7 @@ module.exports = {
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, contextInfo, isOwner } = ctx;
+        const { jid, contextInfo, isOwner, fmt } = ctx;
         const from   = message.key.participant || message.key.remoteJid;
         const cmd = getCommand(ctx);
 

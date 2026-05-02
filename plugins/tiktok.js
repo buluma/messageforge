@@ -7,7 +7,6 @@ const streamPipeline = promisify(pipeline);
 const fs            = require('fs');
 const os            = require('os');
 const path          = require('path');
-const { getStr, fmt } = require('../lib/theme');
 
 const DATA_DIR = path.join(__dirname, '..', 'data', 'tiktok');
 
@@ -294,7 +293,7 @@ module.exports = {
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { sender, contextInfo, reply, command: ctxCommand }) => {
+    run: async (sock, message, args, { sender, contextInfo, reply, command: ctxCommand, fmt, getStr, prefix }) => {
         // Use ctx.command for accurate command detection
         const command = (ctxCommand || (args[0] || '')).toLowerCase();
 

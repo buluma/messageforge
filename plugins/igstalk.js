@@ -1,7 +1,6 @@
 'use strict';
 
 const axios   = require('axios');
-const { fmt, getStr } = require('../lib/theme');
 
 function fmtNum(n) {
     if (n === undefined || n === null) return 'N/A';
@@ -50,7 +49,7 @@ module.exports = {
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { jid, contextInfo, reply }) => {
+    run: async (sock, message, args, { jid, contextInfo, reply, fmt, getStr }) => {
         let username = args[0]?.replace(/^@/, '').trim();
         if (!username) {
             return reply(fmt('📸 Please provide an Instagram username.\nExample: `.igstalk cristiano`'));

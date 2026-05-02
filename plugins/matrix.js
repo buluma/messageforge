@@ -1,7 +1,5 @@
 'use strict';
 
-const { fmt } = require('../lib/theme');
-
 const MATRIX_CHARS = '日ﾊﾐﾋｰｳｼﾅﾓﾆｻﾜﾂｵﾘｱﾎﾃﾏｹﾒｴｶｷﾑﾕﾗｾﾈｽﾀﾇﾍ012345789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 function randomChar() {
@@ -63,7 +61,7 @@ module.exports = {
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, contextInfo } = ctx;
+        const { jid, contextInfo, fmt } = ctx;
 
         const text = args.join(' ').trim() || 'MessageForge';
 

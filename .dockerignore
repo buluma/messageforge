@@ -1,4 +1,8 @@
 node_modules/
+.git/
+tests/
+coverage/
+secrets/
 session/
 data/
 .env

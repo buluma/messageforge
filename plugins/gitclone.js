@@ -1,6 +1,4 @@
 'use strict';
-
-const { getStr } = require('../lib/theme');
 const GH_REGEX = /(?:https|git)(?::\/\/|@)github\.com[\/:]([^\/:]+)\/(.+)/i;
 
 module.exports = {
@@ -9,7 +7,7 @@ module.exports = {
     permission:  'public',
     group:       true,
     private:     true,
-    run: async (sock, message, args, { sender, contextInfo }) => {
+    run: async (sock, message, args, { sender, contextInfo, getStr }) => {
         if (!args[0]) {
             return sock.sendMessage(sender, {
                 text: `❌ Please provide a GitHub URL.\nExample: .gitclone https://github.com/buluma/messageforge`,

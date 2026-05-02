@@ -22,11 +22,14 @@ pm2 logs messageforge --lines 50
 # Install dependencies (requires Node >=20, ffmpeg, ffprobe, webp system packages)
 npm install
 
-# Docker (docker-compose.yml is the canonical way)
+# Docker (docker-compose.yml is the canonical way — recommended for production)
 docker compose up -d
 docker compose logs -f messageforge
 
-# No test runner or lint script is configured
+# Tests
+npm test          # Jest suite (unit + integration)
+npm run lint      # ESLint (0 errors required; warnings are informational)
+npm run lint:fix  # Auto-fix lint issues
 ```
 
 ## Architecture

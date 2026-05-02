@@ -1,5 +1,6 @@
 import { state } from './state.js';
 import { getDashboardToken, setDashboardToken } from './api.js';
+import { setupFocusTrap } from './utils.js';
 
 export const events = new EventTarget();
 
@@ -11,10 +12,13 @@ function showAuthModal(sock) {
     modal.hidden = false;
     const input = document.getElementById('authTokenInput');
     const btn = document.getElementById('authTokenSubmit');
-    input.focus();
+
+    const cleanup = setupFocusTrap(modal, input);
+
     const submit = () => {
         const token = input.value.trim();
         if (!token) return;
+        cleanup();
         modal.hidden = true;
         setDashboardToken(token);
         sock.auth = { token };
@@ -22,7 +26,9 @@ function showAuthModal(sock) {
         sock.connect();
     };
     btn.onclick = submit;
-    input.onkeydown = (e) => { if (e.key === 'Enter') submit(); };
+    input.onkeydown = (e) => {
+        if (e.key === 'Enter') submit();
+    };
 }
 
 export function initSocket() {

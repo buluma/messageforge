@@ -1,7 +1,6 @@
 'use strict';
 
 const axios    = require('axios');
-const { fmt, getStr } = require('../lib/theme');
 
 // ─── Helper: extract shortcode from any Instagram URL ───────────────────────
 function extractShortcode(url) {
@@ -124,7 +123,7 @@ module.exports = {
     group:       true,
     private:     true,
 
-    run: async (sock, message, args, { jid, contextInfo, reply, safeSend }) => {
+    run: async (sock, message, args, { jid, contextInfo, reply, safeSend, getStr }) => {
         const url = args[0];
         if (!url || !url.includes('instagram.com')) {
             return reply(`📸 Please provide a valid Instagram URL.\nExample: \`.ig https://www.instagram.com/p/xyz/\``);

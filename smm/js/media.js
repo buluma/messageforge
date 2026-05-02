@@ -1,7 +1,7 @@
 'use strict';
 
 import api from './api.js';
-import { toast } from './utils.js';
+import { toast, escapeHtml, setupFocusTrap } from './utils.js';
 
 const ICON = { video: '🎬', image: '🖼️', audio: '🎵' };
 
@@ -72,17 +72,20 @@ function renderGrid() {
 
     const visibleFiles = allFiltered.slice(0, PAGE_SIZE * mediaPage);
 
-    grid.innerHTML = visibleFiles.map((f) => `
-        <div class="media-card" data-url="${f.url}" data-type="${f.type}" data-name="${f.name}">
-            <button class="media-delete-btn" data-url="${f.url}" title="Delete">🗑</button>
+    grid.innerHTML = visibleFiles.map((f) => {
+        const safeName = escapeHtml(f.name);
+        const safeFolder = escapeHtml(f.folder === '.' ? 'root' : f.folder);
+        return `
+        <div class="media-card" data-url="${escapeHtml(f.url)}" data-type="${escapeHtml(f.type)}" data-name="${safeName}" tabindex="0" role="button" aria-label="View ${safeName}">
+            <button class="media-delete-btn" data-url="${escapeHtml(f.url)}" title="Delete" aria-label="Delete ${safeName}">🗑</button>
             ${f.type === 'image' || f.type === 'video'
-                ? `<img class="media-thumb" src="/api/media/thumb?url=${encodeURIComponent(f.url)}" alt="${f.name}" loading="lazy" data-icon="${ICON[f.type] || '📄'}" />`
+                ? `<img class="media-thumb" src="/api/media/thumb?url=${encodeURIComponent(f.url)}" alt="${safeName}" loading="lazy" data-icon="${ICON[f.type] || '📄'}" />`
                 : `<div class="media-thumb-placeholder">${ICON[f.type] || '📄'}</div>`
             }
             <div class="media-card-body">
-                <div class="media-card-name" title="${f.name}">${f.name}</div>
+                <div class="media-card-name" title="${safeName}">${safeName}</div>
                 <div class="media-card-meta">
-                    <span class="media-folder-tag">${f.folder === '.' ? 'root' : f.folder}</span>
+                    <span class="media-folder-tag">${safeFolder}</span>
                     <span>${formatBytes(f.size)}</span>
                 </div>
                 <div class="media-card-meta" style="margin-top:2px">
@@ -90,7 +93,8 @@ function renderGrid() {
                 </div>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 
     // Append "Load more" button if there are additional files beyond the current page
     if (allFiltered.length > PAGE_SIZE * mediaPage) {
@@ -118,13 +122,23 @@ function renderGrid() {
     grid.hidden = false;
 }
 
-async function deleteFile(url) {
+async function deleteFile(url, options = {}) {
+    const confirmDelete = options.confirm !== false;
+    const silent = options.silent === true;
     try {
+        if (confirmDelete) {
+            const f = allFiles.find((x) => x.url === url);
+            const name = f?.name || url;
+            const size = typeof f?.size === 'number' ? ` (${formatBytes(f.size)})` : '';
+            if (!confirm(`Delete "${name}"${size}?`)) return false;
+        }
         await api.delete('/api/media', { data: { url } });
         allFiles = allFiles.filter((f) => f.url !== url);
-        renderGrid();
+        if (!silent) renderGrid();
+        return true;
     } catch (err) {
         toast.error(`Delete failed: ${err.response?.data?.error || err.message}`);
+        return false;
     }
 }
 
@@ -160,6 +174,7 @@ function updateLbControls(file) {
     dlEl.download = file.name;
 }
 
+let lbCleanup = null;
 function openLightbox(file) {
     const lb = document.getElementById('mediaLightbox');
     const content = document.getElementById('mediaLightboxContent');
@@ -168,7 +183,7 @@ function openLightbox(file) {
     content.innerHTML = '';
 
     if (file.type === 'image') {
-        content.innerHTML = `<img src="${file.url}" alt="${file.name}" />`;
+        content.innerHTML = `<img src="${file.url}" alt="${escapeHtml(file.name)}" />`;
     } else if (file.type === 'video') {
         const vid = document.createElement('video');
         vid.src = file.url;
@@ -189,6 +204,9 @@ function openLightbox(file) {
 
     lb.hidden = false;
     updateLbControls(file);
+    if (!lbCleanup) {
+        lbCleanup = setupFocusTrap(lb, lb.querySelector('.media-lightbox-close'));
+    }
 }
 
 function closeLightbox() {
@@ -197,6 +215,10 @@ function closeLightbox() {
     content.innerHTML = '';
     lightboxUrl = null;
     lb.hidden = true;
+    if (lbCleanup) {
+        lbCleanup();
+        lbCleanup = null;
+    }
 }
 
 function lbNavigate(dir) {
@@ -219,17 +241,19 @@ function renderPeople() {
         const linkedName = p.jid
             ? (chatList?.find((c) => c.jid === p.jid)?.name || p.jid.split('@')[0])
             : null;
+        const safePName = escapeHtml(p.name);
+        const safeLinked = linkedName ? escapeHtml(linkedName) : null;
         return `
         <div class="person-card ${activePerson === p.id ? 'active' : ''} ${mergeSourceId === p.id ? 'merge-source' : ''}"
              data-person-id="${p.id}">
             <button class="person-delete-btn" data-person-id="${p.id}" title="Remove person">✕</button>
             <div class="person-avatar">
                 ${p.faceUrl
-                    ? `<img src="${p.faceUrl}" alt="${p.name}" class="person-face-img" />`
+                    ? `<img src="${p.faceUrl}" alt="${safePName}" class="person-face-img" />`
                     : `<span>👤</span>`}
             </div>
-            <div class="person-name" contenteditable="false" data-person-id="${p.id}">${p.name}</div>
-            ${linkedName ? `<div class="person-jid-label" title="${p.jid}">@${linkedName}</div>` : ''}
+            <div class="person-name" contenteditable="false" data-person-id="${p.id}">${safePName}</div>
+            ${safeLinked ? `<div class="person-jid-label" title="${escapeHtml(p.jid)}">@${safeLinked}</div>` : ''}
             <div class="person-count">${p.count} file${p.count !== 1 ? 's' : ''}</div>
             ${p.confidence != null && p.count > 1
                 ? p.confidence < 0.25
@@ -408,16 +432,19 @@ async function scanDuplicates() {
             groupEl.className = 'duplicate-group';
             groupEl.dataset.groupIdx = idx;
 
-            const thumbsHtml = files.map((f) => `
+            const thumbsHtml = files.map((f) => {
+                const safeFName = escapeHtml(f.name);
+                return `
                 <div class="duplicate-item">
                     ${f.type === 'image' || f.type === 'video'
-                        ? `<img class="duplicate-thumb" src="/api/media/thumb?url=${encodeURIComponent(f.url)}" alt="${f.name}" loading="lazy" />`
+                        ? `<img class="duplicate-thumb" src="/api/media/thumb?url=${encodeURIComponent(f.url)}" alt="${safeFName}" loading="lazy" />`
                         : `<div class="duplicate-thumb duplicate-thumb-icon">${ICON[f.type] || '📄'}</div>`
                     }
-                    <div class="duplicate-item-name" title="${f.name}">${f.name}</div>
+                    <div class="duplicate-item-name" title="${safeFName}">${safeFName}</div>
                     <div class="duplicate-item-size">${formatBytes(f.size)}</div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
 
             groupEl.innerHTML = `
                 <div class="duplicate-thumbs">${thumbsHtml}</div>
@@ -432,7 +459,7 @@ async function scanDuplicates() {
             grid.innerHTML = '<div class="empty-state">No duplicates found.</div>';
         }
     } catch (err) {
-        grid.innerHTML = `<div class="empty-state">Error: ${err.response?.data?.error || err.message}</div>`;
+        grid.innerHTML = `<div class="empty-state">Error: ${escapeHtml(err.response?.data?.error || err.message)}</div>`;
     } finally {
         btn.disabled = false;
         btn.textContent = 'Scan duplicates';
@@ -457,12 +484,7 @@ async function keepFirstDeleteRest(groupIdx) {
     });
 
     for (const url of toDelete) {
-        try {
-            await api.delete('/api/media', { data: { url } });
-            allFiles = allFiles.filter((f) => f.url !== url);
-        } catch (err) {
-            toast.error(`Delete failed: ${err.response?.data?.error || err.message}`);
-        }
+        await deleteFile(url, { confirm: false, silent: true });
     }
 
     groupEl.remove();
@@ -522,6 +544,16 @@ export function mountMedia() {
         if (file) openLightbox(file);
     });
 
+    document.getElementById('mediaGrid').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            const card = e.target.closest('.media-card');
+            if (!card) return;
+            e.preventDefault();
+            const file = allFiles.find((f) => f.url === card.dataset.url);
+            if (file) openLightbox(file);
+        }
+    });
+
     document.getElementById('mediaLightbox').addEventListener('click', (e) => {
         if (e.target.classList.contains('media-lightbox-backdrop') ||
             e.target.classList.contains('media-lightbox-close')) {
@@ -530,8 +562,9 @@ export function mountMedia() {
         }
         if (e.target.id === 'mediaLightboxDelete') {
             const url = lightboxUrl;
-            closeLightbox();
-            deleteFile(url);
+            deleteFile(url).then((ok) => {
+                if (ok) closeLightbox();
+            });
             return;
         }
         if (e.target.id === 'lbPrev') { lbNavigate(-1); return; }

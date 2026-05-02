@@ -1,6 +1,5 @@
 'use strict';
 
-const { fmt } = require('../lib/theme');
 const { TempMail } = require('tempmail.lol');
 const { getCommand } = require('../lib/command');
 
@@ -22,7 +21,7 @@ module.exports = {
     private: true,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, contextInfo } = ctx;
+        const { jid, contextInfo, fmt } = ctx;
         const from = message.key.participant || message.key.remoteJid;
         const mailSessions = getSessionStore();
         const cmd = getCommand(ctx);

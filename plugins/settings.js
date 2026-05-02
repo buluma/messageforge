@@ -1,8 +1,5 @@
 'use strict';
 
-const config = require('../config');
-const { fmt, getStr } = require('../lib/theme');
-
 function tick(val) {
     return val ? '✅' : '❌';
 }
@@ -26,7 +23,7 @@ module.exports = {
     private:     true,
 
     async run(sock, message, args, ctx) {
-        const { reply } = ctx;
+        const { reply, config, fmt, getStr } = ctx;
 
         const botName  = getStr('botName') || config.BOT_NAME  || 'MessageForge';
         const ownerNum = (config.OWNER_NUMBER || process.env.OWNER_NUMBER || '').replace(/\D/g, '');
@@ -86,7 +83,7 @@ module.exports = {
             `  ${greetSet ? `Use \`${prefix}getgreet\` to view • \`${prefix}greeton\`/\`${prefix}greetoff\` to toggle` : `Set with \`${prefix}setgreet <msg>\` or GREETING= in config`}`,
             ``,
             `📌 *Change settings*`,
-            `  Edit your \`config.env\` / Replit Secrets,`,
+            `  Edit your \`.env\` / environment variables,`,
             `  then restart the bot for changes to take effect.`,
         ];
 

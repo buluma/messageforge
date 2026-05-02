@@ -1,5 +1,3 @@
-const config = require('../config');
-const { fmt } = require('../lib/theme');
 if (!global.antilinkGroups) global.antilinkGroups = new Set();
 
 module.exports = {
@@ -10,7 +8,7 @@ module.exports = {
     private: false,
 
     async run(sock, message, args, ctx) {
-        const { reply, jid } = ctx;
+        const { reply, jid, config, fmt } = ctx;
         const sub = (args[0] || '').toLowerCase();
 
         const globalOn = config.ANTILINK;

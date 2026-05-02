@@ -3,7 +3,6 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
-const { fmt } = require('../lib/theme');
 const { getCommand } = require('../lib/command');
 
 const FANCY_MAP = {
@@ -207,7 +206,7 @@ module.exports = {
     private: true,
 
     run: async (sock, message, args, ctx) => {
-        const { jid, contextInfo, reply } = ctx;
+        const { jid, contextInfo, reply, fmt } = ctx;
         const cmd = getCommand(ctx);
         const text = args.join(' ').trim();
         const send = (t) =>

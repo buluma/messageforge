@@ -15,7 +15,6 @@
  *   Cooldown: one reply per chat per word every 30 seconds (anti-spam).
  */
 
-const { fmt }        = require('../lib/theme');
 const { setTrigger, delTrigger, listTriggers, matchTrigger } = require('../lib/bgmTrigger');
 const baileys        = require('@whiskeysockets/baileys');
 
@@ -71,7 +70,7 @@ module.exports = {
     private:     true,
 
     // ── Management commands ────────────────────────────────────────────────────
-    run: async (sock, message, args, { jid, reply, command }) => {
+    run: async (sock, message, args, { jid, reply, command, fmt }) => {
         const cmd  = command || '';
         const word = args[0]?.toLowerCase().trim();
 

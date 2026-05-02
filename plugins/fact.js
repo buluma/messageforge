@@ -1,6 +1,5 @@
 'use strict';
 const axios = require('axios');
-const { fmt } = require('../lib/theme');
 
 module.exports = {
     commands:    ['fact', 'facts', 'funfact'],
@@ -10,7 +9,7 @@ module.exports = {
     private:     true,
 
     run: async (sock, message, args, ctx) => {
-        const { contextInfo } = ctx;
+        const { contextInfo, fmt } = ctx;
         const jid = message.key.remoteJid;
         let fact;
         try {

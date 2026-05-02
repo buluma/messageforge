@@ -16,11 +16,13 @@ jest.mock('fs', () => {
         ...realFs,
         existsSync: (p) => {
             if (p && (p.includes('hidden-chats.json') || p.includes('index.json'))) return false;
-            if (p && p.includes('messenger-history')) return true;
+            // Treat the messenger-history directory as existing, but not the per-chat JSON files.
+            if (typeof p === 'string' && p.endsWith('messenger-history')) return true;
             return false;
         },
         mkdirSync: jest.fn(),
         writeFileSync: jest.fn(),
+        renameSync: jest.fn(),
         readFileSync: realFs.readFileSync,
         unlinkSync: jest.fn(),
     };
@@ -81,5 +83,70 @@ describe('softDeleteChat', () => {
         const jid = 'repeated@s.whatsapp.net';
         await store.softDeleteChat(jid);
         await expect(store.softDeleteChat(jid)).resolves.toBeUndefined();
+    });
+
+    test('soft-delete then next incoming message auto-restores (unhides) chat', async () => {
+        const fs = require('fs');
+        fs.writeFileSync.mockClear();
+
+        const jid = 'restore-roundtrip@s.whatsapp.net';
+
+        await store.softDeleteChat(jid);
+
+        const hiddenWritesAfterDelete = fs.writeFileSync.mock.calls
+            .filter(([p]) => String(p).includes('hidden-chats.json'));
+        expect(hiddenWritesAfterDelete.length).toBeGreaterThan(0);
+        const deletePayload = hiddenWritesAfterDelete[hiddenWritesAfterDelete.length - 1][1];
+        expect(JSON.parse(deletePayload)).toContain(jid);
+
+        await store.persistMessages([
+            {
+                key: { remoteJid: jid, id: 'm1', fromMe: false },
+                message: { conversation: 'hi' },
+                messageTimestamp: 1710000000,
+                pushName: 'Bob',
+            },
+        ]);
+
+        const hiddenWritesAfterPersist = fs.writeFileSync.mock.calls
+            .filter(([p]) => String(p).includes('hidden-chats.json'));
+        expect(hiddenWritesAfterPersist.length).toBeGreaterThan(hiddenWritesAfterDelete.length);
+        const persistPayload = hiddenWritesAfterPersist[hiddenWritesAfterPersist.length - 1][1];
+        expect(JSON.parse(persistPayload)).not.toContain(jid);
+    });
+});
+
+describe('atomic writes', () => {
+    test('persistMessages writes chat history via tmp + rename (atomic pattern)', async () => {
+        const fs = require('fs');
+        fs.writeFileSync.mockClear();
+        fs.renameSync.mockClear();
+
+        const jid = 'atomic-write@s.whatsapp.net';
+        await store.persistMessages([
+            {
+                key: { remoteJid: jid, id: 'm-atomic-1', fromMe: false },
+                message: { conversation: 'hello' },
+                messageTimestamp: 1710000001,
+                pushName: 'Bob',
+            },
+        ]);
+
+        // There are other writes (e.g. index), but at least one should be a chat file.
+        const tmpWrites = fs.writeFileSync.mock.calls
+            .map(([p]) => String(p))
+            .filter((p) => p.includes('messenger-history') && p.endsWith('.json.tmp'));
+        expect(tmpWrites.length).toBeGreaterThan(0);
+
+        const renames = fs.renameSync.mock.calls
+            .map(([from, to]) => [String(from), String(to)])
+            .filter(([, to]) => to.includes('messenger-history') && to.endsWith('.json'));
+        expect(renames.length).toBeGreaterThan(0);
+
+        // Basic contract: each rename targets a non-.tmp file and sources a .tmp file
+        for (const [from, to] of renames) {
+            expect(from.endsWith('.tmp')).toBe(true);
+            expect(to.endsWith('.tmp')).toBe(false);
+        }
     });
 });
