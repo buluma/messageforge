@@ -1003,4 +1003,4 @@ async function handleMessages(sock, message) {
     }
 }
 
-module.exports = { handleMessages, safeSend, setupConnectionHandlers, PERM, plugins, reloadPlugin, reloadAllPlugins };
+module.exports = { handleMessages, safeSend, setupConnectionHandlers, PERM, plugins, reloadPlugin, reloadAllPlugins, jidToNum, sameNumber };

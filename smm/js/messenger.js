@@ -916,7 +916,12 @@ function renderQrModalList() {
     for (const t of quickReplies) {
         const item = document.createElement('div');
         item.className = 'qr-modal-item';
+        const idx = quickReplies.indexOf(t);
         item.innerHTML = `
+            <div class="qr-modal-item-order">
+                <button class="qr-order-btn" data-dir="-1" title="Move up" ${idx === 0 ? 'disabled' : ''}>▲</button>
+                <button class="qr-order-btn" data-dir="1" title="Move down" ${idx === quickReplies.length - 1 ? 'disabled' : ''}>▼</button>
+            </div>
             <div class="qr-modal-item-body">
                 <div class="qr-modal-item-label">${escapeHtml(t.label)}</div>
                 <div class="qr-modal-item-text">${escapeHtml(t.text)}</div>
@@ -924,10 +929,26 @@ function renderQrModalList() {
             <button class="qr-modal-item-del" title="Delete">✕</button>
         `;
         item.querySelector('.qr-modal-item-del').onclick = () => removeQuickReply(t.id);
+        item.querySelectorAll('.qr-order-btn').forEach((btn) => {
+            btn.onclick = () => moveQuickReply(idx, Number(btn.dataset.dir));
+        });
         frag.appendChild(item);
     }
     listEl.innerHTML = '';
     listEl.appendChild(frag);
+}
+
+async function moveQuickReply(idx, dir) {
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= quickReplies.length) return;
+    [quickReplies[idx], quickReplies[newIdx]] = [quickReplies[newIdx], quickReplies[idx]];
+    renderQrPopupList();
+    renderQrModalList();
+    try {
+        await api.reorderQuickReplies(quickReplies);
+    } catch {
+        toast.error('Failed to save order');
+    }
 }
 
 function insertQuickReply(text) {

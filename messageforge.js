@@ -2688,6 +2688,14 @@ app.delete('/api/quick-replies/:id', (req, res) => {
     res.json({ success: true });
 });
 
+app.put('/api/quick-replies', (req, res) => {
+    const templates = req.body;
+    if (!Array.isArray(templates)) return res.status(400).json({ error: 'Array required' });
+    const valid = templates.filter((t) => t && typeof t.id === 'string' && t.label && t.text);
+    writeQuickReplies(valid);
+    res.json(valid);
+});
+
 // ── Plugin hot-reload manual trigger ─────────────────────────────────────────
 
 app.get('/api/plugins/reload', (req, res) => {

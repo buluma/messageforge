@@ -136,6 +136,8 @@ export const addQuickReply = (label, text) =>
     api.post('/api/quick-replies', { label, text }).then((r) => r.data);
 export const deleteQuickReply = (id) =>
     api.delete(`/api/quick-replies/${encodeURIComponent(id)}`).then((r) => r.data);
+export const reorderQuickReplies = (templates) =>
+    api.put('/api/quick-replies', templates).then((r) => r.data);
 
 // ── Plugin reload ─────────────────────────────────────────────────
 export const reloadPlugins = () => api.get('/api/plugins/reload').then((r) => r.data);

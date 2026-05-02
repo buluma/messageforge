@@ -1678,6 +1678,30 @@ input {
     border-bottom: 1px solid var(--border);
     transition: background 0.12s;
 }
+.qr-modal-item-order {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+}
+.qr-order-btn {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 10px;
+    cursor: pointer;
+    padding: 1px 3px;
+    line-height: 1;
+    border-radius: 3px;
+    transition: color 0.12s;
+}
+.qr-order-btn:hover:not(:disabled) {
+    color: var(--primary-hi);
+}
+.qr-order-btn:disabled {
+    opacity: 0.2;
+    cursor: default;
+}
 .qr-modal-item:last-child {
     border-bottom: none;
 }
