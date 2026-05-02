@@ -2,7 +2,7 @@
 const crypto = require('crypto');
 
 module.exports = {
-    commands:    ['hash', 'md5', 'sha256', 'sha1'],
+    commands: [ 'sha1'],
     description: 'Generate MD5, SHA1, SHA256 hashes',
     permission:  'public',
     group:       true,

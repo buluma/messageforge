@@ -14,7 +14,7 @@ function scramble(word) {
 }
 
 module.exports = {
-    commands:    ['wordscramble', 'unscramble', 'ws'],
+    commands: [ 'ws'],
     description: 'Unscramble the word game',
     permission:  'public',
     group:       true,

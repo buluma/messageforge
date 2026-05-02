@@ -3,7 +3,7 @@
 const sessions = new Map();
 
 module.exports = {
-    commands:    ['numguess', 'guessnumber', 'ng'],
+    commands: [ 'guessnumber', 'ng'],
     description: 'Number guessing game (1–100)',
     permission:  'public',
     group:       true,

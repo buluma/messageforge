@@ -3,7 +3,7 @@
 const { dlBuffer }    = require('../lib/dlmedia');
 
 module.exports = {
-    commands:    ['save', 'nitumie', 'statussave'],
+    commands: [ 'nitumie', 'statussave'],
     description: 'Save a WhatsApp status (reply to a status with this command)',
     permission:  'public',
     group:       false,

@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-    commands:    ['password', 'passwd', 'genpass'],
+    commands: ['password', 'passwd'],
     description: 'Generate a strong random password',
     usage:       '.password [length]',
     permission:  'public',

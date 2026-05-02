@@ -372,7 +372,7 @@ async function sendCallLogMenu(sock, jid, menuText) {
 }
 
 module.exports = {
-    commands: ['menu', 'help', 'list'],
+    commands: ['menu', 'help'],
     description: 'Show all available commands in a categorized menu',
     permission: 'public',
     group: true,

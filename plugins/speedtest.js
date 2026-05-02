@@ -14,7 +14,7 @@ function detectPlatform() {
 }
 
 module.exports = {
-    commands:    ['speedtest', 'ping2', 'netspeed'],
+    commands: [ 'ping2', 'netspeed'],
     description: 'Test the bot server internet speed',
     permission:  'public',
     group:       true,

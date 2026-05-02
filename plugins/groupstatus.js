@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-    commands:    ['groupstatus', 'ginfo', 'groupinfo', 'grpinfo', 'gstatus'],
+    commands: ['groupstatus', 'grpinfo', 'gstatus'],
     description: 'Show detailed group statistics and information',
     permission:  'public',
     group:       true,

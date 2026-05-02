@@ -5,7 +5,7 @@ const mutedMembers = new Map();
 global.groupMutedMembers = mutedMembers;
 
 module.exports = {
-    commands:    ['mute', 'unmute', 'mutelist'],
+    commands: [ 'mutelist'],
     description: 'Mute/unmute specific members (bot removes their messages automatically)',
     usage:       '.mute @user | .unmute @user | .mutelist',
     permission:  'admin',

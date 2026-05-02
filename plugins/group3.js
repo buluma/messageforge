@@ -17,12 +17,9 @@ function saveBadWords(jid, words) {
 
 module.exports = {
     commands: [
-        'accept', 'acceptall', 'reject', 'rejectall', 'listrequests',
-        'add', 'everyone', 'gcdesc', 'gcpp', 'getgcpp', 'getlid',
-        'groupname', 'groupsettings', 'killgc', 'link', 'del',
-        'mute', 'newgroup', 'online', 'resetgroup', 'resetlink',
-        'setantilink', 'tagadmins', 'vcf', 'antigroupmention', 'antipromote',
-        'badwords', 'setantibad', 'setantigcmentionwarnlimit',
+        'accept', 'acceptall', 'reject', 'rejectall', 'listrequests', 'gcdesc', 'gcpp', 'getgcpp', 'getlid',
+        'groupname', 'groupsettings', 'killgc', 'link', 'del', 'newgroup', 'resetgroup', 'resetlink',
+        'setantilink', 'tagadmins', 'vcf', 'antigroupmention', 'antipromote', 'setantibad', 'setantigcmentionwarnlimit',
         'setgroupevents', 'welcomemessage', 'goodbyemessage',
         'disapp', 'left', 'antibadwarn', 'antilinkwarn', 'menus', 'list'
     ],

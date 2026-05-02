@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-    commands:    ['react', 'reaction', 'emoji'],
+    commands: ['react', 'reaction'],
     description: 'React to a message with an emoji',
     usage:       '.react ❤️  (reply to a message)',
     permission:  'public',

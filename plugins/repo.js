@@ -9,7 +9,7 @@ const WA_CHANNEL = 'https://whatsapp.com/channel/0029VaksrRh6GcGnT0J05n0j';
 const SUPPORT_URL = 'https://chat.whatsapp.com/GzCZZxVnAHMINWdPQkGwJR';
 
 module.exports = {
-    commands: ['repo', 'repository', 'github'],
+    commands: ['repo', 'repository'],
     description: 'Show MessageForge repository info',
     permission: 'public',
     group: true,

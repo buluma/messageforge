@@ -16,7 +16,7 @@ function modeLabel(m) {
 }
 
 module.exports = {
-    commands:    ['settings', 'config', 'botsettings'],
+    commands: [ 'config'],
     description: 'Show all current bot settings and toggles',
     permission:  'owner',
     group:       true,

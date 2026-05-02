@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-    commands:    ['tagall', 'mentionall', 'pingall'],
+    commands: [ 'mentionall', 'pingall'],
     description: 'Mention all members in the group',
     usage:       '.tagall [message]',
     permission:  'admin',

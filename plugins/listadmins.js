@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-    commands:    ['admins', 'listadmins', 'adminlist'],
+    commands: [ 'adminlist'],
     description: 'List all group admins',
     permission:  'public',
     group:       true,

@@ -13,7 +13,7 @@ if (typeof global.antivvEnabled === 'undefined') {
 }
 
 module.exports = {
-    commands:    ['vv', 'viewonce', 'open', 'openphoto', 'openvideo', 'vvphoto'],
+    commands: ['vv', 'viewonce', 'openphoto', 'openvideo', 'vvphoto'],
     description: 'Manually reveal a view-once message (reply to it)',
     permission:  'owner',
     group:       true,

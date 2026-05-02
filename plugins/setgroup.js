@@ -2,7 +2,7 @@
 const { getCommandRaw } = require('../lib/command');
 
 module.exports = {
-    commands:    ['setname', 'setdesc', 'setdescription', 'groupname', 'groupdesc'],
+    commands: [ 'setdesc', 'setdescription', 'groupdesc'],
     description: 'Change the group name or description',
     usage:       '.setname New Name | .setdesc New description',
     permission:  'admin',

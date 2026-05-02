@@ -2,7 +2,7 @@
 const { getCommandRaw } = require('../lib/command');
 
 module.exports = {
-    commands:    ['grouplink', 'invitelink', 'link', 'revoke', 'revokelink'],
+    commands: ['grouplink', 'invitelink', 'revoke', 'revokelink'],
     description: 'Get or revoke the group invite link',
     usage:       '.link | .revoke',
     permission:  'admin',

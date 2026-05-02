@@ -5,7 +5,7 @@ const path = require('path');
 const os   = require('os');
 
 module.exports = {
-    commands:    ['ytmp3', 'ytsong', 'ytaudio', 'song'],
+    commands: ['ytmp3', 'ytsong', 'ytaudio'],
     description: 'Download YouTube audio as MP3',
     permission:  'public',
     group:       true,

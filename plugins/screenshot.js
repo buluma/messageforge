@@ -2,7 +2,7 @@
 const axios = require('axios');
 
 module.exports = {
-    commands:    ['screenshot', 'ss', 'webshot'],
+    commands: ['screenshot', 'webshot'],
     description: 'Take a screenshot of any website',
     permission:  'public',
     group:       true,

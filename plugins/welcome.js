@@ -7,7 +7,7 @@ const groupSettings = new Map();
 global.welcomeSettings = groupSettings;
 
 module.exports = {
-    commands:    ['welcome', 'goodbye', 'setwelcome', 'setgoodbye', 'welcomeoff', 'goodbyeoff'],
+    commands: ['welcome', 'setwelcome', 'setgoodbye', 'welcomeoff', 'goodbyeoff'],
     description: 'Auto-welcome new members and farewell members who leave',
     usage:       '.welcome on/off | .setwelcome Custom message (use {name} for member name)',
     permission:  'admin',

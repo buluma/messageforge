@@ -38,7 +38,7 @@ global.antifloodTrack = trackMessage;
 global.antifloodSettings = settings;
 
 module.exports = {
-    commands:    ['antiflood', 'floodoff', 'floodon', 'floodlimit'],
+    commands: [ 'floodoff', 'floodon', 'floodlimit'],
     description: 'Auto-kick members who spam messages too fast',
     usage:       '.antiflood on | .antiflood off | .antiflood limit 5 10',
     permission:  'admin',

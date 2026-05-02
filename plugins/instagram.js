@@ -117,7 +117,7 @@ async function tryNexoracle(url) {
 
 // ─── Main plugin ─────────────────────────────────────────────────────────────
 module.exports = {
-    commands:    ['instagram', 'igdl', 'ig', 'insta'],
+    commands: ['instagram', 'igdl', 'insta'],
     description: 'Download Instagram posts, reels, and stories',
     permission:  'public',
     group:       true,

@@ -7,7 +7,7 @@ function fromHex(str) { return Buffer.from(str, 'hex').toString('utf8'); }
 function rot13(str) { return str.replace(/[a-zA-Z]/g, c => String.fromCharCode(c.charCodeAt(0) + (c.toLowerCase() < 'n' ? 13 : -13))); }
 
 module.exports = {
-    commands:    ['encode', 'decode', 'binary', 'hex2text', 'rot13'],
+    commands: ['encode', 'decode', 'hex2text'],
     description: 'Encode/decode text: base64, hex, binary, rot13',
     permission:  'public',
     group:       true,

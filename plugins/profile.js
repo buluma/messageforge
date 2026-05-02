@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-    commands:    ['profile', 'myprofile', 'whatsapp'],
+    commands: [ 'myprofile', 'whatsapp'],
     description: 'View a user WhatsApp profile info',
     permission:  'public',
     group:       true,

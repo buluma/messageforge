@@ -2,7 +2,7 @@
 const axios = require('axios');
 
 module.exports = {
-    commands:    ['color', 'colorinfo', 'hex'],
+    commands: ['color'],
     description: 'Get color information from a HEX code',
     permission:  'public',
     group:       true,

@@ -20,7 +20,7 @@ const COLORS = {
 };
 
 module.exports = {
-    commands: ["togstatus", "swgc", "groupstatus"],
+    commands: ["togstatus", "swgc"],
     description: "Send text / image / video / audio as group status",
     permission: "public",
     group: true,

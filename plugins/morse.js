@@ -13,7 +13,7 @@ const encode = t => t.toLowerCase().split('').map(c => ENCODE[c] || '').filter(B
 const decode = m => m.split(' ').map(s => DECODE[s] || '?').join('');
 
 module.exports = {
-    commands:    ['morse', 'morseencode', 'morsedecode'],
+    commands: [ 'morseencode', 'morsedecode'],
     description: 'Encode or decode Morse code',
     usage:       '.morse encode Hello  •  .morse decode .... . .-.. .-.. ---',
     permission:  'public',

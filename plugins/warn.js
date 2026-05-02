@@ -52,7 +52,7 @@ function getAllWarns(jid) {
 }
 
 module.exports = {
-    commands:    ['warn', 'unwarn', 'warnreset', 'warnlist'],
+    commands: [ 'unwarn', 'warnreset', 'warnlist'],
     description: 'Warn group members. Auto-kick after 3 warnings.',
     permission:  'admin',
     group:       true,

@@ -31,11 +31,10 @@ function isRealOwner(ctx) {
 }
 
 module.exports = {
-    commands: [
-        'block', 'unblock', 'forward', 'mygroups', 'pp', 'fullpp',
-        'setbotname', 'setmode', 'setsudo', 'delsudo', 'getsudo', 'resetsudo',
-        'setownername', 'setownernumber', 'join', 'cmd',
-        'cachedmeta', 'report', 'save', 'tostatus', 'vv2', 'update',
+    commands: [ 'forward', 'mygroups', 'pp', 'fullpp',
+        'setbotname', 'setsudo', 'delsudo', 'getsudo', 'resetsudo',
+        'setownername', 'setownernumber', 'cmd',
+        'cachedmeta', 'tostatus', 'vv2', 'update',
         'return', 'setpmpermit', 'setpackname', 'setpackauthor',
         'setbotpic', 'setbotrepo', 'setcaption', 'setchatbot', 'setchatbotmode',
         'setdmpresence', 'setfooter', 'setgcjid', 'setgcpresence',
@@ -44,8 +43,7 @@ module.exports = {
         'setautolikestatus', 'setautoreact', 'setautoread', 'setautoreadstatus',
         'setautoreplystatus', 'setautoblock', 'setautobio', 'setanticall',
         'setantidelete', 'setantiedit', 'getsetting', 'setsetting',
-        'resetsetting', 'resetallsettings', 'resetdb', 'jid'
-    ],
+        'resetsetting', 'resetallsettings', 'resetdb'],
     description: 'Extended owner/admin control commands',
     permission:  'owner',
     group:       true,

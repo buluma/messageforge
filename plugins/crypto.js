@@ -2,7 +2,7 @@
 const axios = require('axios');
 
 module.exports = {
-    commands:    ['crypto', 'coin', 'price'],
+    commands: ['price'],
     description: 'Get live cryptocurrency prices',
     permission:  'public',
     group:       true,

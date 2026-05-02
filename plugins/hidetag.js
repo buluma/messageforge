@@ -1,7 +1,7 @@
 'use strict';
 
 module.exports = {
-    commands:    ['hidetag', 'htag', 'stag', 'silenttag'],
+    commands: [ 'stag', 'silenttag'],
     description: 'Silently mention all group members — they get notified but are not visibly tagged',
     usage:       '.hidetag <message>',
     permission:  'admin',

@@ -3,7 +3,7 @@
 const axios    = require('axios');
 
 module.exports = {
-    commands:    ['facebook', 'fb', 'fbdl'],
+    commands: ['facebook', 'fbdl'],
     description: 'Download a Facebook video',
     permission:  'public',
     group:       true,

@@ -29,7 +29,7 @@ function containsBadWord(text, badWords) {
 module.exports = [
     // ── Toggle command ────────────────────────────────────────────────────────
     {
-        commands: ['antibad', 'antibadwords', 'antiswear', 'noswear'],
+        commands: [ 'antibadwords', 'antiswear', 'noswear'],
         description: 'Toggle anti-bad-words filter in a group — auto-deletes profanity',
         usage: '.antibad on/off',
         permission: 'admin',
