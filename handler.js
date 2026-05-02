@@ -199,13 +199,12 @@ function loadPlugins() {
                 if (!mod.__pluginFile) mod.__pluginFile = file;
 
                 if (
-                    Array.isArray(mod.commands) &&
-                    mod.commands.length &&
-                    typeof mod.run === 'function'
+                    (Array.isArray(mod.commands) && mod.commands.length && typeof mod.run === 'function') ||
+                    (mod.isEvent && typeof mod.run === 'function')
                 ) {
                     plugins.push(mod);
                 } else {
-                    logger.warn(`[Plugin] Skipped: ${file} — missing commands or run/handler`);
+                    logger.warn(`[Plugin] Skipped: ${file} (entry ${mods.indexOf(mod)}) — missing commands or run/handler`);
                 }
             }
         } catch (err) {
@@ -678,8 +677,8 @@ async function handleMessages(sock, message) {
         // Pull directly from process.env first so stale config objects can't
         // cause a false empty result, then fall through to config and global.
         const ownerRaw =
-            (process.env.OWNER_NUMBER || '').trim() ||
             (typeof config.OWNER_NUMBER === 'string' ? config.OWNER_NUMBER.trim() : '') ||
+            (process.env.OWNER_NUMBER || '').trim() ||
             global.botNum ||
             '';
         const ownerNum = ownerRaw.replace(/\D/g, '');

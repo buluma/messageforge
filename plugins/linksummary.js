@@ -62,7 +62,7 @@ function extractUrl(text) {
 }
 
 module.exports = {
-    commands: ['summarize', 'linkpreview', 'summarizelink', 'readlink', 'tldr'],
+    commands: ['linkpreview', 'summarizelink', 'readlink'],
     description: 'Summarize and preview any shared link/article',
     usage: '.summarize <url> or reply to a message with a link',
     permission: 'public',
