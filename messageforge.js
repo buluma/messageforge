@@ -2211,6 +2211,7 @@ function scanMediaDir(dir, baseDir, results) {
     for (const entry of entries) {
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) {
+            if (entry.name.startsWith('.')) continue;
             scanMediaDir(full, baseDir, results);
         } else if (entry.isFile()) {
             const ext = path.extname(entry.name).toLowerCase();
