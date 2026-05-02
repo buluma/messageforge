@@ -89,7 +89,7 @@ Audit source: project-wide pass 2026-05-02
 - [x] `smm/js/messenger.js` — already used `escapeHtml` throughout (was correct)
 - [x] Lightbox Escape key — already existed in `media.js:564`; audit finding was wrong
 - [x] Add CSP `<meta>` to `smm/messageforge.html`
-- [ ] Sweep remaining `innerHTML` in `smm/js/*` for unescaped untrusted strings (low priority — main surfaces fixed)
+- [x] Sweep remaining `innerHTML` in `smm/js/*` for unescaped untrusted strings (low priority — main surfaces fixed)
 
 ### Dashboard memory + lifecycle
 - [x] Verified: mount functions (`mountMessenger`, `mountDashboard`, `mountMedia`) called once at startup; view switches are CSS-only. Listener accumulation does not occur. `chatTimeTicker` running forever is correct for this SPA pattern.
@@ -169,12 +169,13 @@ Audit source: project-wide pass 2026-05-02
   - [x] `setupConnectionHandlers` — both `ev.on('connection.update')` and `ev.on('group-participants.update')` removed; function is no-op; logic moved into `ev.process` block
   - [x] Plugin `onGroupParticipantsUpdate` hooks now fire once (via `ev.process`), not twice
   - [x] Reconnect safety preserved: new socket gets fresh `ev.process` handler; no listener accumulation
-- [ ] Execute and record full manual verification pass from `docs/08-BAILEYS-GAP-VERIFICATION.md`
-  - [ ] confirm permission gates
-  - [ ] confirm private vs group behavior
-  - [ ] confirm owner-only actions
-  - [ ] confirm reconnect does not duplicate listeners
-- [ ] 75 startup collision warnings: `social-tools.js`, `security-tools.js`, `text-tools.js` etc. bundle plugins duplicate individual plugins. Decision needed: keep bundles and remove individuals, or remove bundle overlap. First-match wins so bot works; warnings are noise.
+- [x] Static code verification pass against `docs/08-BAILEYS-GAP-VERIFICATION.md` (2026-05-02)
+  - [x] Permission gates: `permission: 'owner'` at module level; handler.js enforces before calling `run()` — all commands gate correctly
+  - [x] Private vs group behavior: `group: true, private: true`; `.chatmute` has explicit `if (ctx.isGroup) return ...` private-only guard
+  - [x] Owner-only actions: all commands share the single module-level `permission: 'owner'` gate; no command bypasses it
+  - [x] Reconnect listener accumulation: `baileys-gap.js` registers zero event listeners; reconnect safety already confirmed via ev.process rework
+  - [ ] Live WA session test required for: non-owner rejection UX, privacy update round-trip, chatModify server response, paircode boot path, broadcast list info, pp removal, message edit visibility on client — requires connected WhatsApp session
+- [x] Startup collision warnings: all 75 resolved — bundle aliases kept, conflicting aliases removed from individual plugins; zero warnings on startup
 
 ## Release Hygiene
 - [x] Confirm no secret leakage — verified 2026-05-02: `.env`/`config.env` excluded from git, no keys in committed history
