@@ -8,6 +8,7 @@ import {
     getAvatarColor,
     jidShort,
     safeMomentFormat,
+    toast,
 } from './utils.js';
 
 const PAGE_SIZE = 60;
@@ -15,10 +16,20 @@ let chatTimeTicker = null;
 let activeChatRequest = null;
 const SCROLL_BOTTOM_THRESHOLD = 72;
 
+// ── Quick-reply template state ────────────────────────────────────
+let quickReplies = [];
+let qrPopupOpen = false;
+
+// ── Full-text search state ────────────────────────────────────────
+let searchMode = false; // true when showing message search results
+let searchDebounceTimer = null;
+
 // jid -> 'loaded' | 'failed'. Avoids re-issuing profile-pic requests per render.
 const avatarStatus = new Map();
 // jid -> DOM node. Lets renderChatList reuse nodes instead of rebuilding.
 const chatItemNodes = new Map();
+// jid -> number of unread messages received while the chat was not active.
+const unreadCounts = new Map();
 let chatAliases = {};
 
 // ── Bootstrap ────────────────────────────────────────────────────
@@ -41,7 +52,11 @@ export function mountMessenger() {
 
     on('new-message', (data) => {
         updateChatInList(data);
-        if (state.activeJid === data.jid) appendMessage(data.message);
+        if (state.activeJid === data.jid) {
+            appendMessage(data.message);
+        } else {
+            unreadCounts.set(data.jid, (unreadCounts.get(data.jid) || 0) + 1);
+        }
     });
     on('presence-update', ({ jid, presences }) => {
         if (jid !== state.activeJid) return;
@@ -84,6 +99,7 @@ export function mountMessenger() {
     document.getElementById('messageInput').oninput = handleTyping;
     document.getElementById('refreshChats').onclick = fetchChats;
     document.getElementById('chatSearch').oninput = handleSearch;
+    document.getElementById('chatSearch').onkeydown = handleSearchKeydown;
     document.getElementById('cancelReplyBtn').onclick = cancelReply;
     document.getElementById('renameChat').onclick = renameActiveChat;
     document.getElementById('togglePin').onclick = toggleActivePin;
@@ -91,6 +107,9 @@ export function mountMessenger() {
     document.getElementById('scrollToBottomBtn').onclick = () =>
         scrollThreadToBottom({ force: true });
     document.getElementById('messageThread').addEventListener('scroll', updateScrollBottomButton);
+
+    // Quick-reply wiring
+    mountQuickReplies();
 
     api.fetchChatAliases()
         .then((d) => {
@@ -187,7 +206,10 @@ function buildChatItemNode(chat) {
             <span class="pin-icon" hidden>⭐</span>
           </div>
         </div>
-        <div class="chat-item-snippet"></div>
+        <div class="chat-item-row2">
+          <div class="chat-item-snippet"></div>
+          <span class="unread-badge" hidden></span>
+        </div>
       </div>`;
     item.onclick = () => selectChat(chat);
     return item;
@@ -224,6 +246,17 @@ function applyChatItem(node, chat) {
     const snippetEl = node.querySelector('.chat-item-snippet');
     const snippet = chat.lastMsgSnippet || '';
     if (snippetEl && snippetEl.textContent !== snippet) snippetEl.textContent = snippet;
+
+    const badgeEl = node.querySelector('.unread-badge');
+    if (badgeEl) {
+        const count = unreadCounts.get(chat.jid) || 0;
+        if (count > 0) {
+            badgeEl.textContent = count > 99 ? '99+' : String(count);
+            badgeEl.hidden = false;
+        } else {
+            badgeEl.hidden = true;
+        }
+    }
 }
 
 function renderChatList() {
@@ -277,7 +310,103 @@ function applyChatFilter(rawQuery) {
 }
 
 function handleSearch(e) {
-    applyChatFilter(e?.target?.value || '');
+    const raw = e?.target?.value || '';
+    // If search mode was active and the input is cleared, exit search mode
+    if (searchMode && !raw.trim()) {
+        clearSearchResults();
+    }
+    if (!searchMode) {
+        applyChatFilter(raw);
+        renderChatList();
+    }
+}
+
+function handleSearchKeydown(e) {
+    if (e.key !== 'Enter') return;
+    const q = String(e.target?.value || '').trim();
+    if (q.length >= 3) {
+        runFullTextSearch(q);
+    } else if (!q) {
+        clearSearchResults();
+    }
+}
+
+async function runFullTextSearch(q) {
+    const resultsEl = document.getElementById('searchResults');
+    const chatListEl = document.getElementById('chatList');
+    if (!resultsEl || !chatListEl) return;
+
+    resultsEl.innerHTML = '<div class="empty-state" style="padding:10px 14px;font-size:12px">Searching…</div>';
+    resultsEl.hidden = false;
+    chatListEl.hidden = true;
+    searchMode = true;
+
+    try {
+        const data = await api.searchMessages(q, 20);
+        const results = data?.results || [];
+
+        if (!results.length) {
+            resultsEl.innerHTML = '<div class="empty-state" style="padding:10px 14px;font-size:12px">No messages found</div>';
+            appendSearchClearBtn(resultsEl);
+            return;
+        }
+
+        const frag = document.createDocumentFragment();
+        for (const r of results) {
+            const item = document.createElement('div');
+            item.className = 'search-result-item';
+            const name = escapeHtml(r.pushName || jidShort(r.jid));
+            const snippet = escapeHtml((r.message?.text || '').slice(0, 80));
+            const ts = r.message?.timestamp
+                ? safeMomentFormat(r.message.timestamp)
+                : '';
+            item.innerHTML = `
+                <div class="search-result-meta">
+                    <span class="search-result-name">${name}</span>
+                    <span class="search-result-time">${ts}</span>
+                </div>
+                <span class="search-result-snippet">${snippet}</span>
+            `;
+            item.onclick = () => {
+                const chat = state.chats.find((c) => c.jid === r.jid) || {
+                    jid: r.jid,
+                    name: r.pushName || jidShort(r.jid),
+                };
+                clearSearchResults();
+                selectChat(chat);
+            };
+            frag.appendChild(item);
+        }
+
+        resultsEl.innerHTML = '';
+        resultsEl.appendChild(frag);
+        appendSearchClearBtn(resultsEl);
+    } catch (err) {
+        resultsEl.innerHTML = '<div class="empty-state" style="padding:10px 14px;font-size:12px">Search failed</div>';
+        appendSearchClearBtn(resultsEl);
+    }
+}
+
+function appendSearchClearBtn(container) {
+    const btn = document.createElement('button');
+    btn.className = 'search-clear-btn';
+    btn.textContent = 'Clear search';
+    btn.onclick = clearSearchResults;
+    container.appendChild(btn);
+}
+
+function clearSearchResults() {
+    const resultsEl = document.getElementById('searchResults');
+    const chatListEl = document.getElementById('chatList');
+    const searchInput = document.getElementById('chatSearch');
+    if (resultsEl) {
+        resultsEl.innerHTML = '';
+        resultsEl.hidden = true;
+    }
+    if (chatListEl) chatListEl.hidden = false;
+    if (searchInput) searchInput.value = '';
+    searchMode = false;
+    applyChatFilter('');
     renderChatList();
 }
 
@@ -378,6 +507,9 @@ function formatChatAbsolute(ts) {
 // ── Open chat ─────────────────────────────────────────────────────
 async function selectChat(chat) {
     state.activeJid = chat.jid;
+    unreadCounts.delete(chat.jid);
+    // Re-render the list immediately so the badge clears on the selected item.
+    renderChatList();
     cancelReply();
     api.subscribePresence(chat.jid).catch(() => {});
 
@@ -695,4 +827,163 @@ function handleTyping() {
     state.typingTimer = setTimeout(() => {
         api.sendTypingState(state.activeJid, 'paused').catch(() => {});
     }, 2000);
+}
+
+// ── Quick-reply templates ─────────────────────────────────────────
+
+function mountQuickReplies() {
+    const triggerBtn = document.getElementById('quickReplyBtn');
+    const popup = document.getElementById('qrPopup');
+    const manageBtn = document.getElementById('qrManageBtn');
+
+    if (!triggerBtn || !popup) return;
+
+    triggerBtn.onclick = (e) => {
+        e.stopPropagation();
+        qrPopupOpen = !qrPopupOpen;
+        popup.hidden = !qrPopupOpen;
+        if (qrPopupOpen) {
+            loadQuickReplies();
+        }
+    };
+
+    manageBtn.onclick = (e) => {
+        e.stopPropagation();
+        popup.hidden = true;
+        qrPopupOpen = false;
+        openQrModal();
+    };
+
+    document.addEventListener('click', (e) => {
+        if (qrPopupOpen && !popup.contains(e.target) && e.target !== triggerBtn) {
+            popup.hidden = true;
+            qrPopupOpen = false;
+        }
+    });
+
+    // Modal wiring
+    document.getElementById('qrModalClose').onclick = closeQrModal;
+    document.getElementById('qrAddBtn').onclick = saveNewQuickReply;
+
+    // Load templates at startup so the popup is ready
+    loadQuickReplies();
+}
+
+async function loadQuickReplies() {
+    try {
+        quickReplies = await api.fetchQuickReplies();
+    } catch {
+        quickReplies = [];
+    }
+    renderQrPopupList();
+    renderQrModalList();
+}
+
+function renderQrPopupList() {
+    const listEl = document.getElementById('qrList');
+    if (!listEl) return;
+
+    if (!quickReplies.length) {
+        listEl.innerHTML = '<div class="qr-empty">No templates yet. Click + Add to create one.</div>';
+        return;
+    }
+
+    const frag = document.createDocumentFragment();
+    for (const t of quickReplies) {
+        const item = document.createElement('div');
+        item.className = 'qr-item';
+        item.innerHTML = `
+            <div class="qr-item-label">${escapeHtml(t.label)}</div>
+            <div class="qr-item-preview">${escapeHtml(t.text)}</div>
+        `;
+        item.onclick = () => insertQuickReply(t.text);
+        frag.appendChild(item);
+    }
+    listEl.innerHTML = '';
+    listEl.appendChild(frag);
+}
+
+function renderQrModalList() {
+    const listEl = document.getElementById('qrModalList');
+    if (!listEl) return;
+
+    if (!quickReplies.length) {
+        listEl.innerHTML = '<div class="empty-state" style="padding:14px">No templates yet.</div>';
+        return;
+    }
+
+    const frag = document.createDocumentFragment();
+    for (const t of quickReplies) {
+        const item = document.createElement('div');
+        item.className = 'qr-modal-item';
+        item.innerHTML = `
+            <div class="qr-modal-item-body">
+                <div class="qr-modal-item-label">${escapeHtml(t.label)}</div>
+                <div class="qr-modal-item-text">${escapeHtml(t.text)}</div>
+            </div>
+            <button class="qr-modal-item-del" title="Delete">✕</button>
+        `;
+        item.querySelector('.qr-modal-item-del').onclick = () => removeQuickReply(t.id);
+        frag.appendChild(item);
+    }
+    listEl.innerHTML = '';
+    listEl.appendChild(frag);
+}
+
+function insertQuickReply(text) {
+    const input = document.getElementById('messageInput');
+    if (!input) return;
+    input.value = text;
+    input.focus();
+    document.getElementById('qrPopup').hidden = true;
+    qrPopupOpen = false;
+}
+
+function openQrModal() {
+    const modal = document.getElementById('qrModal');
+    if (!modal) return;
+    modal.hidden = false;
+    renderQrModalList();
+}
+
+function closeQrModal() {
+    const modal = document.getElementById('qrModal');
+    if (modal) modal.hidden = true;
+    // Clear add form
+    const labelInput = document.getElementById('qrNewLabel');
+    const textInput = document.getElementById('qrNewText');
+    if (labelInput) labelInput.value = '';
+    if (textInput) textInput.value = '';
+}
+
+async function saveNewQuickReply() {
+    const label = String(document.getElementById('qrNewLabel')?.value || '').trim();
+    const text = String(document.getElementById('qrNewText')?.value || '').trim();
+    if (!label || !text) {
+        toast.warn('Label and text are required');
+        return;
+    }
+    try {
+        const t = await api.addQuickReply(label, text);
+        quickReplies.push(t);
+        renderQrPopupList();
+        renderQrModalList();
+        document.getElementById('qrNewLabel').value = '';
+        document.getElementById('qrNewText').value = '';
+        toast.success('Template saved');
+    } catch {
+        toast.error('Failed to save template');
+    }
+}
+
+async function removeQuickReply(id) {
+    try {
+        await api.deleteQuickReply(id);
+        quickReplies = quickReplies.filter((t) => t.id !== id);
+        renderQrPopupList();
+        renderQrModalList();
+        toast.success('Template deleted');
+    } catch {
+        toast.error('Failed to delete template');
+    }
 }

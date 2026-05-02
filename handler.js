@@ -195,6 +195,75 @@ function loadPlugins() {
 
 loadPlugins();
 
+// ─── Plugin hot-reload ────────────────────────────────────────────────────────
+
+/**
+ * Reloads a single plugin file by name (e.g. "ping.js").
+ * Purges the module from require.cache, re-requires it, and updates the
+ * plugins array so the next dispatch sees the fresh code.
+ * @param {string} filename - Bare filename (with .js extension) inside plugins/.
+ */
+function reloadPlugin(filename) {
+    if (!filename || !filename.endsWith('.js')) return;
+    const pluginPath = path.join(pluginDir, filename);
+    if (!fs.existsSync(pluginPath)) {
+        logger.warn(`[PluginReload] File not found: ${filename}`);
+        return;
+    }
+
+    // Remove all plugin entries that came from this file
+    for (let i = plugins.length - 1; i >= 0; i -= 1) {
+        if (plugins[i].__pluginFile === filename) plugins.splice(i, 1);
+    }
+
+    // Purge from require cache and re-require
+    try {
+        delete require.cache[require.resolve(pluginPath)];
+        const plugin = require(pluginPath);
+        const mods = Array.isArray(plugin) ? plugin : [plugin];
+        for (const mod of mods) {
+            if (!mod) continue;
+            if (!mod.commands && mod.name) mod.commands = [mod.name];
+            if (!mod.run && typeof mod.handler === 'function') mod.run = mod.handler;
+            if (!mod.__pluginFile) mod.__pluginFile = filename;
+            if (Array.isArray(mod.commands) && mod.commands.length && typeof mod.run === 'function') {
+                plugins.push(mod);
+            }
+        }
+        logger.custom('PluginReload', `${filename} reloaded`);
+    } catch (err) {
+        logger.error(`[PluginReload] Failed to reload ${filename}: ${err.message}`);
+    }
+}
+
+/**
+ * Reloads all plugin files in the plugins/ directory.
+ */
+function reloadAllPlugins() {
+    plugins.length = 0;
+    loadPlugins();
+    logger.custom('PluginReload', 'All plugins reloaded');
+}
+
+// Watch plugins/ directory for file changes and auto-reload
+if (fs.existsSync(pluginDir)) {
+    fs.watch(pluginDir, (eventType, filename) => {
+        if (!filename || !filename.endsWith('.js')) return;
+        // Debounce: ignore rapid successive events for the same file
+        const debounceKey = filename;
+        if (reloadPlugin._debounceTimers) {
+            clearTimeout(reloadPlugin._debounceTimers.get(debounceKey));
+        } else {
+            reloadPlugin._debounceTimers = new Map();
+        }
+        reloadPlugin._debounceTimers.set(debounceKey, setTimeout(() => {
+            reloadPlugin._debounceTimers.delete(debounceKey);
+            reloadPlugin(filename);
+        }, 300));
+    });
+    logger.custom('PluginReload', 'Watching plugins/ directory for changes');
+}
+
 async function emitCommandExecuted(event) {
     for (const p of plugins) {
         if (typeof p.onCommandExecuted !== 'function') continue;
@@ -932,4 +1001,4 @@ async function handleMessages(sock, message) {
     }
 }
 
-module.exports = { handleMessages, safeSend, setupConnectionHandlers, PERM, plugins };
+module.exports = { handleMessages, safeSend, setupConnectionHandlers, PERM, plugins, reloadPlugin, reloadAllPlugins };

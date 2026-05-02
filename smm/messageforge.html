@@ -87,10 +87,11 @@
                             <input
                                 type="text"
                                 id="chatSearch"
-                                placeholder="Search chats..."
+                                placeholder="Search chats… (Enter to search messages)"
                                 autocomplete="off"
                             />
                         </div>
+                        <div id="searchResults" class="search-results" hidden></div>
                         <div id="chatList" class="chat-list">
                             <div class="empty-state">Loading conversations…</div>
                         </div>
@@ -142,6 +143,16 @@
                         </button>
 
                         <div id="chatInputArea" class="chat-input-area" hidden>
+                            <div class="qr-popup-wrap">
+                                <button id="quickReplyBtn" class="ghost-btn qr-trigger-btn" title="Quick replies">⚡</button>
+                                <div id="qrPopup" class="qr-popup" hidden>
+                                    <div class="qr-popup-header">
+                                        <span>Quick Replies</span>
+                                        <button id="qrManageBtn" class="ghost-btn" style="font-size:12px">+ Add</button>
+                                    </div>
+                                    <div id="qrList" class="qr-list"></div>
+                                </div>
+                            </div>
                             <input
                                 type="text"
                                 id="messageInput"
@@ -160,6 +171,22 @@
                                     <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />
                                 </svg>
                             </button>
+                        </div>
+
+                        <!-- Quick-reply template manager modal -->
+                        <div id="qrModal" class="qr-modal" hidden>
+                            <div class="qr-modal-box">
+                                <div class="qr-modal-header">
+                                    <h3>Quick Reply Templates</h3>
+                                    <button id="qrModalClose" class="ghost-btn">✕</button>
+                                </div>
+                                <div id="qrModalList" class="qr-modal-list"></div>
+                                <div class="qr-modal-add">
+                                    <input type="text" id="qrNewLabel" placeholder="Label (e.g. Greeting)" autocomplete="off" />
+                                    <textarea id="qrNewText" placeholder="Template text…" rows="3"></textarea>
+                                    <button id="qrAddBtn" class="primary-btn" style="align-self:flex-end">Save</button>
+                                </div>
+                            </div>
                         </div>
                     </section>
                 </section>
@@ -232,6 +259,7 @@
                     <header class="view-header">
                         <h1>Plugins</h1>
                         <div class="plugins-controls">
+                            <button id="reloadPluginsBtn" class="ghost-btn" title="Hot-reload all plugins">↻ Reload</button>
                             <input
                                 id="pluginSearch"
                                 class="plugin-search-input"
@@ -273,6 +301,8 @@
                             <option value="name-asc">Name A–Z</option>
                             <option value="name-desc">Name Z–A</option>
                         </select>
+                        <button id="mediaUploadBtn" class="media-upload-btn" title="Upload media file">↑ Upload</button>
+                        <input id="mediaUploadInput" type="file" accept="video/*,image/*,audio/*" hidden />
                     </div>
                     <div id="mediaLoading" class="empty-state">Loading media…</div>
                     <div id="mediaGrid" class="media-grid" hidden></div>

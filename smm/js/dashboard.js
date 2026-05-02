@@ -31,6 +31,26 @@ export function mountDashboard() {
             renderPlugins();
         };
     }
+
+    const reloadBtn = document.getElementById('reloadPluginsBtn');
+    if (reloadBtn) {
+        reloadBtn.onclick = async () => {
+            reloadBtn.disabled = true;
+            reloadBtn.textContent = '…';
+            try {
+                await api.reloadPlugins();
+                await fetchAndRenderPlugins();
+                reloadBtn.textContent = '✓ Reloaded';
+                setTimeout(() => {
+                    reloadBtn.textContent = '↻ Reload';
+                    reloadBtn.disabled = false;
+                }, 2000);
+            } catch {
+                reloadBtn.textContent = '↻ Reload';
+                reloadBtn.disabled = false;
+            }
+        };
+    }
 }
 
 async function refreshAll() {

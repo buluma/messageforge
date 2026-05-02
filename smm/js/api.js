@@ -126,6 +126,20 @@ export const fetchChatAliases = () => api.get('/api/chat-aliases').then((r) => r
 export const setChatAlias = (jid, alias) =>
     api.post('/api/chat-alias', { jid, alias }).then((r) => r.data);
 
+// ── Full-text search ──────────────────────────────────────────────
+export const searchMessages = (q, limit = 20) =>
+    api.get(`/api/search?q=${encodeURIComponent(q)}&limit=${limit}`).then((r) => r.data);
+
+// ── Quick-reply templates ─────────────────────────────────────────
+export const fetchQuickReplies = () => api.get('/api/quick-replies').then((r) => r.data);
+export const addQuickReply = (label, text) =>
+    api.post('/api/quick-replies', { label, text }).then((r) => r.data);
+export const deleteQuickReply = (id) =>
+    api.delete(`/api/quick-replies/${encodeURIComponent(id)}`).then((r) => r.data);
+
+// ── Plugin reload ─────────────────────────────────────────────────
+export const reloadPlugins = () => api.get('/api/plugins/reload').then((r) => r.data);
+
 // ── Dashboard sources ─────────────────────────────────────────────
 export const fetchPlugins = () => api.get('/api/plugins').then((r) => r.data);
 export const localCommitActivity = (weeks = 12) =>

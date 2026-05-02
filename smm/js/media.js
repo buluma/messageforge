@@ -1,6 +1,7 @@
 'use strict';
 
 import api from './api.js';
+import { toast } from './utils.js';
 
 const ICON = { video: '🎬', image: '🖼️', audio: '🎵' };
 
@@ -16,11 +17,16 @@ function formatDate(ts) {
 
 let allFiles = [];
 let allPersons = [];
+let totalMediaBytes = 0;
 let activeType = 'all';
 let searchTerm = '';
 let activePerson = null;
 let sortKey = 'date-desc';
 let mergeSourceId = null;
+// JID of the person whose link picker is currently open (null = closed)
+let linkPickerOpenId = null;
+// Cached non-group chat list for the JID picker
+let chatList = null;
 
 function sorted(files) {
     const arr = [...files];
@@ -51,7 +57,9 @@ function filtered() {
 function renderGrid() {
     const grid = document.getElementById('mediaGrid');
     const files = filtered();
-    document.getElementById('mediaCount').textContent = `${files.length} file${files.length !== 1 ? 's' : ''}`;
+    const countLabel = `${files.length} file${files.length !== 1 ? 's' : ''}`;
+    const sizeLabel = totalMediaBytes > 0 ? ` · ${formatBytes(totalMediaBytes)}` : '';
+    document.getElementById('mediaCount').textContent = countLabel + sizeLabel;
 
     if (files.length === 0) {
         grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No media found.</div>';
@@ -98,7 +106,7 @@ async function deleteFile(url) {
         allFiles = allFiles.filter((f) => f.url !== url);
         renderGrid();
     } catch (err) {
-        alert(`Delete failed: ${err.response?.data?.error || err.message}`);
+        toast.error(`Delete failed: ${err.response?.data?.error || err.message}`);
     }
 }
 
@@ -189,7 +197,11 @@ function renderPeople() {
         return;
     }
 
-    grid.innerHTML = allPersons.map((p) => `
+    grid.innerHTML = allPersons.map((p) => {
+        const linkedName = p.jid
+            ? (chatList?.find((c) => c.jid === p.jid)?.name || p.jid.split('@')[0])
+            : null;
+        return `
         <div class="person-card ${activePerson === p.id ? 'active' : ''} ${mergeSourceId === p.id ? 'merge-source' : ''}"
              data-person-id="${p.id}">
             <button class="person-delete-btn" data-person-id="${p.id}" title="Remove person">✕</button>
@@ -199,6 +211,7 @@ function renderPeople() {
                     : `<span>👤</span>`}
             </div>
             <div class="person-name" contenteditable="false" data-person-id="${p.id}">${p.name}</div>
+            ${linkedName ? `<div class="person-jid-label" title="${p.jid}">@${linkedName}</div>` : ''}
             <div class="person-count">${p.count} file${p.count !== 1 ? 's' : ''}</div>
             ${mergeSourceId && mergeSourceId !== p.id
                 ? `<button class="person-merge-into-btn" data-person-id="${p.id}" title="Merge into this person">← Merge here</button>`
@@ -206,8 +219,19 @@ function renderPeople() {
             ${!mergeSourceId
                 ? `<button class="person-merge-btn" data-person-id="${p.id}" title="Merge this person into another">⇄ Merge</button>`
                 : ''}
+            ${!mergeSourceId
+                ? `<button class="person-link-btn" data-person-id="${p.id}" title="Link to WhatsApp contact">⇗ Link contact</button>`
+                : ''}
+            ${linkPickerOpenId === p.id ? `
+            <div class="person-link-picker" data-person-id="${p.id}">
+                <select class="person-link-select" data-person-id="${p.id}">
+                    <option value="">— select contact —</option>
+                    ${(chatList || []).map((c) => `<option value="${c.jid}" ${p.jid === c.jid ? 'selected' : ''}>${c.name || c.jid.split('@')[0]}</option>`).join('')}
+                </select>
+            </div>` : ''}
         </div>
-    `).join('');
+    `;
+    }).join('');
 
     const cancelBtn = document.getElementById('mergeCancelBtn');
     if (cancelBtn) cancelBtn.hidden = !mergeSourceId;
@@ -219,6 +243,62 @@ async function loadPersons() {
         allPersons = data.persons || [];
         renderPeople();
     } catch { /* silent */ }
+}
+
+async function fetchChatList() {
+    if (chatList) return chatList;
+    try {
+        const data = await api.get('/api/chats').then((r) => r.data);
+        const chats = (data.chats || data || []);
+        chatList = chats
+            .filter((c) => c.jid && !c.jid.endsWith('@g.us'))
+            .map((c) => ({ jid: c.jid, name: c.name || c.pushName || c.jid.split('@')[0] }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    } catch {
+        chatList = [];
+    }
+    return chatList;
+}
+
+async function uploadMedia(file) {
+    const btn = document.getElementById('mediaUploadBtn');
+    btn.disabled = true;
+    btn.textContent = 'Uploading…';
+
+    try {
+        const data = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                // Strip the data URL prefix (e.g. "data:video/mp4;base64,")
+                const b64 = reader.result.split(',')[1];
+                resolve(b64);
+            };
+            reader.onerror = () => reject(new Error('FileReader failed'));
+            reader.readAsDataURL(file);
+        });
+
+        const resp = await api.post('/api/media/upload', { filename: file.name, data });
+        const { url } = resp.data;
+
+        // Build a synthetic file entry and prepend it
+        const entry = {
+            name: file.name,
+            url,
+            type: file.type.startsWith('video') ? 'video'
+                : file.type.startsWith('audio') ? 'audio' : 'image',
+            folder: '.',
+            size: file.size,
+            mtime: Math.floor(Date.now() / 1000),
+        };
+        allFiles.unshift(entry);
+        renderGrid();
+        toast.success(`Uploaded ${file.name}`);
+    } catch (err) {
+        toast.error(`Upload failed: ${err.response?.data?.error || err.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '↑ Upload';
+    }
 }
 
 let indexPollTimer = null;
@@ -265,6 +345,7 @@ async function loadMedia() {
             api.get('/api/media/persons').then((r) => r.data).catch(() => ({ persons: [] })),
         ]);
         allFiles = mediaData.files || [];
+        totalMediaBytes = mediaData.totalBytes || 0;
         allPersons = personsData.persons || [];
         loading.hidden = true;
         renderGrid();
@@ -293,6 +374,17 @@ export function mountMedia() {
     document.getElementById('mediaSort').addEventListener('change', (e) => {
         sortKey = e.target.value;
         renderGrid();
+    });
+
+    document.getElementById('mediaUploadBtn').addEventListener('click', () => {
+        document.getElementById('mediaUploadInput').click();
+    });
+
+    document.getElementById('mediaUploadInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) uploadMedia(file);
+        // Reset so the same file can be re-selected if needed
+        e.target.value = '';
     });
 
     document.getElementById('mediaGrid').addEventListener('click', (e) => {
@@ -388,6 +480,32 @@ export function mountMedia() {
             return;
         }
 
+        // Open/close link-contact picker
+        const linkBtn = e.target.closest('.person-link-btn');
+        if (linkBtn) {
+            e.stopPropagation();
+            const id = linkBtn.dataset.personId;
+            if (linkPickerOpenId === id) {
+                linkPickerOpenId = null;
+                renderPeople();
+                return;
+            }
+            // Fetch chats first, then open
+            await fetchChatList();
+            linkPickerOpenId = id;
+            renderPeople();
+            return;
+        }
+
+        // Close picker if clicking outside
+        if (!e.target.closest('.person-link-picker')) {
+            if (linkPickerOpenId) {
+                linkPickerOpenId = null;
+                renderPeople();
+                return;
+            }
+        }
+
         // Filter by person
         const card = e.target.closest('.person-card');
         if (!card || mergeSourceId) return;
@@ -395,6 +513,22 @@ export function mountMedia() {
         activePerson = activePerson === id ? null : id;
         renderPeople();
         renderGrid();
+    });
+
+    document.getElementById('peopleGrid').addEventListener('change', async (e) => {
+        const select = e.target.closest('.person-link-select');
+        if (!select) return;
+        const id = select.dataset.personId;
+        const jid = select.value || null;
+        try {
+            await api.patch(`/api/media/persons/${id}`, { jid });
+            const p = allPersons.find((x) => x.id === id);
+            if (p) p.jid = jid;
+        } catch (err) {
+            toast.error(`Link failed: ${err.response?.data?.error || err.message}`);
+        }
+        linkPickerOpenId = null;
+        renderPeople();
     });
 
     document.getElementById('peopleGrid').addEventListener('dblclick', (e) => {

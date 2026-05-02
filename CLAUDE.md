@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-MessageForge — a multi-device WhatsApp bot built on Node.js and `@whiskeysockets/baileys` (aliased to `gifted-baileys`). The bot connects to WhatsApp via QR scan or a `SESSION_ID` environment variable, then dispatches commands to ~200 plugin files.
+MessageForge — a multi-device WhatsApp bot built on Node.js and `@whiskeysockets/baileys` (aliased to `gifted-baileys`). The bot connects to WhatsApp via QR scan or a `SESSION_ID` environment variable, then dispatches commands to ~200 plugin files. It also runs a web-based admin dashboard (`smm/`) served on the same Express port.
 
 ## Commands
 
@@ -14,20 +14,26 @@ node messageforge.js
 # or
 npm start
 
-# Install dependencies (requires Node >=20, ffmpeg, webp system packages)
+# PM2 (production)
+pm2 start ecosystem.config.js
+pm2 restart messageforge
+pm2 logs messageforge --lines 50
+
+# Install dependencies (requires Node >=20, ffmpeg, ffprobe, webp system packages)
 npm install
 
-# Docker
-docker build -t messageforge-md . && docker run -p 25680:25680 --env-file config.env messageforge-md
-```
+# Docker (docker-compose.yml is the canonical way)
+docker compose up -d
+docker compose logs -f messageforge
 
-No test runner is configured. No lint script exists.
+# No test runner or lint script is configured
+```
 
 ## Architecture
 
 ### Boot flow
 
-`messageforge.js` → loads session → calls `connectToWhatsApp()` → creates Baileys socket → registers event handlers → delegates command dispatch to `handler.js`.
+`messageforge.js` → loads session → calls `connectToWhatsApp()` → creates Baileys socket → registers event handlers → starts Express server on port `25680` → delegates command dispatch to `handler.js`.
 
 ### Configuration
 
@@ -40,14 +46,17 @@ All runtime settings live in `config.js`, which reads from environment variables
 | `PREFIX` | Command prefix (default `.`). Supports comma-list, `any`, or empty |
 | `MODE` | `public` / `private` / `both` — who can use the bot |
 | `THEME` | Active theme name (matches a file in `themes/`) |
+| `DATABASE_TYPE` | `json` (default) or `postgres` |
+| `POSTGRES_*` | Host/port/user/password/db when using postgres |
+| `MESSENGER_HISTORY_MAX` | Max messages stored per chat (default 3000) |
 
 ### Plugin system (`plugins/`)
 
-Each plugin file exports one object (or an array of objects) with this shape:
+Each plugin file exports one object (or an array of objects):
 
 ```js
 module.exports = {
-    commands:    ['cmd1', 'cmd2'],   // trigger words (no prefix)
+    commands:    ['cmd1', 'cmd2'],
     description: 'What it does',
     permission:  'public',           // 'public' | 'admin' | 'owner'
     group:       true,               // set false to block in groups
@@ -77,24 +86,90 @@ The `ctx` object passed to `run` contains:
 
 | File | Role |
 |------|------|
-| `messageforge.js` | Entry point, Baileys socket, event wiring, anti-delete, anti-VV, status saver |
+| `messageforge.js` | Entry point, Baileys socket, event wiring, Express server, all API routes, anti-delete, anti-VV, status saver |
 | `handler.js` | Plugin loader, command dispatch, permission checks, LID resolution |
 | `config.js` | Config with env-var defaults |
+| `lib/messengerStore.js` | LRU message cache, write queue per JID, dual JSON/Postgres backend, soft-delete |
+| `lib/faceIndexer.js` | Face recognition pipeline (face-api.js + canvas), person clustering, face crop storage |
+| `lib/database.js` | PostgreSQL connection pool (`getPgPool()`) |
 | `lib/theme.js` | Theme loader (`themes/*.json`) and `getStr()` helper |
 | `lib/statusManager.js` | WhatsApp status broadcast handler (auto-seen, auto-react, status saver) |
-| `lib/bgmTrigger.js` | Background music trigger logic |
 | `lib/dlmedia.js` | Media download utilities |
+| `lib/aiClient.js` | AI integration client |
+| `lib/state.js` | Global state persistence |
 
-### Themes (`themes/`)
+### Admin dashboard (`smm/`)
 
-JSON files keyed by theme name (e.g. `messageforge.json`, `friday.json`). Each contains a `STRINGS` object with a `global` section (botName, footer, greeting strings, error text). Active theme set via `THEME` env var. Switch at runtime with the `settheme` command.
+Single-page app served at `/`. All JS uses ES modules (`import/export`). Entry point is `smm/js/main.js`. Views are toggled by `.rail-btn[data-view]` → `.view#view-<name>`.
+
+| File | Role |
+|------|------|
+| `smm/js/main.js` | Entry: mounts all views, initialises socket, handles rail navigation |
+| `smm/js/socket.js` | Socket.IO wrapper; re-emits `new-message`, `presence-update`, `reaction-update` as DOM CustomEvents |
+| `smm/js/messenger.js` | Chats view — list, thread render, send, reply, pin, presence badge |
+| `smm/js/media.js` | Media gallery — grid, lightbox, sort/filter, people section, merge/delete persons |
+| `smm/js/dashboard.js` | Dashboard view — GitHub stats, commit chart |
+| `smm/js/api.js` | Axios wrapper with auth token management |
+| `smm/js/state.js` | Shared frontend state (active socket reference) |
+
+Dashboard auth uses a token stored in `localStorage`. Socket.IO connection passes the same token via `opts.auth`. The `/api/auth/config` endpoint tells the frontend whether auth is required.
+
+### Message storage (`lib/messengerStore.js`)
+
+Dual backend — JSON files under `data/messenger-history/` or PostgreSQL when `DATABASE_TYPE=postgres`. LRU in-memory cache (bounded by `MESSENGER_CACHED_CHATS`, default 50). Write operations are queued per JID to prevent concurrent file corruption.
+
+- **Soft-delete**: `softDeleteChat(jid)` removes local messages and hides the chat; auto-restores when the next message arrives. Persisted in `data/hidden-chats.json`.
+- **Index**: `data/messenger-history/index.json` tracks which JIDs have history files.
+
+### Media gallery & thumbnails
+
+`GET /api/media` scans `data/` recursively, **skipping dot-directories** (`.thumbs`, `.faces`). Thumbnails generated lazily by ffmpeg with a 3-process concurrency limit. `ffprobe` probes video duration first; thumb is captured at 10% to avoid black frames. Thumbs cached at `data/.thumbs/<sha1>.jpg` with `Cache-Control: immutable`.
+
+### Face recognition (`lib/faceIndexer.js`)
+
+Uses `face-api.js` with its bundled tfjs 1.7.0. **Do not `require('@tensorflow/tfjs-node')`** — tfjs 4.x conflicts and corrupts the bundled version. `canvas` npm package provides Node.js image rendering; `monkeyPatch` requires the `Canvas` class (not `createCanvas` factory) for `instanceof` checks.
+
+- Models auto-downloaded on first scan to `data/face-models/` from the face-api.js GitHub weights repo.
+- `loadPromise` is cleared on failure so the next scan retries instead of permanently rejecting.
+- Face crops stored in `data/.faces/`, index in `data/face-index.json`.
+- Clustering uses euclidean distance with `MATCH_THRESHOLD = 0.45`.
+
+### Express API routes (all under `/api`, auth-gated except `/api/auth/config`)
+
+| Route | Purpose |
+|-------|---------|
+| `GET /api/chats` | Chat list with latest message |
+| `GET /api/chat/:jid/messages` | Paginated message history |
+| `POST /api/send` | Send a message |
+| `POST /api/delete-message` | Delete a message |
+| `POST /api/toggle-pin` | Pin/unpin a chat |
+| `POST /api/react` | Send a reaction |
+| `POST /api/typing` | Send typing presence |
+| `POST /api/subscribe-presence` | Subscribe to presence for a JID |
+| `GET /api/media` | List all local media files |
+| `GET /api/media/thumb` | Lazy-generate and serve thumbnail |
+| `DELETE /api/media` | Delete media file + its thumbnail |
+| `GET /api/media/persons` | List face-clustered persons |
+| `POST /api/media/index-faces` | Start face indexing job |
+| `GET /api/media/index-status` | Poll indexing progress |
+| `PATCH /api/media/persons/:id` | Rename person or merge (`{ mergeInto }`) |
+| `DELETE /api/media/persons/:id` | Delete person and face crops |
+| `GET /api/plugins` | List loaded plugins |
+| `GET /api/me` | Bot JID info |
 
 ### Persistent data (`data/`)
 
-Runtime files written here:
-- `sudo.json` — array of sudo-user JIDs (loaded at startup into `global.sudoUsers`)
-- `lid-phone-cache.json` — LID→phone mapping cache (flushed every 30s, on SIGINT/SIGTERM)
-- `push-names.json` — display name cache
+| Path | Contents |
+|------|----------|
+| `data/messenger-history/` | Per-JID JSON message history + `index.json` |
+| `data/hidden-chats.json` | Soft-deleted chat JIDs |
+| `data/sudo.json` | Sudo-user JIDs |
+| `data/push-names.json` | Display name cache |
+| `data/lid-phone-cache.json` | LID→phone cache (flushed every 30s) |
+| `data/.thumbs/` | Video/image thumbnail cache (dot-dir, excluded from media scan) |
+| `data/.faces/` | Face crop images (dot-dir, excluded from media scan) |
+| `data/face-index.json` | Face clustering index |
+| `data/face-models/` | Downloaded face-api.js model weights |
 
 ### Session (`session/`)
 
@@ -108,6 +183,6 @@ Modern WhatsApp uses `@lid` identifiers instead of phone numbers in groups. `mes
 
 `handler.js`'s `safeSend()` enforces a 30-message-per-minute rate limit with random jitter (100–500 ms) on every outgoing message. Do not bypass this with direct `sock.sendMessage()` calls from within plugins except for time-sensitive operations like delete-and-warn.
 
-### Express server
+### Route ordering in `messageforge.js`
 
-`messageforge.js` starts an Express server on port `25680` (or `PORT` env). Routes: `/` (dashboard), `/health`, `/ping`. The `/ping` endpoint is hit every 25 min for Heroku keep-alive when `APP_URL` is set.
+Express routes for `/api/media/face`, `/api/media/index-status`, `/api/media/index-faces`, and `/api/media/persons` **must be declared before** `app.get('/api/media/:jid/:msgId', ...)` to prevent the parameterised route matching internal paths.

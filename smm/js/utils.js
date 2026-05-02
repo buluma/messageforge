@@ -1,3 +1,43 @@
+// ── Toast notification system ─────────────────────────────────────
+// Injects its own container into the DOM on first use.
+let _toastContainer = null;
+
+function getToastContainer() {
+    if (!_toastContainer) {
+        _toastContainer = document.createElement('div');
+        _toastContainer.className = 'toast-container';
+        document.body.appendChild(_toastContainer);
+    }
+    return _toastContainer;
+}
+
+function showToast(msg, type) {
+    const container = getToastContainer();
+    const el = document.createElement('div');
+    el.className = `toast toast-${type}`;
+    el.textContent = msg;
+
+    container.appendChild(el);
+
+    // Trigger fade-in on next frame
+    requestAnimationFrame(() => el.classList.add('toast-visible'));
+
+    const dismiss = () => {
+        el.classList.remove('toast-visible');
+        el.addEventListener('transitionend', () => el.remove(), { once: true });
+    };
+
+    const timer = setTimeout(dismiss, 4000);
+    el.addEventListener('click', () => { clearTimeout(timer); dismiss(); });
+}
+
+export const toast = {
+    success: (msg) => showToast(msg, 'success'),
+    error:   (msg) => showToast(msg, 'error'),
+    warn:    (msg) => showToast(msg, 'warn'),
+    info:    (msg) => showToast(msg, 'info'),
+};
+
 export function escapeHtml(s) {
   return String(s ?? '')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')

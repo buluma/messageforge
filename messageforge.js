@@ -442,6 +442,20 @@ function cleanupLogs() {
 
 const globalContextInfo = {};
 
+// ── Startup environment validation ────────────────────────────────────────────
+function validateEnv() {
+    if (!config.OWNER_NUMBER) {
+        logMessage('WARN', 'OWNER_NUMBER is not set. Owner-only features will be unavailable.');
+    }
+    const sid = (config.SESSION_ID || '').trim();
+    if (!sid && !fs.existsSync(credsPath)) {
+        logMessage('WARN', 'SESSION_ID is not set and no session/creds.json found. QR scan required.');
+    }
+    if (config.DATABASE_TYPE === 'postgres' && !config.POSTGRES_HOST) {
+        logMessage('WARN', 'DATABASE_TYPE=postgres but POSTGRES_HOST is not set. Database connection will fail.');
+    }
+}
+
 // ✅ Safe Get User JID
 function safeGetUserJid(sock) {
     try {
@@ -1722,6 +1736,39 @@ io.on('connection', (socket) => {
 });
 
 app.use(express.json());
+
+// ── Security headers ──────────────────────────────────────────────────────────
+app.use((req, res, next) => {
+    res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'self'; script-src 'self' cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' data: avatars.githubusercontent.com; connect-src 'self' api.github.com wss:; media-src 'self' blob:",
+    );
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    next();
+});
+
+// ── API rate limiter (120 req/min per IP, /api/* only) ────────────────────────
+const _apiRateLimitMap = new Map();
+app.use('/api', (req, res, next) => {
+    const ip = requestIp(req);
+    const now = Date.now();
+    const window = 60 * 1000;
+    const limit = 120;
+
+    let entry = _apiRateLimitMap.get(ip);
+    if (!entry || now >= entry.resetAt) {
+        entry = { count: 0, resetAt: now + window };
+        _apiRateLimitMap.set(ip, entry);
+    }
+
+    entry.count++;
+    if (entry.count > limit) {
+        return res.status(429).json({ error: 'Too many requests' });
+    }
+    next();
+});
+
 app.use(express.static(path.join(__dirname, 'smm')));
 app.use('/media-files', requireDashboardAuth, express.static(path.join(__dirname, 'data')));
 
@@ -2090,7 +2137,7 @@ app.get('/api/profile-pic/:jid', async (req, res) => {
     }
 });
 
-const { buildIndex: facesBuildIndex, getPersons, renamePerson, mergePerson, deletePerson, getStatus: facesStatus, FACES_DIR } = require('./lib/faceIndexer');
+const { buildIndex: facesBuildIndex, getPersons, renamePerson, mergePerson, deletePerson, linkPersonJid, getStatus: facesStatus, FACES_DIR } = require('./lib/faceIndexer');
 app.use('/api/media/face', express.static(FACES_DIR));
 
 app.get('/api/media/:jid/:msgId', async (req, res) => {
@@ -2237,7 +2284,8 @@ app.get('/api/media', (req, res) => {
     const results = [];
     scanMediaDir(MEDIA_DATA_DIR, MEDIA_DATA_DIR, results);
     results.sort((a, b) => b.mtime - a.mtime);
-    res.json({ files: results, total: results.length });
+    const totalBytes = results.reduce((sum, f) => sum + (f.size || 0), 0);
+    res.json({ files: results, total: results.length, totalBytes });
 });
 
 const THUMB_DIR = path.join(__dirname, 'data', '.thumbs');
@@ -2246,6 +2294,12 @@ const crypto = require('crypto');
 function thumbPath(relPath) {
     const hash = crypto.createHash('sha1').update(relPath).digest('hex');
     return path.join(THUMB_DIR, `${hash}.jpg`);
+}
+
+// Returns the hex SHA-256 digest of a file's contents.
+function computeFileHash(filePath) {
+    const buf = fs.readFileSync(filePath);
+    return crypto.createHash('sha256').update(buf).digest('hex');
 }
 
 // Concurrency limiter: max 3 simultaneous ffmpeg thumbnail processes
@@ -2320,6 +2374,42 @@ app.get('/api/media/thumb', (req, res) => {
     });
 });
 
+// ── Duplicate media detection ─────────────────────────────────────────────────
+// Scans data/ (excluding dot-dirs), groups files by SHA-256, returns groups
+// that contain more than one file.
+app.get('/api/media/duplicates', (req, res) => {
+    try {
+        const hashMap = new Map();
+
+        function scanForDuplicates(dir, baseDir) {
+            let entries;
+            try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+            for (const entry of entries) {
+                const full = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    if (entry.name.startsWith('.')) continue;
+                    scanForDuplicates(full, baseDir);
+                } else if (entry.isFile()) {
+                    let hash;
+                    try { hash = computeFileHash(full); } catch { continue; }
+                    const rel = path.relative(baseDir, full).replace(/\\/g, '/');
+                    const url = `/media-files/${rel}`;
+                    const existing = hashMap.get(hash) || [];
+                    existing.push(url);
+                    hashMap.set(hash, existing);
+                }
+            }
+        }
+
+        scanForDuplicates(MEDIA_DATA_DIR, MEDIA_DATA_DIR);
+
+        const groups = Array.from(hashMap.values()).filter((g) => g.length > 1);
+        res.json({ groups });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.delete('/api/media', (req, res) => {
     const { url } = req.body;
     if (!url || !url.startsWith('/media-files/')) {
@@ -2335,6 +2425,60 @@ app.delete('/api/media', (req, res) => {
         const thumb = thumbPath(rel);
         if (fs.existsSync(thumb)) fs.unlinkSync(thumb);
         res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── Media upload ──────────────────────────────────────────────────────────────
+// Max 50 MB expressed as base64-decoded bytes
+const UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
+
+app.post('/api/media/upload', requireDashboardAuth, express.json({ limit: '70mb' }), (req, res) => {
+    const { filename, data } = req.body;
+    if (!filename || typeof filename !== 'string') {
+        return res.status(400).json({ error: 'filename required' });
+    }
+    if (!data || typeof data !== 'string') {
+        return res.status(400).json({ error: 'data (base64) required' });
+    }
+
+    // Strip directory components — only keep the basename
+    const basename = path.basename(filename);
+    if (!basename || basename === '.' || basename === '..') {
+        return res.status(400).json({ error: 'Invalid filename' });
+    }
+
+    const ext = path.extname(basename).toLowerCase();
+    if (!MEDIA_EXTS.has(ext)) {
+        return res.status(400).json({ error: `Unsupported file type: ${ext}` });
+    }
+
+    // Rough size check before decoding (base64 inflates by ~4/3)
+    if (data.length * 0.75 > UPLOAD_MAX_BYTES) {
+        return res.status(413).json({ error: 'File too large (max 50 MB)' });
+    }
+
+    let buf;
+    try {
+        buf = Buffer.from(data, 'base64');
+    } catch {
+        return res.status(400).json({ error: 'Invalid base64 data' });
+    }
+
+    if (buf.length > UPLOAD_MAX_BYTES) {
+        return res.status(413).json({ error: 'File too large (max 50 MB)' });
+    }
+
+    const dest = path.join(MEDIA_DATA_DIR, basename);
+    // Final path traversal guard
+    if (!dest.startsWith(MEDIA_DATA_DIR + path.sep)) {
+        return res.status(400).json({ error: 'Path traversal rejected' });
+    }
+
+    try {
+        fs.writeFileSync(dest, buf);
+        res.json({ url: `/media-files/${basename}` });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -2362,9 +2506,14 @@ app.post('/api/media/index-faces', (req, res) => {
 });
 
 app.patch('/api/media/persons/:id', (req, res) => {
-    const { name, mergeInto } = req.body;
+    const { name, mergeInto, jid } = req.body;
     if (mergeInto) {
         const ok = mergePerson(req.params.id, mergeInto);
+        if (!ok) return res.status(404).json({ error: 'Person not found' });
+        return res.json({ success: true });
+    }
+    if (jid !== undefined) {
+        const ok = linkPersonJid(req.params.id, jid || null);
         if (!ok) return res.status(404).json({ error: 'Person not found' });
         return res.json({ success: true });
     }
@@ -2400,6 +2549,151 @@ app.post('/api/read', async (req, res) => {
         res.json({ success: true });
     } catch (e) {
         res.status(500).json({ error: e.message });
+    }
+});
+
+// ── Full-text message search ──────────────────────────────────────────────────
+
+app.get('/api/search', async (req, res) => {
+    const q = String(req.query.q || '').trim();
+    const limitRaw = Number(req.query.limit || 20);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 100) : 20;
+
+    if (!q || q.length < 2) {
+        return res.json({ results: [] });
+    }
+
+    try {
+        const DATA_DIR = path.join(__dirname, 'data', 'messenger-history');
+        const INDEX_FILE = path.join(DATA_DIR, 'index.json');
+
+        if (!fs.existsSync(INDEX_FILE)) return res.json({ results: [] });
+
+        let jids;
+        try {
+            jids = JSON.parse(fs.readFileSync(INDEX_FILE, 'utf8'));
+        } catch {
+            return res.json({ results: [] });
+        }
+
+        if (!Array.isArray(jids) || jids.length === 0) return res.json({ results: [] });
+
+        const qLower = q.toLowerCase();
+        const results = [];
+
+        for (const jid of jids) {
+            if (results.length >= limit) break;
+
+            const fileName = Buffer.from(String(jid), 'utf8').toString('base64url') + '.json';
+            const filePath = path.join(DATA_DIR, fileName);
+            if (!fs.existsSync(filePath)) continue;
+
+            let messages;
+            try {
+                messages = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            } catch {
+                continue;
+            }
+
+            if (!Array.isArray(messages)) continue;
+
+            // Collect all matching messages from this jid, newest first
+            const matches = [];
+            for (const m of messages) {
+                const text =
+                    m?.message?.conversation ||
+                    m?.message?.extendedTextMessage?.text ||
+                    m?.message?.imageMessage?.caption ||
+                    m?.message?.videoMessage?.caption ||
+                    '';
+                if (!text) continue;
+                if (text.toLowerCase().includes(qLower)) {
+                    matches.push({
+                        jid,
+                        pushName: m.pushName || '',
+                        message: {
+                            id: m?.key?.id || '',
+                            text,
+                            fromMe: !!m?.key?.fromMe,
+                            timestamp: m.messageTimestamp || 0,
+                        },
+                    });
+                }
+            }
+
+            // Sort newest-first and take up to remaining limit slots
+            matches.sort((a, b) => b.message.timestamp - a.message.timestamp);
+            for (const match of matches) {
+                if (results.length >= limit) break;
+                results.push(match);
+            }
+        }
+
+        // Final sort across all jids: newest-first
+        results.sort((a, b) => b.message.timestamp - a.message.timestamp);
+
+        res.json({ results: results.slice(0, limit) });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ── Quick-reply templates ─────────────────────────────────────────────────────
+
+const QUICK_REPLIES_FILE = path.join(__dirname, 'data', 'quick-replies.json');
+
+function readQuickReplies() {
+    try {
+        if (!fs.existsSync(QUICK_REPLIES_FILE)) return [];
+        const raw = JSON.parse(fs.readFileSync(QUICK_REPLIES_FILE, 'utf8'));
+        return Array.isArray(raw) ? raw : [];
+    } catch {
+        return [];
+    }
+}
+
+function writeQuickReplies(templates) {
+    const dir = path.dirname(QUICK_REPLIES_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(QUICK_REPLIES_FILE, JSON.stringify(templates, null, 2));
+}
+
+app.get('/api/quick-replies', (req, res) => {
+    res.json(readQuickReplies());
+});
+
+app.post('/api/quick-replies', (req, res) => {
+    const label = String(req.body?.label || '').trim();
+    const text = String(req.body?.text || '').trim();
+    if (!label || !text) return res.status(400).json({ error: 'label and text are required' });
+
+    const templates = readQuickReplies();
+    const id = Date.now().toString(36);
+    templates.push({ id, label, text });
+    writeQuickReplies(templates);
+    res.json({ id, label, text });
+});
+
+app.delete('/api/quick-replies/:id', (req, res) => {
+    const { id } = req.params;
+    const templates = readQuickReplies();
+    const next = templates.filter((t) => t.id !== id);
+    if (next.length === templates.length) {
+        return res.status(404).json({ error: 'Template not found' });
+    }
+    writeQuickReplies(next);
+    res.json({ success: true });
+});
+
+// ── Plugin hot-reload manual trigger ─────────────────────────────────────────
+
+app.get('/api/plugins/reload', (req, res) => {
+    try {
+        const { reloadAllPlugins } = require('./handler');
+        reloadAllPlugins();
+        res.json({ success: true, message: 'All plugins reloaded' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -2609,6 +2903,7 @@ function renderStartupBanner() {
         for (const row of renderStartupBanner()) console.log(row);
         console.log('\x1b[0m');
         logMessage('INFO', `Booting ${getDisplayBotName()} runtime...`);
+        validateEnv();
 
         // ── Load global state ───────────────────────────────────────────────
         try {
