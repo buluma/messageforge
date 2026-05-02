@@ -1735,7 +1735,7 @@ io.on('connection', (socket) => {
     socket.join(DASHBOARD_ROOM);
 });
 
-app.use(express.json());
+app.use(express.json({ limit: '70mb' }));
 
 // ── Security headers ──────────────────────────────────────────────────────────
 app.use((req, res, next) => {
@@ -2434,7 +2434,7 @@ app.delete('/api/media', (req, res) => {
 // Max 50 MB expressed as base64-decoded bytes
 const UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
 
-app.post('/api/media/upload', requireDashboardAuth, express.json({ limit: '70mb' }), (req, res) => {
+app.post('/api/media/upload', requireDashboardAuth, (req, res) => {
     const { filename, data } = req.body;
     if (!filename || typeof filename !== 'string') {
         return res.status(400).json({ error: 'filename required' });
