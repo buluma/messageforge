@@ -265,6 +265,14 @@
                             <button class="pill" data-type="audio">Audio</button>
                         </div>
                         <input id="mediaSearch" class="plugin-search-input" type="search" placeholder="Search files…" autocomplete="off" />
+                        <select id="mediaSort" class="media-sort-select">
+                            <option value="date-desc">Newest first</option>
+                            <option value="date-asc">Oldest first</option>
+                            <option value="size-desc">Largest first</option>
+                            <option value="size-asc">Smallest first</option>
+                            <option value="name-asc">Name A–Z</option>
+                            <option value="name-desc">Name Z–A</option>
+                        </select>
                     </div>
                     <div id="mediaLoading" class="empty-state">Loading media…</div>
                     <div id="mediaGrid" class="media-grid" hidden></div>
@@ -275,6 +283,7 @@
                             <h2 class="people-title">People</h2>
                             <div style="display:flex;gap:8px;align-items:center">
                                 <span id="indexStatus" class="muted" style="font-size:12px"></span>
+                                <button id="mergeCancelBtn" class="ghost-btn" hidden>Cancel merge</button>
                                 <button id="indexFacesBtn" class="ghost-btn" title="Scan thumbnails for faces">Scan faces</button>
                             </div>
                         </div>

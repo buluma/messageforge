@@ -2090,7 +2090,7 @@ app.get('/api/profile-pic/:jid', async (req, res) => {
     }
 });
 
-const { buildIndex: facesBuildIndex, getPersons, renamePerson, getStatus: facesStatus, FACES_DIR } = require('./lib/faceIndexer');
+const { buildIndex: facesBuildIndex, getPersons, renamePerson, mergePerson, deletePerson, getStatus: facesStatus, FACES_DIR } = require('./lib/faceIndexer');
 app.use('/api/media/face', express.static(FACES_DIR));
 
 app.get('/api/media/:jid/:msgId', async (req, res) => {
@@ -2258,14 +2258,23 @@ function runThumb(src, dest, cb) {
         return;
     }
     thumbActive++;
-    execFile('ffmpeg', [
-        '-y', '-i', src,
-        '-vframes', '1', '-vf', 'scale=320:-1',
-        '-f', 'image2', dest,
-    ], { timeout: 20000 }, (err) => {
-        thumbActive--;
-        if (thumbQueue.length) thumbQueue.shift()();
-        cb(err);
+
+    // Probe duration so we can seek to 10% — avoids black opening frames
+    execFile('ffprobe', [
+        '-v', 'error', '-show_entries', 'format=duration',
+        '-of', 'default=noprint_wrappers=1:nokey=1', src,
+    ], { timeout: 10000 }, (probeErr, stdout) => {
+        const duration = parseFloat(stdout) || 0;
+        const seekSec = duration > 1 ? (duration * 0.1).toFixed(3) : '0';
+        execFile('ffmpeg', [
+            '-y', '-ss', seekSec, '-i', src,
+            '-vframes', '1', '-vf', 'scale=320:-1',
+            '-f', 'image2', dest,
+        ], { timeout: 20000 }, (err) => {
+            thumbActive--;
+            if (thumbQueue.length) thumbQueue.shift()();
+            cb(err);
+        });
     });
 }
 
@@ -2283,7 +2292,10 @@ app.get('/api/media/thumb', (req, res) => {
     }
 
     const dest = thumbPath(rel);
-    const serve = () => res.sendFile(dest);
+    const serve = () => {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        res.sendFile(dest);
+    };
 
     if (fs.existsSync(dest)) return serve();
 
@@ -2349,9 +2361,20 @@ app.post('/api/media/index-faces', (req, res) => {
 });
 
 app.patch('/api/media/persons/:id', (req, res) => {
-    const { name } = req.body;
+    const { name, mergeInto } = req.body;
+    if (mergeInto) {
+        const ok = mergePerson(req.params.id, mergeInto);
+        if (!ok) return res.status(404).json({ error: 'Person not found' });
+        return res.json({ success: true });
+    }
     if (!name || !name.trim()) return res.status(400).json({ error: 'name required' });
     const ok = renamePerson(req.params.id, name.trim());
+    if (!ok) return res.status(404).json({ error: 'Person not found' });
+    res.json({ success: true });
+});
+
+app.delete('/api/media/persons/:id', (req, res) => {
+    const ok = deletePerson(req.params.id);
     if (!ok) return res.status(404).json({ error: 'Person not found' });
     res.json({ success: true });
 });

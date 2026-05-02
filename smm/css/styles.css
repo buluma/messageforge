@@ -1280,3 +1280,68 @@ input {
     font-size: 11px;
     color: var(--text-muted);
 }
+.person-card {
+    position: relative;
+}
+.person-delete-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+    line-height: 1;
+}
+.person-card:hover .person-delete-btn {
+    opacity: 1;
+}
+.person-delete-btn:hover {
+    color: var(--error);
+}
+.person-merge-btn,
+.person-merge-into-btn {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border-hi);
+    background: var(--bg-3);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+    white-space: nowrap;
+}
+.person-merge-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary-hi);
+}
+.person-merge-into-btn {
+    border-color: var(--secondary);
+    color: var(--secondary);
+}
+.person-merge-into-btn:hover {
+    background: rgba(16, 185, 129, 0.15);
+}
+.person-card.merge-source {
+    border-color: var(--accent);
+    background: rgba(245, 158, 11, 0.08);
+}
+.media-sort-select {
+    background: var(--bg-2);
+    border: 1px solid var(--border-hi);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 13px;
+    padding: 6px 10px;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+}
+.media-sort-select:focus {
+    border-color: var(--primary);
+}

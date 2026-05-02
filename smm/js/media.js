@@ -19,9 +19,24 @@ let allPersons = [];
 let activeType = 'all';
 let searchTerm = '';
 let activePerson = null;
+let sortKey = 'date-desc';
+let mergeSourceId = null;
+
+function sorted(files) {
+    const arr = [...files];
+    switch (sortKey) {
+        case 'date-desc': return arr.sort((a, b) => b.mtime - a.mtime);
+        case 'date-asc':  return arr.sort((a, b) => a.mtime - b.mtime);
+        case 'size-desc': return arr.sort((a, b) => b.size - a.size);
+        case 'size-asc':  return arr.sort((a, b) => a.size - b.size);
+        case 'name-asc':  return arr.sort((a, b) => a.name.localeCompare(b.name));
+        case 'name-desc': return arr.sort((a, b) => b.name.localeCompare(a.name));
+        default: return arr;
+    }
+}
 
 function filtered() {
-    return allFiles.filter((f) => {
+    const base = allFiles.filter((f) => {
         if (activeType !== 'all' && f.type !== activeType) return false;
         if (searchTerm && !f.name.toLowerCase().includes(searchTerm)) return false;
         if (activePerson) {
@@ -30,6 +45,7 @@ function filtered() {
         }
         return true;
     });
+    return sorted(base);
 }
 
 function renderGrid() {
@@ -171,7 +187,9 @@ function renderPeople() {
     wrap.hidden = false;
 
     grid.innerHTML = allPersons.map((p) => `
-        <div class="person-card ${activePerson === p.id ? 'active' : ''}" data-person-id="${p.id}">
+        <div class="person-card ${activePerson === p.id ? 'active' : ''} ${mergeSourceId === p.id ? 'merge-source' : ''}"
+             data-person-id="${p.id}">
+            <button class="person-delete-btn" data-person-id="${p.id}" title="Remove person">✕</button>
             <div class="person-avatar">
                 ${p.faceUrl
                     ? `<img src="${p.faceUrl}" alt="${p.name}" class="person-face-img" />`
@@ -179,8 +197,17 @@ function renderPeople() {
             </div>
             <div class="person-name" contenteditable="false" data-person-id="${p.id}">${p.name}</div>
             <div class="person-count">${p.count} file${p.count !== 1 ? 's' : ''}</div>
+            ${mergeSourceId && mergeSourceId !== p.id
+                ? `<button class="person-merge-into-btn" data-person-id="${p.id}" title="Merge into this person">← Merge here</button>`
+                : ''}
+            ${!mergeSourceId
+                ? `<button class="person-merge-btn" data-person-id="${p.id}" title="Merge this person into another">⇄ Merge</button>`
+                : ''}
         </div>
     `).join('');
+
+    const cancelBtn = document.getElementById('mergeCancelBtn');
+    if (cancelBtn) cancelBtn.hidden = !mergeSourceId;
 }
 
 async function loadPersons() {
@@ -260,6 +287,11 @@ export function mountMedia() {
         renderGrid();
     });
 
+    document.getElementById('mediaSort').addEventListener('change', (e) => {
+        sortKey = e.target.value;
+        renderGrid();
+    });
+
     document.getElementById('mediaGrid').addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.media-delete-btn');
         if (deleteBtn) {
@@ -311,9 +343,51 @@ export function mountMedia() {
 
     document.getElementById('indexFacesBtn').addEventListener('click', startIndexing);
 
-    document.getElementById('peopleGrid').addEventListener('click', (e) => {
+    document.getElementById('mergeCancelBtn').addEventListener('click', () => {
+        mergeSourceId = null;
+        renderPeople();
+    });
+
+    document.getElementById('peopleGrid').addEventListener('click', async (e) => {
+        // Delete person
+        const deleteBtn = e.target.closest('.person-delete-btn');
+        if (deleteBtn) {
+            e.stopPropagation();
+            const id = deleteBtn.dataset.personId;
+            if (!confirm('Remove this person and their face data?')) return;
+            await api.delete(`/api/media/persons/${id}`).catch(() => {});
+            allPersons = allPersons.filter((p) => p.id !== id);
+            if (activePerson === id) activePerson = null;
+            if (mergeSourceId === id) mergeSourceId = null;
+            renderPeople();
+            renderGrid();
+            return;
+        }
+
+        // Initiate merge
+        const mergeBtn = e.target.closest('.person-merge-btn');
+        if (mergeBtn) {
+            e.stopPropagation();
+            mergeSourceId = mergeBtn.dataset.personId;
+            renderPeople();
+            return;
+        }
+
+        // Complete merge
+        const mergeIntoBtn = e.target.closest('.person-merge-into-btn');
+        if (mergeIntoBtn) {
+            e.stopPropagation();
+            const targetId = mergeIntoBtn.dataset.personId;
+            await api.patch(`/api/media/persons/${mergeSourceId}`, { mergeInto: targetId }).catch(() => {});
+            mergeSourceId = null;
+            await loadPersons();
+            renderGrid();
+            return;
+        }
+
+        // Filter by person
         const card = e.target.closest('.person-card');
-        if (!card) return;
+        if (!card || mergeSourceId) return;
         const id = card.dataset.personId;
         activePerson = activePerson === id ? null : id;
         renderPeople();
