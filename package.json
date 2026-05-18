@@ -68,7 +68,7 @@
         "api-dylux": "^1.8.5",
         "aptoide-scraper": "^1.0.1",
         "awesome-phonenumber": "^3.4.0",
-        "axios": "^1.15.0",
+        "axios": "^1.16.1",
         "btch-downloader": "^4.1.26",
         "canvas": "^3.2.3",
         "chalk": "^5.6.2",
@@ -125,7 +125,7 @@
         "truesearch": "^1.0.2",
         "undici": "^6.23.0",
         "url-regex-safe": "^3.0.0",
-        "ws": "^8.19.0",
+        "ws": "^8.20.1",
         "xfarr-api": "^3.0.1",
         "yargs": "^17.7.2",
         "youtubedl-core": "^4.11.7",
@@ -139,8 +139,13 @@
         },
         "minimatch": "^3.1.4",
         "form-data": "^4.0.4",
-        "axios": "^1.15.0",
         "jsonpath-plus": "^10.3.0",
+        "engine.io": {
+            "ws": "^8.20.1"
+        },
+        "socket.io-adapter": {
+            "ws": "^8.20.1"
+        },
         "qs": "^6.14.1",
         "tough-cookie": "^4.1.4",
         "jpeg-js": "^0.4.4",
