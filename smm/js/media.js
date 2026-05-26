@@ -34,13 +34,20 @@ let chatList = null;
 function sorted(files) {
     const arr = [...files];
     switch (sortKey) {
-        case 'date-desc': return arr.sort((a, b) => b.mtime - a.mtime);
-        case 'date-asc':  return arr.sort((a, b) => a.mtime - b.mtime);
-        case 'size-desc': return arr.sort((a, b) => b.size - a.size);
-        case 'size-asc':  return arr.sort((a, b) => a.size - b.size);
-        case 'name-asc':  return arr.sort((a, b) => a.name.localeCompare(b.name));
-        case 'name-desc': return arr.sort((a, b) => b.name.localeCompare(a.name));
-        default: return arr;
+        case 'date-desc':
+            return arr.sort((a, b) => b.mtime - a.mtime);
+        case 'date-asc':
+            return arr.sort((a, b) => a.mtime - b.mtime);
+        case 'size-desc':
+            return arr.sort((a, b) => b.size - a.size);
+        case 'size-asc':
+            return arr.sort((a, b) => a.size - b.size);
+        case 'name-asc':
+            return arr.sort((a, b) => a.name.localeCompare(b.name));
+        case 'name-desc':
+            return arr.sort((a, b) => b.name.localeCompare(a.name));
+        default:
+            return arr;
     }
 }
 
@@ -72,15 +79,17 @@ function renderGrid() {
 
     const visibleFiles = allFiltered.slice(0, PAGE_SIZE * mediaPage);
 
-    grid.innerHTML = visibleFiles.map((f) => {
-        const safeName = escapeHtml(f.name);
-        const safeFolder = escapeHtml(f.folder === '.' ? 'root' : f.folder);
-        return `
+    grid.innerHTML = visibleFiles
+        .map((f) => {
+            const safeName = escapeHtml(f.name);
+            const safeFolder = escapeHtml(f.folder === '.' ? 'root' : f.folder);
+            return `
         <div class="media-card" data-url="${escapeHtml(f.url)}" data-type="${escapeHtml(f.type)}" data-name="${safeName}" tabindex="0" role="button" aria-label="View ${safeName}">
             <button class="media-delete-btn" data-url="${escapeHtml(f.url)}" title="Delete" aria-label="Delete ${safeName}">🗑</button>
-            ${f.type === 'image' || f.type === 'video'
-                ? `<img class="media-thumb" src="/api/media/thumb?url=${encodeURIComponent(f.url)}" alt="${safeName}" loading="lazy" data-icon="${ICON[f.type] || '📄'}" />`
-                : `<div class="media-thumb-placeholder">${ICON[f.type] || '📄'}</div>`
+            ${
+                f.type === 'image' || f.type === 'video'
+                    ? `<img class="media-thumb" src="/api/media/thumb?url=${encodeURIComponent(f.url)}" alt="${safeName}" loading="lazy" data-icon="${ICON[f.type] || '📄'}" />`
+                    : `<div class="media-thumb-placeholder">${ICON[f.type] || '📄'}</div>`
             }
             <div class="media-card-body">
                 <div class="media-card-name" title="${safeName}">${safeName}</div>
@@ -94,7 +103,8 @@ function renderGrid() {
             </div>
         </div>
     `;
-    }).join('');
+        })
+        .join('');
 
     // Append "Load more" button if there are additional files beyond the current page
     if (allFiltered.length > PAGE_SIZE * mediaPage) {
@@ -161,9 +171,8 @@ function updateLbControls(file) {
 
     document.getElementById('lbPrev').hidden = !isVideo || idx <= 0;
     document.getElementById('lbNext').hidden = !isVideo || idx >= videos.length - 1;
-    document.getElementById('lbCounter').textContent = isVideo && videos.length > 1
-        ? `${idx + 1} / ${videos.length}`
-        : '';
+    document.getElementById('lbCounter').textContent =
+        isVideo && videos.length > 1 ? `${idx + 1} / ${videos.length}` : '';
     document.getElementById('lbAutoplay').classList.toggle('active', lbAutoplay);
     document.getElementById('lbLoop').classList.toggle('active', lbLoop);
 
@@ -244,50 +253,66 @@ function renderPeople() {
         return;
     }
 
-    grid.innerHTML = allPersons.map((p) => {
-        const linkedName = p.jid
-            ? (chatList?.find((c) => c.jid === p.jid)?.name || p.jid.split('@')[0])
-            : null;
-        const safePName = escapeHtml(p.name);
-        const safeLinked = linkedName ? escapeHtml(linkedName) : null;
-        return `
+    grid.innerHTML = allPersons
+        .map((p) => {
+            const linkedName = p.jid
+                ? chatList?.find((c) => c.jid === p.jid)?.name || p.jid.split('@')[0]
+                : null;
+            const safePName = escapeHtml(p.name);
+            const safeLinked = linkedName ? escapeHtml(linkedName) : null;
+            return `
         <div class="person-card ${activePerson === p.id ? 'active' : ''} ${mergeSourceId === p.id ? 'merge-source' : ''}"
              data-person-id="${p.id}">
             <button class="person-delete-btn" data-person-id="${p.id}" title="Remove person">✕</button>
             <div class="person-avatar">
-                ${p.faceUrl
-                    ? `<img src="${p.faceUrl}" alt="${safePName}" class="person-face-img" />`
-                    : `<span>👤</span>`}
+                ${
+                    p.faceUrl
+                        ? `<img src="${p.faceUrl}" alt="${safePName}" class="person-face-img" />`
+                        : `<span>👤</span>`
+                }
             </div>
             <div class="person-name" contenteditable="false" data-person-id="${p.id}">${safePName}</div>
             ${safeLinked ? `<div class="person-jid-label" title="${escapeHtml(p.jid)}">@${safeLinked}</div>` : ''}
             <div class="person-count">${p.count} file${p.count !== 1 ? 's' : ''}</div>
-            ${p.confidence != null && p.count > 1
-                ? p.confidence < 0.25
-                    ? `<div class="person-confidence person-confidence--high">High confidence</div>`
-                    : p.confidence <= 0.40
-                        ? `<div class="person-confidence person-confidence--medium">Medium</div>`
-                        : `<div class="person-confidence person-confidence--low">Low confidence</div>`
-                : ''}
-            ${mergeSourceId && mergeSourceId !== p.id
-                ? `<button class="person-merge-into-btn" data-person-id="${p.id}" title="Merge into this person">← Merge here</button>`
-                : ''}
-            ${!mergeSourceId
-                ? `<button class="person-merge-btn" data-person-id="${p.id}" title="Merge this person into another">⇄ Merge</button>`
-                : ''}
-            ${!mergeSourceId
-                ? `<button class="person-link-btn" data-person-id="${p.id}" title="Link to WhatsApp contact">⇗ Link contact</button>`
-                : ''}
-            ${linkPickerOpenId === p.id ? `
+            ${
+                p.confidence != null && p.count > 1
+                    ? p.confidence >= 0.75
+                        ? `<div class="person-confidence person-confidence--high">High confidence</div>`
+                        : p.confidence >= 0.5
+                          ? `<div class="person-confidence person-confidence--medium">Medium</div>`
+                          : `<div class="person-confidence person-confidence--low">Low confidence</div>`
+                    : ''
+            }
+            ${
+                mergeSourceId && mergeSourceId !== p.id
+                    ? `<button class="person-merge-into-btn" data-person-id="${p.id}" title="Merge into this person">← Merge here</button>`
+                    : ''
+            }
+            ${
+                !mergeSourceId
+                    ? `<button class="person-merge-btn" data-person-id="${p.id}" title="Merge this person into another">⇄ Merge</button>`
+                    : ''
+            }
+            ${
+                !mergeSourceId
+                    ? `<button class="person-link-btn" data-person-id="${p.id}" title="Link to WhatsApp contact">⇗ Link contact</button>`
+                    : ''
+            }
+            ${
+                linkPickerOpenId === p.id
+                    ? `
             <div class="person-link-picker" data-person-id="${p.id}">
                 <select class="person-link-select" data-person-id="${p.id}">
                     <option value="">— select contact —</option>
                     ${(chatList || []).map((c) => `<option value="${c.jid}" ${p.jid === c.jid ? 'selected' : ''}>${c.name || c.jid.split('@')[0]}</option>`).join('')}
                 </select>
-            </div>` : ''}
+            </div>`
+                    : ''
+            }
         </div>
     `;
-    }).join('');
+        })
+        .join('');
 
     const cancelBtn = document.getElementById('mergeCancelBtn');
     if (cancelBtn) cancelBtn.hidden = !mergeSourceId;
@@ -298,14 +323,16 @@ async function loadPersons() {
         const data = await api.get('/api/media/persons').then((r) => r.data);
         allPersons = data.persons || [];
         renderPeople();
-    } catch { /* silent */ }
+    } catch {
+        /* silent */
+    }
 }
 
 async function fetchChatList() {
     if (chatList) return chatList;
     try {
         const data = await api.get('/api/chats').then((r) => r.data);
-        const chats = (data.chats || data || []);
+        const chats = data.chats || data || [];
         chatList = chats
             .filter((c) => c.jid && !c.jid.endsWith('@g.us'))
             .map((c) => ({ jid: c.jid, name: c.name || c.pushName || c.jid.split('@')[0] }))
@@ -340,8 +367,11 @@ async function uploadMedia(file) {
         const entry = {
             name: file.name,
             url,
-            type: file.type.startsWith('video') ? 'video'
-                : file.type.startsWith('audio') ? 'audio' : 'image',
+            type: file.type.startsWith('video')
+                ? 'video'
+                : file.type.startsWith('audio')
+                  ? 'audio'
+                  : 'image',
             folder: '.',
             size: file.size,
             mtime: Math.floor(Date.now() / 1000),
@@ -372,7 +402,9 @@ async function startIndexing() {
         try {
             const s = await api.get('/api/media/index-status').then((r) => r.data);
             if (s.running) {
-                statusEl.textContent = `Scanning ${s.done}/${s.total}…`;
+                const prefix = s.phase === 'cluster' ? 'Clustering faces' : 'Scanning';
+                const sidecar = s.sidecar === 'ready' ? 'Sidecar ready · ' : '';
+                statusEl.textContent = `${sidecar}${prefix} ${s.done}/${s.total}…`;
             } else {
                 clearInterval(indexPollTimer);
                 indexPollTimer = null;
@@ -398,7 +430,10 @@ async function loadMedia() {
     try {
         const [mediaData, personsData] = await Promise.all([
             api.get('/api/media').then((r) => r.data),
-            api.get('/api/media/persons').then((r) => r.data).catch(() => ({ persons: [] })),
+            api
+                .get('/api/media/persons')
+                .then((r) => r.data)
+                .catch(() => ({ persons: [] })),
         ]);
         allFiles = mediaData.files || [];
         totalMediaBytes = mediaData.totalBytes || 0;
@@ -439,19 +474,22 @@ async function scanDuplicates() {
             groupEl.className = 'duplicate-group';
             groupEl.dataset.groupIdx = idx;
 
-            const thumbsHtml = files.map((f) => {
-                const safeFName = escapeHtml(f.name);
-                return `
+            const thumbsHtml = files
+                .map((f) => {
+                    const safeFName = escapeHtml(f.name);
+                    return `
                 <div class="duplicate-item">
-                    ${f.type === 'image' || f.type === 'video'
-                        ? `<img class="duplicate-thumb" src="/api/media/thumb?url=${encodeURIComponent(f.url)}" alt="${safeFName}" loading="lazy" />`
-                        : `<div class="duplicate-thumb duplicate-thumb-icon">${ICON[f.type] || '📄'}</div>`
+                    ${
+                        f.type === 'image' || f.type === 'video'
+                            ? `<img class="duplicate-thumb" src="/api/media/thumb?url=${encodeURIComponent(f.url)}" alt="${safeFName}" loading="lazy" />`
+                            : `<div class="duplicate-thumb duplicate-thumb-icon">${ICON[f.type] || '📄'}</div>`
                     }
                     <div class="duplicate-item-name" title="${safeFName}">${safeFName}</div>
                     <div class="duplicate-item-size">${formatBytes(f.size)}</div>
                 </div>
             `;
-            }).join('');
+                })
+                .join('');
 
             groupEl.innerHTML = `
                 <div class="duplicate-thumbs">${thumbsHtml}</div>
@@ -509,9 +547,9 @@ export function mountMedia() {
         if (!pill) return;
         activeType = pill.dataset.type;
         mediaPage = 1;
-        document.querySelectorAll('#mediaFilterPills .pill').forEach((p) =>
-            p.classList.toggle('active', p === pill),
-        );
+        document
+            .querySelectorAll('#mediaFilterPills .pill')
+            .forEach((p) => p.classList.toggle('active', p === pill));
         renderGrid();
     });
 
@@ -562,8 +600,10 @@ export function mountMedia() {
     });
 
     document.getElementById('mediaLightbox').addEventListener('click', (e) => {
-        if (e.target.classList.contains('media-lightbox-backdrop') ||
-            e.target.classList.contains('media-lightbox-close')) {
+        if (
+            e.target.classList.contains('media-lightbox-backdrop') ||
+            e.target.classList.contains('media-lightbox-close')
+        ) {
             closeLightbox();
             return;
         }
@@ -574,8 +614,14 @@ export function mountMedia() {
             });
             return;
         }
-        if (e.target.id === 'lbPrev') { lbNavigate(-1); return; }
-        if (e.target.id === 'lbNext') { lbNavigate(1); return; }
+        if (e.target.id === 'lbPrev') {
+            lbNavigate(-1);
+            return;
+        }
+        if (e.target.id === 'lbNext') {
+            lbNavigate(1);
+            return;
+        }
         if (e.target.id === 'lbAutoplay') {
             lbAutoplay = !lbAutoplay;
             e.target.classList.toggle('active', lbAutoplay);
@@ -592,9 +638,18 @@ export function mountMedia() {
 
     document.addEventListener('keydown', (e) => {
         if (!document.getElementById('mediaLightbox').hidden) {
-            if (e.key === 'Escape') { closeLightbox(); return; }
-            if (e.key === 'ArrowRight') { lbNavigate(1); return; }
-            if (e.key === 'ArrowLeft') { lbNavigate(-1); return; }
+            if (e.key === 'Escape') {
+                closeLightbox();
+                return;
+            }
+            if (e.key === 'ArrowRight') {
+                lbNavigate(1);
+                return;
+            }
+            if (e.key === 'ArrowLeft') {
+                lbNavigate(-1);
+                return;
+            }
         }
     });
 
@@ -635,7 +690,9 @@ export function mountMedia() {
         if (mergeIntoBtn) {
             e.stopPropagation();
             const targetId = mergeIntoBtn.dataset.personId;
-            await api.patch(`/api/media/persons/${mergeSourceId}`, { mergeInto: targetId }).catch(() => {});
+            await api
+                .patch(`/api/media/persons/${mergeSourceId}`, { mergeInto: targetId })
+                .catch(() => {});
             mergeSourceId = null;
             await loadPersons();
             renderGrid();

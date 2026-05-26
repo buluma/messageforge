@@ -356,7 +356,10 @@ const messageCache = makeMessageCache({ ttlMs: config.MESSAGE_CACHE_TTL_MS });
 const logDir = path.join(__dirname, 'logs');
 if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
 
-const LOG_MAX_FILE_BYTES = Math.max(256 * 1024, Number(config.LOG_MAX_FILE_BYTES) || 5 * 1024 * 1024);
+const LOG_MAX_FILE_BYTES = Math.max(
+    256 * 1024,
+    Number(config.LOG_MAX_FILE_BYTES) || 5 * 1024 * 1024,
+);
 const LOG_MAX_AGE_MS = Math.max(1, Number(config.LOG_MAX_AGE_DAYS) || 2) * 24 * 60 * 60 * 1000;
 const LOG_MAX_TOTAL_BYTES = Math.max(
     LOG_MAX_FILE_BYTES * 2,
@@ -450,10 +453,16 @@ function validateEnv() {
     }
     const sid = (config.SESSION_ID || '').trim();
     if (!sid && !fs.existsSync(credsPath)) {
-        logMessage('WARN', 'SESSION_ID is not set and no session/creds.json found. QR scan required.');
+        logMessage(
+            'WARN',
+            'SESSION_ID is not set and no session/creds.json found. QR scan required.',
+        );
     }
     if (config.DATABASE_TYPE === 'postgres' && !config.POSTGRES_HOST) {
-        logMessage('WARN', 'DATABASE_TYPE=postgres but POSTGRES_HOST is not set. Database connection will fail.');
+        logMessage(
+            'WARN',
+            'DATABASE_TYPE=postgres but POSTGRES_HOST is not set. Database connection will fail.',
+        );
     }
 }
 
@@ -463,7 +472,6 @@ function isValidJid(jid) {
 }
 
 const VALID_PRESENCE_STATES = new Set(['typing', 'recording', 'paused', 'composing']);
-
 
 // ✅ Ensure Temp Directory Exists
 if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
@@ -725,9 +733,9 @@ async function createWhatsAppSocket() {
 
     // ── Persist messenger history and realtime dashboard events ──────────────
     const onPersistMessagesUpsert = ({ messages: newMsgs }) => {
-        messengerStore.persistMessages(newMsgs).catch((e) =>
-            logMessage('WARN', `[persist] failed to save messages: ${e.message}`)
-        );
+        messengerStore
+            .persistMessages(newMsgs)
+            .catch((e) => logMessage('WARN', `[persist] failed to save messages: ${e.message}`));
     };
 
     const onDashboardMessagesUpsert = async ({ messages: newMsgs, type }) => {
@@ -1039,7 +1047,11 @@ async function createWhatsAppSocket() {
             // Run plugin onGroupParticipantsUpdate hooks (e.g. greet, antibot)
             for (const p of handlerPlugins) {
                 if (typeof p.onGroupParticipantsUpdate !== 'function') continue;
-                try { await p.onGroupParticipantsUpdate(sock, update); } catch { /* ignore */ }
+                try {
+                    await p.onGroupParticipantsUpdate(sock, update);
+                } catch {
+                    /* ignore */
+                }
             }
 
             // --- Anti-Demote ---
@@ -1487,8 +1499,14 @@ app.use((req, res, next) => {
 });
 
 // ── API rate limiter (120 req/min per IP, /api/* only) ────────────────────────
+// Static image routes (thumbnails, face crops) are excluded — they're called
+// by the browser for every gallery tile and would exhaust the budget instantly.
 const _apiRateLimitMap = new Map();
+const _rateLimitExempt = new Set(['/api/media/thumb', '/api/media/face']);
 app.use('/api', (req, res, next) => {
+    const base = '/' + req.path.split('/').slice(1, 4).join('/');
+    if (_rateLimitExempt.has(base)) return next();
+
     const ip = requestIp(req);
     const now = Date.now();
     const window = 60 * 1000;
@@ -1875,7 +1893,16 @@ app.get('/api/profile-pic/:jid', async (req, res) => {
     }
 });
 
-const { buildIndex: facesBuildIndex, getPersons, renamePerson, mergePerson, deletePerson, linkPersonJid, getStatus: facesStatus, FACES_DIR } = require('./lib/faceIndexer');
+const {
+    buildIndex: facesBuildIndex,
+    getPersons,
+    renamePerson,
+    mergePerson,
+    deletePerson,
+    linkPersonJid,
+    getStatus: facesStatus,
+    FACES_DIR,
+} = require('./lib/faceIndexer');
 app.use(
     '/api/media',
     createFaceRoutes({
@@ -1922,9 +1949,10 @@ app.post('/api/send', async (req, res) => {
         if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
         const { safeSend } = require('./handler');
         const result = await safeSend(global.sock, jid, { text }, quoted ? { quoted } : {});
-        if (result) messengerStore.persistMessages([result]).catch((e) =>
-            logMessage('WARN', `[persist] send persist failed: ${e.message}`)
-        );
+        if (result)
+            messengerStore
+                .persistMessages([result])
+                .catch((e) => logMessage('WARN', `[persist] send persist failed: ${e.message}`));
         res.json({ success: !!result, messageId: result?.key?.id });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -2339,7 +2367,7 @@ httpSrv.listen(port, () => {
     const chokidar = require('chokidar');
     const mediaWatcher = chokidar.watch(MEDIA_DATA_DIR, {
         ignoreInitial: true,
-        ignored: /(^|[/\\])\../,  // skip dot-dirs (face models, thumbs, etc.)
+        ignored: /(^|[/\\])\../, // skip dot-dirs (face models, thumbs, etc.)
         persistent: true,
         awaitWriteFinish: { stabilityThreshold: 1500, pollInterval: 200 },
     });

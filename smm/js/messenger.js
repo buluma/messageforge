@@ -33,6 +33,15 @@ const chatItemNodes = new Map();
 const unreadCounts = new Map();
 let chatAliases = {};
 
+function updateDocumentTitle() {
+    let total = 0;
+    for (const count of unreadCounts.values()) {
+        total += count;
+    }
+    const baseTitle = 'MessageForge — Admin';
+    document.title = total > 0 ? `(${total}) ${baseTitle}` : baseTitle;
+}
+
 // ── Bootstrap ────────────────────────────────────────────────────
 export function mountMessenger() {
     api.authConfig()
@@ -57,6 +66,7 @@ export function mountMessenger() {
             appendMessage(data.message);
         } else {
             unreadCounts.set(data.jid, (unreadCounts.get(data.jid) || 0) + 1);
+            updateDocumentTitle();
         }
     });
     on('presence-update', ({ jid, presences }) => {
@@ -527,6 +537,7 @@ function formatChatAbsolute(ts) {
 async function selectChat(chat) {
     state.activeJid = chat.jid;
     unreadCounts.delete(chat.jid);
+    updateDocumentTitle();
     // Re-render the list immediately so the badge clears on the selected item.
     renderChatList();
     cancelReply();

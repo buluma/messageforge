@@ -1,12 +1,12 @@
 'use strict';
 
-const axios   = require('axios');
+const tiktokScraper = require('../lib/tiktokProfileScraper');
 
 function fmtNum(n) {
     if (n === undefined || n === null) return 'N/A';
     if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1) + 'B';
-    if (n >= 1_000_000)     return (n / 1_000_000).toFixed(1) + 'M';
-    if (n >= 1_000)         return (n / 1_000).toFixed(1) + 'K';
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+    if (n >= 1_000) return (n / 1_000).toFixed(1) + 'K';
     return String(n);
 }
 
@@ -17,73 +17,58 @@ function barOf(value, max, len = 12) {
 }
 
 module.exports = {
-    commands:    ['tiktokstalk', 'ttstalk', 'tksearch', 'ttuser', 'tikstalk'],
+    commands: ['tiktokstalk', 'ttstalk', 'tksearch', 'ttuser', 'tikstalk'],
     description: 'Stalk a TikTok profile — followers, videos, likes, bio and more',
-    usage:       '.tiktokstalk <username>',
-    permission:  'public',
-    group:       true,
-    private:     true,
+    usage: '.tiktokstalk <username>',
+    permission: 'public',
+    group: true,
+    private: true,
 
     run: async (sock, message, args, { jid, contextInfo, reply, fmt, getStr }) => {
         let username = args[0]?.replace(/^@/, '').trim();
         if (!username) {
-            return reply(fmt('🎵 Please provide a TikTok username.\nExample: `.ttstalk charlidamelio`'));
+            return reply(
+                fmt('🎵 Please provide a TikTok username.\nExample: `.ttstalk charlidamelio`'),
+            );
         }
 
         await sock.sendPresenceUpdate('composing', jid);
-        await sock.sendMessage(jid, { text: fmt(`⏳ Fetching TikTok profile for @${username}…`), contextInfo }, { quoted: message });
+        await sock.sendMessage(
+            jid,
+            { text: fmt(`⏳ Fetching TikTok profile for @${username}…`), contextInfo },
+            { quoted: message },
+        );
 
-        let userData = null;
-        const ENDPOINTS = [
-            {
-                name: 'TikWM',
-                fetch: async () => {
-                    const { data } = await axios.get(
-                        `https://tikwm.com/api/user/info?unique_id=${encodeURIComponent(username)}`,
-                        { timeout: 12000, headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' } }
-                    );
-                    if (data?.code !== 0) throw new Error(data?.msg || 'TikWM error');
-                    // Merge user and stats for easier access
-                    return { ...data.data?.user, ...data.data?.stats };
-                }
-            },
-        ];
+        const result = await tiktokScraper.getProfileWithPosts(username);
 
-        for (const ep of ENDPOINTS) {
-            try {
-                userData = await ep.fetch();
-                if (userData) { console.log(`[TikTokStalk] Success via ${ep.name}`); break; }
-            } catch (e) {
-                console.warn(`[TikTokStalk] ${ep.name}: ${e.message}`);
-            }
+        if (!result.ok) {
+            const msg =
+                result.error === 'user_not_found'
+                    ? `❌ TikTok user *@${username}* not found.`
+                    : result.error === 'secUid_not_found'
+                      ? `❌ Could not resolve @${username} — profile may be private or region-restricted.`
+                      : `❌ TikTok API error: ${result.error}`;
+            return reply(fmt(msg));
         }
 
-        if (!userData) {
-            return reply(fmt(`❌ TikTok user *@${username}* not found or profile is private.`));
-        }
+        const u = result.profile;
 
-        const u = userData;
+        const followers = u.followerCount ?? u.follower_count ?? u.fans ?? 0;
+        const following = u.followingCount ?? u.following_count ?? u.following ?? 0;
+        const likes = u.heartCount ?? u.heart_count ?? u.heart ?? u.digg_count ?? u.diggCount ?? 0;
+        const videos = u.videoCount ?? u.video_count ?? u.video ?? u.awemeCount ?? 0;
+        const friends = u.friendCount ?? u.friend_count ?? u.friend ?? 0;
+        const maxVal = Math.max(followers, likes, 1);
 
-        // ── Derived stats ────────────────────────────────────────────────────
-        const followers = u.followerCount ?? u.fans ?? 0;
-        const following = u.followingCount ?? u.following ?? 0;
-        const likes     = u.heartCount ?? u.heart ?? u.digg_count ?? u.diggCount ?? 0;
-        const videos    = u.videoCount ?? u.video ?? 0;
-        const friends   = u.friendCount ?? u.friend ?? 0;
-        const isPrivate = u.secret ?? u.privateAccount ?? false;
-        const maxVal    = Math.max(followers, likes, 1);
-
-        // ── Badge detection ──────────────────────────────────────────────────
         const badges = [];
-        if (u.verified)              badges.push('✅ Verified');
-        if (isPrivate)               badges.push('🔒 Private account');
-        if (u.isUnderAge18)          badges.push('🔞 Under 18');
-        if (u.openFavorite)          badges.push('⭐ Favorites public');
-        if (u.commentSetting === 1)  badges.push('💬 Comments: Friends only');
-        if (u.commentSetting === 2)  badges.push('💬 Comments: Off');
+        if (u.verified) badges.push('✅ Verified');
+        if (u.privateAccount || u.secret || u.private) badges.push('🔒 Private account');
+        if (u.isUnderAge18) badges.push('🔞 Under 18');
+        if (u.openFavorite) badges.push('⭐ Favorites public');
+        if (u.commentSetting === 1) badges.push('💬 Comments: Friends only');
+        if (u.commentSetting === 2) badges.push('💬 Comments: Off');
         if (!u.verified && followers > 1_000_000) badges.push('🚀 1M+ unverified mega creator');
 
-        // ── Region ───────────────────────────────────────────────────────────
         const region = u.region || u.country || null;
 
         const lines = [];
@@ -94,10 +79,10 @@ module.exports = {
 
         lines.push(`*🆔 Identity*`);
         lines.push(`• *Username:* @${u.uniqueId || username}`);
-        if (u.nickname)  lines.push(`• *Display Name:* ${u.nickname}`);
-        if (u.id)        lines.push(`• *User ID:* \`${u.id}\``);
-        if (region)      lines.push(`• *Region:* ${region}`);
-        if (u.language)  lines.push(`• *Language:* ${u.language}`);
+        if (u.nickname) lines.push(`• *Display Name:* ${u.nickname}`);
+        if (u.userId || u.id) lines.push(`• *User ID:* \`${u.userId || u.id}\``);
+        if (region) lines.push(`• *Region:* ${region}`);
+        if (u.language) lines.push(`• *Language:* ${u.language}`);
         lines.push('');
 
         if (u.signature) {
@@ -109,7 +94,7 @@ module.exports = {
         lines.push(`*📊 Stats*`);
         lines.push(`• *Followers:* ${fmtNum(followers)}  ${barOf(followers, maxVal)}`);
         lines.push(`• *Following:* ${fmtNum(following)}`);
-        if (friends)    lines.push(`• *Friends:*   ${fmtNum(friends)}`);
+        if (friends) lines.push(`• *Friends:*   ${fmtNum(friends)}`);
         lines.push(`• *Likes (total received):* ❤️ ${fmtNum(likes)}  ${barOf(likes, maxVal)}`);
         lines.push(`• *Videos posted:* 🎬 ${fmtNum(videos)}`);
         if (followers && videos) {
@@ -118,39 +103,60 @@ module.exports = {
         }
         lines.push('');
 
-        // ── Privacy & Settings ───────────────────────────────────────────────
         lines.push(`*⚙️ Account Settings*`);
-        lines.push(`• *Private:* ${isPrivate ? '🔒 Yes' : '🔓 No'}`);
-        lines.push(`• *Duet:* ${u.duetSetting === 0 ? '✅ Open' : u.duetSetting === 1 ? '👥 Friends' : '❌ Off'}`);
-        lines.push(`• *Stitch:* ${u.stitchSetting === 0 ? '✅ Open' : u.stitchSetting === 1 ? '👥 Friends' : '❌ Off'}`);
-        lines.push(`• *Comment:* ${u.commentSetting === 0 ? '✅ Everyone' : u.commentSetting === 1 ? '👥 Friends' : '❌ Off'}`);
+        lines.push(
+            `• *Private:* ${u.privateAccount || u.secret || u.private ? '🔒 Yes' : '🔓 No'}`,
+        );
+        lines.push(
+            `• *Duet:* ${u.duetSetting === 0 ? '✅ Open' : u.duetSetting === 1 ? '👥 Friends' : '❌ Off'}`,
+        );
+        lines.push(
+            `• *Stitch:* ${u.stitchSetting === 0 ? '✅ Open' : u.stitchSetting === 1 ? '👥 Friends' : '❌ Off'}`,
+        );
+        lines.push(
+            `• *Comment:* ${u.commentSetting === 0 ? '✅ Everyone' : u.commentSetting === 1 ? '👥 Friends' : '❌ Off'}`,
+        );
         lines.push('');
 
         if (badges.length) {
             lines.push(`*🏷️ Badges*`);
-            badges.forEach(b => lines.push(`• ${b}`));
+            badges.forEach((b) => lines.push(`• ${b}`));
             lines.push('');
         }
 
-        lines.push(`• *Profile:* https://www.tiktok.com/@${u.uniqueId || username}`);
-        lines.push(`_Powered by ${getStr('botName') || 'MessageForge'} · TikWM API_`);
+        if (result.videos.length) {
+            const recent = result.videos[0];
+            const stat = recent.stats || {};
+            lines.push('');
+            lines.push(`*🎥 Latest Video*`);
+            lines.push(`• "${(recent.desc || 'Untitled').slice(0, 80)}"`);
+            lines.push(
+                `• ❤️ ${fmtNum(stat.likeCount)} · 💬 ${fmtNum(stat.commentCount)} · 🔄 ${fmtNum(stat.shareCount)}`,
+            );
+        }
+        lines.push('');
 
-        const avatarUrl = u.avatarLarger || u.avatarThumb || u.avatar || null;
+        lines.push(`• *Profile:* https://www.tiktok.com/@${u.uniqueId || username}`);
+        lines.push(`_Powered by ${getStr('botName') || 'MessageForge'} · TikTok API_`);
+
+        const avatarUrl = u.avatar || u.avatarLarger || u.avatarMedium || u.avatarThumb || null;
 
         try {
             if (avatarUrl) {
-                await sock.sendMessage(jid, {
-                    image:      { url: avatarUrl },
-                    caption:    fmt(lines.join('\n')),
-                    contextInfo,
-                }, { quoted: message });
+                await sock.sendMessage(
+                    jid,
+                    {
+                        image: { url: avatarUrl },
+                        caption: fmt(lines.join('\n')),
+                        contextInfo,
+                    },
+                    { quoted: message },
+                );
             } else {
                 await reply(fmt(lines.join('\n')));
             }
         } catch {
             await reply(fmt(lines.join('\n')));
         }
-
-        await sock.sendPresenceUpdate('paused', jid);
-    }
+    },
 };

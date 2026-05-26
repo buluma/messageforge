@@ -1,31 +1,5 @@
 'use strict';
 
-// Inline euclidean distance inside the factory — jest.mock factories are
-// hoisted before variable declarations, so out-of-scope refs are forbidden.
-jest.mock('face-api.js', () => ({
-    euclideanDistance: (a, b) => {
-        let sum = 0;
-        for (let i = 0; i < a.length; i++) sum += (a[i] - b[i]) ** 2;
-        return Math.sqrt(sum);
-    },
-    env: { monkeyPatch: jest.fn() },
-    nets: {
-        ssdMobilenetv1: { loadFromDisk: jest.fn().mockResolvedValue(undefined) },
-        faceLandmark68Net: { loadFromDisk: jest.fn().mockResolvedValue(undefined) },
-        faceRecognitionNet: { loadFromDisk: jest.fn().mockResolvedValue(undefined) },
-    },
-    SsdMobilenetv1Options: jest.fn(),
-    detectAllFaces: jest.fn(),
-}));
-
-jest.mock('canvas', () => ({
-    createCanvas: jest.fn(() => ({ width: 100, height: 100, getContext: jest.fn() })),
-    Canvas: class {},
-    Image: class {},
-    ImageData: class {},
-    loadImage: jest.fn(),
-}));
-
 jest.mock('../lib/logger', () => ({
     custom: jest.fn(),
     error: jest.fn(),
@@ -33,31 +7,13 @@ jest.mock('../lib/logger', () => ({
     info: jest.fn(),
 }));
 
-// jest.requireActual inside factory avoids the hoisting scope issue
-jest.mock('fs', () => {
-    const realFs = jest.requireActual('fs');
-    return {
-        ...realFs,
-        existsSync: (p) => {
-            if (p && p.includes('face-models')) return true;
-            if (p && p.includes('face-index.json')) return false;
-            return realFs.existsSync(p);
-        },
-        mkdirSync: jest.fn(),
-        writeFileSync: jest.fn(),
-        readFileSync: realFs.readFileSync,
-    };
-});
-
-let computePersonConfidence;
-
-beforeAll(async () => {
-    const faceIndexer = require('../lib/faceIndexer');
-    computePersonConfidence = faceIndexer.computePersonConfidence;
-    await faceIndexer.buildIndex([]);
-});
-
 describe('computePersonConfidence', () => {
+    let computePersonConfidence;
+
+    beforeAll(() => {
+        ({ computePersonConfidence } = require('../lib/faceIndexer'));
+    });
+
     test('returns 0 for a person with a single descriptor', () => {
         const person = { descriptors: [new Float32Array([0.1, 0.2, 0.3])] };
         expect(computePersonConfidence(person)).toBe(0);
@@ -76,10 +32,7 @@ describe('computePersonConfidence', () => {
 
     test('returns positive value for two different descriptors', () => {
         const person = {
-            descriptors: [
-                new Float32Array([0, 0, 0]),
-                new Float32Array([1, 1, 1]),
-            ],
+            descriptors: [new Float32Array([0, 0, 0]), new Float32Array([1, 1, 1])],
         };
         expect(computePersonConfidence(person)).toBeCloseTo(Math.sqrt(3), 5);
     });
@@ -90,5 +43,14 @@ describe('computePersonConfidence', () => {
         const C = new Float32Array([0, 0]);
         const person = { descriptors: [A, B, C] };
         expect(computePersonConfidence(person)).toBeCloseTo(10 / 3, 5);
+    });
+});
+
+describe('computeFaceQualityScore', () => {
+    test('scores sane faces higher than tiny elongated faces', () => {
+        const { computeFaceQualityScore } = require('../lib/faceIndexer');
+        const good = computeFaceQualityScore({ score: 0.95, w: 140, h: 140 });
+        const poor = computeFaceQualityScore({ score: 0.6, w: 20, h: 100 });
+        expect(good).toBeGreaterThan(poor);
     });
 });
