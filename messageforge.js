@@ -1426,8 +1426,27 @@ async function createWhatsAppSocket() {
         if (events['contacts.update']) {
             await onContactsUpdate(events['contacts.update']);
         }
+        const handleChatsArchive = async (chatsArray) => {
+            if (!chatsArray || !chatsArray.length) return;
+            const db = require('./lib/dbManager');
+            let archived = await db.get('messenger_archived', []);
+            let changed = false;
+            for (const c of chatsArray) {
+                if (c.id) {
+                    const isArch = c.archive !== undefined ? c.archive : c.archived;
+                    if (isArch === true && !archived.includes(c.id)) { archived.push(c.id); changed = true; }
+                    else if (isArch === false && archived.includes(c.id)) { archived = archived.filter(j => j !== c.id); changed = true; }
+                }
+            }
+            if (changed) await db.set('messenger_archived', archived);
+        };
+
+        if (events['chats.update']) await handleChatsArchive(events['chats.update']);
+        if (events['chats.upsert']) await handleChatsArchive(events['chats.upsert']);
+
         if (events['messaging-history.set']) {
             await onMessagingHistorySet(events['messaging-history.set']);
+            await handleChatsArchive(events['messaging-history.set'].chats);
         }
         if (events['creds.update']) {
             await onCredsUpdate(events['creds.update']);
@@ -1573,6 +1592,7 @@ app.get('/api/chats', async (req, res) => {
 
         const db = require('./lib/dbManager');
         const pinned = await db.get('messenger_pinned', []);
+        const archived = await db.get('messenger_archived', []);
         const aliases = readChatAliases();
 
         const chats = [];
@@ -1756,13 +1776,14 @@ app.get('/api/chats', async (req, res) => {
                 lastMsgSnippet: snippet,
                 timestamp: lastMsg.messageTimestamp,
                 isPinned: pinned.includes(jid),
+                isArchived: archived.includes(jid),
             });
         }
 
         // Sort by timestamp (latest first)
         chats.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
-        res.json({ chats, pinned });
+        res.json({ chats, pinned, archived });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -1959,6 +1980,7 @@ app.post('/api/send', async (req, res) => {
     }
 });
 
+
 app.post('/api/toggle-pin', async (req, res) => {
     const { jid } = req.body;
     if (!jid) return res.status(400).json({ error: 'Missing jid' });
@@ -1973,6 +1995,29 @@ app.post('/api/toggle-pin', async (req, res) => {
         }
         await db.set('messenger_pinned', pinned);
         res.json({ success: true, pinned });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/toggle-archive', async (req, res) => {
+    const { jid, archive } = req.body;
+    if (!jid) return res.status(400).json({ error: 'Missing jid' });
+    if (!isValidJid(jid)) return res.status(400).json({ error: 'Invalid jid' });
+    try {
+        const isArchiving = !!archive;
+        if (global.sock) {
+            await global.sock.chatModify({ archive: isArchiving, lastMessages: [] }, jid).catch(() => {});
+        }
+        const db = require('./lib/dbManager');
+        let archived = await db.get('messenger_archived', []);
+        if (isArchiving && !archived.includes(jid)) {
+            archived.push(jid);
+        } else if (!isArchiving && archived.includes(jid)) {
+            archived = archived.filter((j) => j !== jid);
+        }
+        await db.set('messenger_archived', archived);
+        res.json({ success: true, archived });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }

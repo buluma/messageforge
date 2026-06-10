@@ -111,9 +111,30 @@ export function mountMessenger() {
     document.getElementById('refreshChats').onclick = fetchChats;
     document.getElementById('chatSearch').oninput = handleSearch;
     document.getElementById('chatSearch').onkeydown = handleSearchKeydown;
+
+    state.currentTab = 'active';
+    document.getElementById('tabActive').onclick = () => {
+        state.currentTab = 'active';
+        document.getElementById('tabActive').classList.add('active');
+        document.getElementById('tabActive').style.opacity = '1';
+        document.getElementById('tabArchived').classList.remove('active');
+        document.getElementById('tabArchived').style.opacity = '0.7';
+        applyChatFilter(document.getElementById('chatSearch')?.value || '');
+        renderChatList();
+    };
+    document.getElementById('tabArchived').onclick = () => {
+        state.currentTab = 'archived';
+        document.getElementById('tabArchived').classList.add('active');
+        document.getElementById('tabArchived').style.opacity = '1';
+        document.getElementById('tabActive').classList.remove('active');
+        document.getElementById('tabActive').style.opacity = '0.7';
+        applyChatFilter(document.getElementById('chatSearch')?.value || '');
+        renderChatList();
+    };
     document.getElementById('cancelReplyBtn').onclick = cancelReply;
     document.getElementById('renameChat').onclick = renameActiveChat;
     document.getElementById('togglePin').onclick = toggleActivePin;
+    document.getElementById('toggleArchive').onclick = toggleActiveArchive;
     document.getElementById('loadOlderBtn').onclick = loadOlderMessages;
     document.getElementById('scrollToBottomBtn').onclick = () =>
         scrollThreadToBottom({ force: true });
@@ -319,10 +340,18 @@ function applyChatFilter(rawQuery) {
     const q = String(rawQuery || '')
         .trim()
         .toLowerCase();
+    
+    let baseChats = state.chats;
+    if (state.currentTab === 'archived') {
+        baseChats = state.chats.filter(c => c.isArchived);
+    } else {
+        baseChats = state.chats.filter(c => !c.isArchived);
+    }
+
     state.filteredChats = sortedChats(
         !q
-            ? state.chats
-            : state.chats.filter((c) => {
+            ? baseChats
+            : baseChats.filter((c) => {
                   const name = (c.name || jidShort(c.jid)).toLowerCase();
                   return name.includes(q) || (c.lastMsgSnippet || '').toLowerCase().includes(q);
               }),
@@ -562,6 +591,7 @@ async function selectChat(chat) {
         ? 'Group'
         : '—';
     document.getElementById('togglePin').textContent = chat.isPinned ? '⭐' : '☆';
+    document.getElementById('toggleArchive').textContent = chat.isArchived ? '📦 Unarchive' : '📦 Archive';
 
     const av = document.getElementById('activeChatAvatar');
     av.style.backgroundColor = getAvatarColor(chat.jid);
@@ -1066,5 +1096,27 @@ async function removeQuickReply(id) {
         toast.success('Template deleted');
     } catch {
         toast.error('Failed to delete template');
+    }
+}
+
+async function toggleActiveArchive() {
+    if (!state.activeJid) return;
+    const current = state.chats.find((c) => c.jid === state.activeJid);
+    const isArchiving = !(current?.isArchived);
+    try {
+        const { data } = await axios.post('/api/toggle-archive', {
+            jid: state.activeJid,
+            archive: isArchiving
+        });
+        if (data.success) {
+            await fetchChats();
+            const next = state.chats.find((c) => c.jid === state.activeJid);
+            if (next) {
+                document.getElementById('toggleArchive').textContent = next.isArchived ? '📦 Unarchive' : '📦 Archive';
+            }
+        }
+    } catch (e) {
+        console.error('toggle archive error', e);
+        alert('Failed to toggle archive');
     }
 }

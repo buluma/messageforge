@@ -97,6 +97,10 @@
                                 aria-label="Search chats and messages"
                             />
                         </div>
+                        <div class="chat-tabs" style="display: flex; gap: 8px; margin: 0 16px 8px;">
+                            <button id="tabActive" class="ghost-btn active" style="flex: 1; border: 1px solid var(--border);">Active</button>
+                            <button id="tabArchived" class="ghost-btn" style="flex: 1; border: 1px solid var(--border); opacity: 0.7;">Archived</button>
+                        </div>
                         <div id="searchResults" class="search-results" hidden></div>
                         <div id="chatList" class="chat-list">
                             <div class="empty-state">Loading conversations…</div>
@@ -117,6 +121,7 @@
                                     ✎
                                 </button>
                                 <button id="togglePin" class="ghost-btn" title="Pin" aria-label="Toggle pin">☆</button>
+                                <button id="toggleArchive" class="ghost-btn" title="Archive" aria-label="Toggle archive">📦</button>
                             </div>
                         </header>
 
