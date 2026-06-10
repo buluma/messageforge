@@ -990,7 +990,9 @@ input {
     border-radius: var(--radius);
     overflow: hidden;
     cursor: pointer;
-    transition: border-color 0.15s, transform 0.15s;
+    transition:
+        border-color 0.15s,
+        transform 0.15s;
 }
 .media-card:hover {
     border-color: var(--primary);
@@ -1004,7 +1006,7 @@ input {
     top: 6px;
     right: 6px;
     z-index: 2;
-    background: rgba(0,0,0,0.65);
+    background: rgba(0, 0, 0, 0.65);
     border: none;
     color: #fff;
     width: 26px;
@@ -1016,7 +1018,9 @@ input {
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.15s, background 0.15s;
+    transition:
+        opacity 0.15s,
+        background 0.15s;
 }
 .media-card:hover .media-delete-btn {
     opacity: 1;
@@ -1024,21 +1028,119 @@ input {
 .media-delete-btn:hover {
     background: var(--error);
 }
-.media-thumb {
+.media-thumb-wrap {
+    position: relative;
     width: 100%;
-    aspect-ratio: 16/9;
-    object-fit: cover;
+    aspect-ratio: 4/5;
+    overflow: hidden;
+    background: #05070d;
+}
+.media-thumb-wrap.is-loading::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+    animation: media-thumb-shimmer 1.1s infinite;
+    transform: translateX(-100%);
+}
+@keyframes media-thumb-shimmer {
+    100% {
+        transform: translateX(100%);
+    }
+}
+.media-thumb-backdrop,
+.media-thumb {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     display: block;
-    background: var(--bg-3);
+    background: #05070d;
+}
+.media-thumb-backdrop {
+    object-fit: cover;
+    filter: blur(18px) saturate(1.1);
+    opacity: 0.42;
+    transform: scale(1.12);
+}
+.media-thumb {
+    object-fit: contain;
+    opacity: 1;
+    transition:
+        transform 0.2s ease,
+        opacity 0.15s ease;
+}
+.media-thumb-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(5, 7, 13, 0) 58%, rgba(5, 7, 13, 0.24));
+    pointer-events: none;
+}
+.media-thumb-wrap.is-loading .media-thumb {
+    opacity: 0;
+}
+.media-card:hover .media-thumb {
+    transform: scale(1.02);
 }
 .media-thumb-placeholder {
     width: 100%;
-    aspect-ratio: 16/9;
+    aspect-ratio: 4/5;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-direction: column;
+    gap: 6px;
     background: var(--bg-3);
     font-size: 32px;
+    color: var(--text-muted);
+}
+.media-thumb-placeholder--error {
+    border-bottom: 1px solid var(--border);
+}
+.media-type-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    color: var(--text-dim);
+}
+.media-type-badge,
+.media-play-badge {
+    position: absolute;
+    z-index: 1;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.62);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(8px);
+}
+.media-type-badge {
+    left: 8px;
+    bottom: 8px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: capitalize;
+}
+.media-type-badge--image {
+    background: rgba(15, 118, 110, 0.72);
+}
+.media-type-badge--video {
+    background: rgba(79, 70, 229, 0.76);
+}
+.media-play-badge {
+    top: 50%;
+    left: 50%;
+    width: 42px;
+    height: 42px;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 .media-card-body {
     padding: 10px 12px;
@@ -1075,7 +1177,9 @@ input {
     align-items: center;
     justify-content: center;
 }
-.media-lightbox[hidden] { display: none !important; }
+.media-lightbox[hidden] {
+    display: none !important;
+}
 .media-lightbox-backdrop {
     position: absolute;
     inset: 0;
@@ -1114,7 +1218,7 @@ input {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.5);
     border: none;
     color: #fff;
     font-size: 28px;
@@ -1128,9 +1232,15 @@ input {
     transition: background 0.15s;
     z-index: 2;
 }
-.media-lightbox-nav:hover { background: rgba(99,102,241,0.7); }
-.media-lightbox-prev { left: -48px; }
-.media-lightbox-next { right: -48px; }
+.media-lightbox-nav:hover {
+    background: rgba(99, 102, 241, 0.7);
+}
+.media-lightbox-prev {
+    left: -48px;
+}
+.media-lightbox-next {
+    right: -48px;
+}
 .media-lightbox-counter {
     font-size: 12px;
     color: var(--text-muted);
@@ -1145,9 +1255,15 @@ input {
     font-size: 12px;
     cursor: pointer;
     white-space: nowrap;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s,
+        border-color 0.15s;
 }
-.lb-toggle:hover { color: var(--text); border-color: var(--border-hi); }
+.lb-toggle:hover {
+    color: var(--text);
+    border-color: var(--border-hi);
+}
 .lb-toggle.active {
     background: var(--primary);
     border-color: var(--primary);
@@ -1187,7 +1303,9 @@ input {
     text-decoration: none;
     white-space: nowrap;
 }
-.media-lightbox-download:hover { text-decoration: underline; }
+.media-lightbox-download:hover {
+    text-decoration: underline;
+}
 .media-lightbox-del {
     background: transparent;
     border: 1px solid var(--error);
@@ -1233,7 +1351,9 @@ input {
     border: 1px solid var(--border);
     border-radius: var(--radius);
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition:
+        border-color 0.15s,
+        background 0.15s;
     min-width: 90px;
 }
 .person-card:hover {
@@ -1273,7 +1393,7 @@ input {
     border-radius: 4px;
     padding: 1px 3px;
 }
-.person-name[contenteditable="true"] {
+.person-name[contenteditable='true'] {
     background: var(--bg-3);
     border: 1px solid var(--primary);
     white-space: nowrap;
@@ -1314,7 +1434,9 @@ input {
     padding: 2px 4px;
     border-radius: 4px;
     opacity: 0;
-    transition: opacity 0.15s, color 0.15s;
+    transition:
+        opacity 0.15s,
+        color 0.15s;
     line-height: 1;
 }
 .person-card:hover .person-delete-btn {
@@ -1332,7 +1454,9 @@ input {
     background: var(--bg-3);
     color: var(--text-muted);
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
+    transition:
+        border-color 0.15s,
+        color 0.15s;
     white-space: nowrap;
 }
 .person-merge-btn:hover {
@@ -1373,7 +1497,10 @@ input {
     cursor: pointer;
     padding: 6px 12px;
     font-size: 13px;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s,
+        border-color 0.15s;
     white-space: nowrap;
 }
 .media-upload-btn:hover {
@@ -1404,7 +1531,9 @@ input {
     background: var(--bg-3);
     color: var(--text-muted);
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
+    transition:
+        border-color 0.15s,
+        color 0.15s;
     white-space: nowrap;
 }
 .person-link-btn:hover {
@@ -1461,7 +1590,9 @@ input {
     box-shadow: var(--shadow-lg);
     opacity: 0;
     transform: translateY(8px);
-    transition: opacity 0.22s ease, transform 0.22s ease;
+    transition:
+        opacity 0.22s ease,
+        transform 0.22s ease;
     cursor: pointer;
     max-width: 320px;
     word-break: break-word;
@@ -1470,10 +1601,19 @@ input {
     opacity: 1;
     transform: translateY(0);
 }
-.toast-error   { background: var(--error); }
-.toast-success { background: var(--secondary); }
-.toast-warn    { background: var(--accent); color: #1a1a00; }
-.toast-info    { background: var(--primary); }
+.toast-error {
+    background: var(--error);
+}
+.toast-success {
+    background: var(--secondary);
+}
+.toast-warn {
+    background: var(--accent);
+    color: #1a1a00;
+}
+.toast-info {
+    background: var(--primary);
+}
 
 /* ── Chat item row2 (snippet + unread badge) ─────────────────────── */
 .chat-item-row2 {
@@ -1783,7 +1923,10 @@ input {
     font-family: inherit;
     cursor: pointer;
     text-align: center;
-    transition: border-color 0.15s, color 0.15s, background 0.15s;
+    transition:
+        border-color 0.15s,
+        color 0.15s,
+        background 0.15s;
     margin-top: 8px;
 }
 .media-load-more:hover {
@@ -1892,7 +2035,7 @@ input {
     font-weight: 700;
     color: var(--text);
 }
-.auth-modal-box input[type="password"] {
+.auth-modal-box input[type='password'] {
     width: 100%;
     background: var(--bg-3);
     border: 1px solid var(--border-hi);
@@ -1904,7 +2047,7 @@ input {
     font-family: inherit;
     transition: border-color 0.15s;
 }
-.auth-modal-box input[type="password"]:focus {
+.auth-modal-box input[type='password']:focus {
     border-color: var(--primary);
 }
 .auth-modal-actions {

@@ -16,6 +16,7 @@ function formatDate(ts) {
 }
 
 const PAGE_SIZE = 50;
+const PREWARM_THUMB_COUNT = 18;
 
 let allFiles = [];
 let allPersons = [];
@@ -64,6 +65,21 @@ function filtered() {
     return sorted(base);
 }
 
+function thumbSrc(file) {
+    const version = file.thumbVersion || `${file.mtime || 0}-${file.size || 0}`;
+    return `/api/media/thumb?url=${encodeURIComponent(file.url)}&v=${encodeURIComponent(version)}`;
+}
+
+function prewarmThumbs(files) {
+    files
+        .filter((f) => f.type === 'image' || f.type === 'video')
+        .slice(0, PREWARM_THUMB_COUNT)
+        .forEach((f) => {
+            const img = new Image();
+            img.src = thumbSrc(f);
+        });
+}
+
 function renderGrid() {
     const grid = document.getElementById('mediaGrid');
     const allFiltered = filtered();
@@ -83,13 +99,21 @@ function renderGrid() {
         .map((f) => {
             const safeName = escapeHtml(f.name);
             const safeFolder = escapeHtml(f.folder === '.' ? 'root' : f.folder);
+            const safeType = escapeHtml(f.type);
+            const safeThumb = escapeHtml(thumbSrc(f));
+            const icon = ICON[f.type] || '📄';
             return `
-        <div class="media-card" data-url="${escapeHtml(f.url)}" data-type="${escapeHtml(f.type)}" data-name="${safeName}" tabindex="0" role="button" aria-label="View ${safeName}">
+        <div class="media-card" data-url="${escapeHtml(f.url)}" data-type="${safeType}" data-name="${safeName}" tabindex="0" role="button" aria-label="View ${safeName}">
             <button class="media-delete-btn" data-url="${escapeHtml(f.url)}" title="Delete" aria-label="Delete ${safeName}">🗑</button>
             ${
                 f.type === 'image' || f.type === 'video'
-                    ? `<img class="media-thumb" src="/api/media/thumb?url=${encodeURIComponent(f.url)}" alt="${safeName}" loading="lazy" data-icon="${ICON[f.type] || '📄'}" />`
-                    : `<div class="media-thumb-placeholder">${ICON[f.type] || '📄'}</div>`
+                    ? `<div class="media-thumb-wrap is-loading">
+                        <img class="media-thumb-backdrop" src="${safeThumb}" alt="" aria-hidden="true" loading="lazy" decoding="async" />
+                        <img class="media-thumb" src="${safeThumb}" alt="${safeName}" loading="lazy" decoding="async" data-icon="${icon}" />
+                        <span class="media-type-badge media-type-badge--${safeType}">${icon} ${safeType}</span>
+                        ${f.type === 'video' ? '<span class="media-play-badge">▶</span>' : ''}
+                    </div>`
+                    : `<div class="media-thumb-placeholder"><span>${icon}</span><span class="media-type-label">${safeType}</span></div>`
             }
             <div class="media-card-body">
                 <div class="media-card-name" title="${safeName}">${safeName}</div>
@@ -106,6 +130,8 @@ function renderGrid() {
         })
         .join('');
 
+    prewarmThumbs(visibleFiles);
+
     // Append "Load more" button if there are additional files beyond the current page
     if (allFiltered.length > PAGE_SIZE * mediaPage) {
         const remaining = allFiltered.length - PAGE_SIZE * mediaPage;
@@ -120,12 +146,16 @@ function renderGrid() {
     }
 
     grid.querySelectorAll('img.media-thumb[data-icon]').forEach((img) => {
+        const wrap = img.closest('.media-thumb-wrap');
+        const markLoaded = () => wrap?.classList.remove('is-loading');
+        if (img.complete && img.naturalWidth > 0) markLoaded();
+        img.addEventListener('load', markLoaded, { once: true });
         img.onerror = function () {
             const icon = this.dataset.icon || '📄';
             const placeholder = document.createElement('div');
-            placeholder.className = 'media-thumb-placeholder';
-            placeholder.textContent = icon;
-            this.replaceWith(placeholder);
+            placeholder.className = 'media-thumb-placeholder media-thumb-placeholder--error';
+            placeholder.innerHTML = `<span>${icon}</span><span class="media-type-label">No preview</span>`;
+            (wrap || this).replaceWith(placeholder);
         };
     });
 
@@ -481,7 +511,7 @@ async function scanDuplicates() {
                 <div class="duplicate-item">
                     ${
                         f.type === 'image' || f.type === 'video'
-                            ? `<img class="duplicate-thumb" src="/api/media/thumb?url=${encodeURIComponent(f.url)}" alt="${safeFName}" loading="lazy" />`
+                            ? `<img class="duplicate-thumb" src="${escapeHtml(thumbSrc(f))}" alt="${safeFName}" loading="lazy" />`
                             : `<div class="duplicate-thumb duplicate-thumb-icon">${ICON[f.type] || '📄'}</div>`
                     }
                     <div class="duplicate-item-name" title="${safeFName}">${safeFName}</div>
