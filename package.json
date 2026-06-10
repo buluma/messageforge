@@ -5,8 +5,8 @@
     "main": "messageforge.js",
     "scripts": {
         "start": "node messageforge.js",
-        "test": "jest",
-        "test:watch": "jest --watch",
+        "test": "node scripts/run-jest.js",
+        "test:watch": "node scripts/run-jest.js --watch",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "pm2:start": "pm2 start ecosystem.config.js",

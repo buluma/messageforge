@@ -440,6 +440,32 @@ async function handleMessages(sock, message) {
             msg.imageMessage?.caption ||
             msg.videoMessage?.caption ||
             '';
+        const trimmedText = text.trim();
+        const firstToken = trimmedText.split(/\s+/)[0]?.toLowerCase() || '';
+        const isCommandLike =
+            !!trimmedText &&
+            (anyPrefixMode
+                ? /^[^\w\s]/u.test(trimmedText)
+                : noPrefixMode
+                  ? plugins.some((p) => p.commands?.includes(firstToken))
+                  : prefixList.some((p) => trimmedText.startsWith(p)));
+
+        if (message.key.fromMe) {
+            for (const p of plugins) {
+                if (typeof p.onOwnMessage !== 'function') continue;
+                try {
+                    await p.onOwnMessage(sock, message, text, {
+                        jid,
+                        sender,
+                        from,
+                        isGroup,
+                        isCommandLike,
+                    });
+                } catch {
+                    /* ignore plugin own-message hooks */
+                }
+            }
+        }
 
         // ── AFK auto-reply (fires before prefix check, not for owner's own messages) ──
         if (!message.key.fromMe) {
@@ -543,6 +569,7 @@ async function handleMessages(sock, message) {
                         sender,
                         from,
                         isGroup,
+                        isCommandLike,
                         contextInfo: isGroup ? {} : GLOBAL_CONTEXT_INFO,
                     });
                 } catch {

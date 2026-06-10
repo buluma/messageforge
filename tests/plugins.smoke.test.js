@@ -50,6 +50,7 @@ describe('plugins (smoke)', () => {
 
         // AI
         '../plugins/messageforge-ai',
+        '../plugins/ai-autopilot',
 
         // Group utilities
         '../plugins/groupinfo',
