@@ -19,7 +19,7 @@ module.exports = {
             }
             return reply(
                 `👁️ *Read Receipts: ON*\n\n` +
-                `Blue ticks will now be sent when you read messages.`
+                    `Blue ticks will now be sent when you read messages.`,
             );
         }
 
@@ -30,19 +30,20 @@ module.exports = {
             }
             return reply(
                 `🫥 *Read Receipts: OFF*\n\n` +
-                `Blue ticks are now hidden — others won't know when you've read their messages.\n\n` +
-                `_Note: You also won't see their read receipts._`
+                    `Blue ticks are now hidden — others won't know when you've read their messages.\n\n` +
+                    `_Note: You also won't see their read receipts._`,
             );
         }
 
-        const status = config.READ_RECEIPT !== false ? '✅ ON (Blue ticks visible)' : '❌ OFF (Hidden)';
+        const status =
+            config.READ_RECEIPT !== false ? '✅ ON (Blue ticks visible)' : '❌ OFF (Hidden)';
         reply(
             `👁️ *Read Receipts (Blue Ticks)*\n\n` +
-            `Status: ${status}\n\n` +
-            `*Usage:*\n` +
-            `• \`.bluetick on\` — enable (show blue ticks)\n` +
-            `• \`.bluetick off\` — disable (hide blue ticks)\n\n` +
-            `_Aliases: .readreceipt  .readtick  .receipt_`
+                `Status: ${status}\n\n` +
+                `*Usage:*\n` +
+                `• \`.bluetick on\` — enable (show blue ticks)\n` +
+                `• \`.bluetick off\` — disable (hide blue ticks)\n\n` +
+                `_Aliases: .readreceipt  .readtick  .receipt_`,
         );
     },
 };

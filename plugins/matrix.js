@@ -28,19 +28,24 @@ function buildMatrix(text, cols = 30, rows = 18) {
         lines.push(line.join(''));
     }
 
-    const centered = upper.slice(0, cols - 4).padStart(Math.floor((cols + upper.length) / 2)).padEnd(cols);
+    const centered = upper
+        .slice(0, cols - 4)
+        .padStart(Math.floor((cols + upper.length) / 2))
+        .padEnd(cols);
 
     const insertRow = Math.floor(rows / 2);
     lines[insertRow] = `> ${centered} <`;
     if (lines[insertRow - 1]) {
-        lines[insertRow - 1] = lines[insertRow - 1].split('').map((c, i) =>
-            i < 3 || i > cols - 4 ? c : '|'
-        ).join('');
+        lines[insertRow - 1] = lines[insertRow - 1]
+            .split('')
+            .map((c, i) => (i < 3 || i > cols - 4 ? c : '|'))
+            .join('');
     }
     if (lines[insertRow + 1]) {
-        lines[insertRow + 1] = lines[insertRow + 1].split('').map((c, i) =>
-            i < 3 || i > cols - 4 ? c : '|'
-        ).join('');
+        lines[insertRow + 1] = lines[insertRow + 1]
+            .split('')
+            .map((c, i) => (i < 3 || i > cols - 4 ? c : '|'))
+            .join('');
     }
 
     const bottom = [];
@@ -53,12 +58,12 @@ function buildMatrix(text, cols = 30, rows = 18) {
 }
 
 module.exports = {
-    commands:    ['matrix'],
+    commands: ['matrix'],
     description: 'Generate a Matrix-style code rain with your text',
-    usage:       '.matrix <text>',
-    permission:  'public',
-    group:       true,
-    private:     true,
+    usage: '.matrix <text>',
+    permission: 'public',
+    group: true,
+    private: true,
 
     run: async (sock, message, args, ctx) => {
         const { jid, contextInfo, fmt } = ctx;
@@ -71,9 +76,13 @@ module.exports = {
 
         const header = fmt(`🟩 *MATRIX MODE — ${text.toUpperCase()}*`);
 
-        await sock.sendMessage(jid, {
-            text: `${header}\n\n${block}`,
-            contextInfo
-        }, { quoted: message });
-    }
+        await sock.sendMessage(
+            jid,
+            {
+                text: `${header}\n\n${block}`,
+                contextInfo,
+            },
+            { quoted: message },
+        );
+    },
 };

@@ -142,7 +142,9 @@ function reportCommandCollisions(loadedPlugins) {
         const aliases = Array.isArray(plugin.commands) ? plugin.commands : [];
         const seenInPlugin = new Set();
         for (const raw of aliases) {
-            const cmd = String(raw || '').trim().toLowerCase();
+            const cmd = String(raw || '')
+                .trim()
+                .toLowerCase();
             if (!cmd) continue;
             if (seenInPlugin.has(cmd)) continue;
             seenInPlugin.add(cmd);
@@ -199,12 +201,16 @@ function loadPlugins() {
                 if (!mod.__pluginFile) mod.__pluginFile = file;
 
                 if (
-                    (Array.isArray(mod.commands) && mod.commands.length && typeof mod.run === 'function') ||
+                    (Array.isArray(mod.commands) &&
+                        mod.commands.length &&
+                        typeof mod.run === 'function') ||
                     (mod.isEvent && typeof mod.run === 'function')
                 ) {
                     plugins.push(mod);
                 } else {
-                    logger.warn(`[Plugin] Skipped: ${file} (entry ${mods.indexOf(mod)}) — missing commands or run/handler`);
+                    logger.warn(
+                        `[Plugin] Skipped: ${file} (entry ${mods.indexOf(mod)}) — missing commands or run/handler`,
+                    );
                 }
             }
         } catch (err) {
@@ -249,7 +255,11 @@ function reloadPlugin(filename) {
             if (!mod.commands && mod.name) mod.commands = [mod.name];
             if (!mod.run && typeof mod.handler === 'function') mod.run = mod.handler;
             if (!mod.__pluginFile) mod.__pluginFile = filename;
-            if (Array.isArray(mod.commands) && mod.commands.length && typeof mod.run === 'function') {
+            if (
+                Array.isArray(mod.commands) &&
+                mod.commands.length &&
+                typeof mod.run === 'function'
+            ) {
                 plugins.push(mod);
             }
         }
@@ -277,10 +287,13 @@ if (fs.existsSync(pluginDir)) {
         const filename = path.basename(filepath);
         if (!filename.endsWith('.js')) return;
         clearTimeout(_debounceTimers.get(filename));
-        _debounceTimers.set(filename, setTimeout(() => {
-            _debounceTimers.delete(filename);
-            reloadPlugin(filename);
-        }, 300));
+        _debounceTimers.set(
+            filename,
+            setTimeout(() => {
+                _debounceTimers.delete(filename);
+                reloadPlugin(filename);
+            }, 300),
+        );
     }
 
     const watcher = chokidar.watch(pluginDir, { ignoreInitial: true, persistent: false });
@@ -299,7 +312,6 @@ async function emitCommandExecuted(event) {
         }
     }
 }
-
 
 // ─── Connection handlers ─────────────────────────────────────────────────────
 function setupConnectionHandlers(_sock) {
@@ -707,7 +719,8 @@ async function handleMessages(sock, message) {
             (fromNum && botNum && (fromNum === botNum || sameNumber(fromNum, botNum))) ||
             (from && jidNormalizedUser(from) === jidNormalizedUser(`${ownerNum}@s.whatsapp.net`)) ||
             (resolvedFrom &&
-                jidNormalizedUser(resolvedFrom) === jidNormalizedUser(`${ownerNum}@s.whatsapp.net`)) ||
+                jidNormalizedUser(resolvedFrom) ===
+                    jidNormalizedUser(`${ownerNum}@s.whatsapp.net`)) ||
             isSudo;
 
         // ── Resolve group admin status ────────────────────────────────────────
@@ -1014,4 +1027,17 @@ async function handleMessages(sock, message) {
     }
 }
 
-module.exports = { handleMessages, safeSend, setupConnectionHandlers, PERM, plugins, reloadPlugin, reloadAllPlugins, jidToNum, sameNumber, levenshtein, predictCommand, groupCache };
+module.exports = {
+    handleMessages,
+    safeSend,
+    setupConnectionHandlers,
+    PERM,
+    plugins,
+    reloadPlugin,
+    reloadAllPlugins,
+    jidToNum,
+    sameNumber,
+    levenshtein,
+    predictCommand,
+    groupCache,
+};

@@ -27,28 +27,28 @@ MessageForge uses environment variables for configuration. You can set these in 
 
 ## ✨ Appearance & Style
 
-| Variable     | Description                                                        | Default             |
-| ------------ | ------------------------------------------------------------------ | ------------------- |
-| `THEME`      | The visual theme for the bot (see [Themes Guide](./05-THEMES.md)). | `messageforge`      |
-| `PREFIX`     | The character(s) used to trigger commands.                         | `.`                 |
+| Variable     | Description                                                        | Default          |
+| ------------ | ------------------------------------------------------------------ | ---------------- |
+| `THEME`      | The visual theme for the bot (see [Themes Guide](./05-THEMES.md)). | `messageforge`   |
+| `PREFIX`     | The character(s) used to trigger commands.                         | `.`              |
 | `OWNER_NAME` | Your name displayed in the bot's about section.                    | `SHADOWNET Team` |
-| `MODE`       | Who can use the bot: `public`, `private`, or `groups`.             | `public`            |
+| `MODE`       | Who can use the bot: `public`, `private`, or `groups`.             | `public`         |
 
 ---
 
 ## 🤖 Automation Settings
 
-| Variable                 | Description                                                | Default |
-| ------------------------ | ---------------------------------------------------------- | ------- |
-| `AUTO_STATUS_SEEN`       | Automatically view all statuses of your contacts.          | `true`  |
-| `AUTO_STATUS_REACT`      | React to statuses with random emojis.                      | `true`  |
-| `STATUS_INBOX_JID`       | Single chat/JID where saved status updates are forwarded (`owner`, `me`, user/group JID, or digits). | `me`    |
-| `AUTO_UNFOLLOW_NEWSLETTER` | Automatically unfollow newsletters/channels when detected. | `false` |
-| `AUTO_FOLLOW_NEWSLETTER` | Automatically follow any newsletter that messages the bot. | `false` |
-| `AUTO_TYPING`            | Show "typing..." indicator while processing.               | `true`  |
-| `AUTO_RECORDING`         | Show "recording..." indicator for audio commands.          | `false` |
-| `ALWAYS_ONLINE`          | Keep the bot's status as "Online" 24/7.                    | `false` |
-| `READ_MESSAGE`           | Automatically mark all incoming messages as read.          | `false` |
+| Variable                   | Description                                                                                          | Default |
+| -------------------------- | ---------------------------------------------------------------------------------------------------- | ------- |
+| `AUTO_STATUS_SEEN`         | Automatically view all statuses of your contacts.                                                    | `true`  |
+| `AUTO_STATUS_REACT`        | React to statuses with random emojis.                                                                | `true`  |
+| `STATUS_INBOX_JID`         | Single chat/JID where saved status updates are forwarded (`owner`, `me`, user/group JID, or digits). | `me`    |
+| `AUTO_UNFOLLOW_NEWSLETTER` | Automatically unfollow newsletters/channels when detected.                                           | `false` |
+| `AUTO_FOLLOW_NEWSLETTER`   | Automatically follow any newsletter that messages the bot.                                           | `false` |
+| `AUTO_TYPING`              | Show "typing..." indicator while processing.                                                         | `true`  |
+| `AUTO_RECORDING`           | Show "recording..." indicator for audio commands.                                                    | `false` |
+| `ALWAYS_ONLINE`            | Keep the bot's status as "Online" 24/7.                                                              | `false` |
+| `READ_MESSAGE`             | Automatically mark all incoming messages as read.                                                    | `false` |
 
 ---
 
@@ -68,8 +68,8 @@ MessageForge uses environment variables for configuration. You can set these in 
 | `LOG_MAX_FILE_BYTES`    | Rotate app log file after this many bytes.                   | `5242880`      |
 | `LOG_MAX_AGE_DAYS`      | Delete app log files older than this many days.              | `2`            |
 | `LOG_MAX_TOTAL_BYTES`   | Prune oldest app logs when total log size exceeds this cap.  | `209715200`    |
-| `LOG_FORMAT`           | Console log style: `text` (default) or `json`.               | `text`         |
-| `DB_POOL_MAX`          | Maximum concurrent PostgreSQL connections in the pool.       | `20`           |
-| `MEDIA_MAX_MB`         | Maximum size of media files to download (in MB).             | `100`          |
+| `LOG_FORMAT`            | Console log style: `text` (default) or `json`.               | `text`         |
+| `DB_POOL_MAX`           | Maximum concurrent PostgreSQL connections in the pool.       | `20`           |
+| `MEDIA_MAX_MB`          | Maximum size of media files to download (in MB).             | `100`          |
 | `PORT`                  | The port for the internal health check server.               | `25680`        |
 | `APP_URL`               | Your deployment URL (used for Heroku keep-alive).            | _(None)_       |

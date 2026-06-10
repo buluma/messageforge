@@ -1,42 +1,42 @@
 {
-  "theme": "Itachi",
-  "AUTHOR": "SHADOWNET Team",
-  "LANGUAGE": "English",
-  "LANGCODE": "en",
-  "STRINGS": {
-    "global": {
-      "botName": "𝐔𝐜𝐡𝐢𝐡𝐚 𝐈𝐭𝐚𝐜𝐡𝐢",
-      "body": "𝑃𝑜𝑤𝑒𝑟 𝑎𝑙𝑜𝑛𝑒 𝑖𝑠 𝑛𝑜𝑡 𝑒𝑛𝑜𝑢𝑔ℎ.",
-      "greet": "Little brother",
-      "greet2": "Forgive me, Sasuke",
-      "pic1": "https://wallpapercave.com/wp/wp4043222.jpg",
-      "pic2": "https://wallpapercave.com/wp/wp4043226.jpg",
-      "pic3": "https://wallpapercave.com/wp/wp4043231.jpg",
-      "pic4": "https://wallpapercave.com/wp/wp1820488.jpg",
-      "pic5": "https://wallpapercave.com/wp/wp4043235.jpg",
-      "pic6": "https://wallpapercave.com/wp/wp4043237.jpg",
-      "pic7": "https://wallpapercave.com/wp/wp4043228.jpg",
-      "dotbody": "It's not wise to judge others based on your own perceptions.",
-      "promote": "A new shinobi worthy of the Sharingan",
-      "demote": "You lack hatred.",
-      "antlink": "Link Detected. *You shall not pass.*",
-      "mention": "Please mention any shinobi",
-      "title": "𝐈𝐭𝐚𝐜𝐡𝐢-𝐦𝐝",
-      "footer": "𝐔𝐜𝐡𝐢𝐡𝐚 𝐈𝐭𝐚𝐜𝐡𝐢",
-      "by": "Made by: SHADOWNET Team",
-      "success": "Done ✓",
-      "wait": "𝑷𝒓𝒐𝒄𝒆𝒔𝒔𝒊𝒏𝒈 𝒚𝒐𝒖𝒓 𝒓𝒆𝒒𝒖𝒆𝒔𝒕✅",
-      "admin": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ɢʀᴏᴜᴘ ᴀᴅᴍɪɴ⚠️!",
-      "botAdmin": "ᴘʟᴇᴀsᴇ ᴘʀᴏᴠɪᴅᴇ ᴍᴇ ᴀᴅᴍɪɴ ʀᴏʟᴇ.❗",
-      "owner": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ᴛʜᴇ ʜᴏᴋᴀɢᴇ ⚠️",
-      "group": "ᴛʜɪs ғᴇᴀᴛᴜʀᴇ ɪs ᴏɴʟʏ ғᴏʀ sʜɪɴᴏʙɪ ᴠɪʟʟᴀɢᴇs❗",
-      "private": "ᴛʜɪs ғᴇᴀᴛᴜʀᴇ ɪs ᴏɴʟʏ ғᴏʀ ᴛʜᴇ ʜᴏᴋᴀɢᴇ ⚠️",
-      "bot": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ᴛʜᴇ ʙᴏᴛ ɴᴜᴍʙᴇʀ⚠️",
-      "alive": "I exist in the shadows. Still online.",
-      "aliveEmoji": "🌊"
-    },
-    "error": {
-      "text": "*You are weak. That is why you fail.*"
+    "theme": "Itachi",
+    "AUTHOR": "SHADOWNET Team",
+    "LANGUAGE": "English",
+    "LANGCODE": "en",
+    "STRINGS": {
+        "global": {
+            "botName": "𝐔𝐜𝐡𝐢𝐡𝐚 𝐈𝐭𝐚𝐜𝐡𝐢",
+            "body": "𝑃𝑜𝑤𝑒𝑟 𝑎𝑙𝑜𝑛𝑒 𝑖𝑠 𝑛𝑜𝑡 𝑒𝑛𝑜𝑢𝑔ℎ.",
+            "greet": "Little brother",
+            "greet2": "Forgive me, Sasuke",
+            "pic1": "https://wallpapercave.com/wp/wp4043222.jpg",
+            "pic2": "https://wallpapercave.com/wp/wp4043226.jpg",
+            "pic3": "https://wallpapercave.com/wp/wp4043231.jpg",
+            "pic4": "https://wallpapercave.com/wp/wp1820488.jpg",
+            "pic5": "https://wallpapercave.com/wp/wp4043235.jpg",
+            "pic6": "https://wallpapercave.com/wp/wp4043237.jpg",
+            "pic7": "https://wallpapercave.com/wp/wp4043228.jpg",
+            "dotbody": "It's not wise to judge others based on your own perceptions.",
+            "promote": "A new shinobi worthy of the Sharingan",
+            "demote": "You lack hatred.",
+            "antlink": "Link Detected. *You shall not pass.*",
+            "mention": "Please mention any shinobi",
+            "title": "𝐈𝐭𝐚𝐜𝐡𝐢-𝐦𝐝",
+            "footer": "𝐔𝐜𝐡𝐢𝐡𝐚 𝐈𝐭𝐚𝐜𝐡𝐢",
+            "by": "Made by: SHADOWNET Team",
+            "success": "Done ✓",
+            "wait": "𝑷𝒓𝒐𝒄𝒆𝒔𝒔𝒊𝒏𝒈 𝒚𝒐𝒖𝒓 𝒓𝒆𝒒𝒖𝒆𝒔𝒕✅",
+            "admin": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ɢʀᴏᴜᴘ ᴀᴅᴍɪɴ⚠️!",
+            "botAdmin": "ᴘʟᴇᴀsᴇ ᴘʀᴏᴠɪᴅᴇ ᴍᴇ ᴀᴅᴍɪɴ ʀᴏʟᴇ.❗",
+            "owner": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ᴛʜᴇ ʜᴏᴋᴀɢᴇ ⚠️",
+            "group": "ᴛʜɪs ғᴇᴀᴛᴜʀᴇ ɪs ᴏɴʟʏ ғᴏʀ sʜɪɴᴏʙɪ ᴠɪʟʟᴀɢᴇs❗",
+            "private": "ᴛʜɪs ғᴇᴀᴛᴜʀᴇ ɪs ᴏɴʟʏ ғᴏʀ ᴛʜᴇ ʜᴏᴋᴀɢᴇ ⚠️",
+            "bot": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ᴛʜᴇ ʙᴏᴛ ɴᴜᴍʙᴇʀ⚠️",
+            "alive": "I exist in the shadows. Still online.",
+            "aliveEmoji": "🌊"
+        },
+        "error": {
+            "text": "*You are weak. That is why you fail.*"
+        }
     }
-  }
 }

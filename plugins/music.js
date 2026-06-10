@@ -1,35 +1,43 @@
 'use strict';
 
 const playdl = require('play-dl');
-const axios  = require('axios');
+const axios = require('axios');
 
 const FALLBACK_APIS = (link) => [
     `https://apiskeith.top/download/audio?url=${encodeURIComponent(link)}`,
     `https://api.siputzx.my.id/api/d/ytmp3?url=${encodeURIComponent(link)}`,
     `https://api.davidcyriltech.my.id/download/ytmp3?url=${encodeURIComponent(link)}`,
-    `https://api.akuari.my.id/downloader/youtubeaudio?link=${encodeURIComponent(link)}`
+    `https://api.akuari.my.id/downloader/youtubeaudio?link=${encodeURIComponent(link)}`,
 ];
 
 module.exports = {
-    commands: [ 'music'],
+    commands: ['music'],
     description: 'Search and download a song from YouTube',
-    permission:  'public',
-    group:       true,
-    private:     true,
+    permission: 'public',
+    group: true,
+    private: true,
 
     run: async (sock, message, args, { sender, contextInfo }) => {
         const query = args.join(' ').trim();
         if (!query) {
-            return sock.sendMessage(sender, {
-                text: '❌ Usage: `.play <song name or YouTube link>`',
-                contextInfo
-            }, { quoted: message });
+            return sock.sendMessage(
+                sender,
+                {
+                    text: '❌ Usage: `.play <song name or YouTube link>`',
+                    contextInfo,
+                },
+                { quoted: message },
+            );
         }
 
-        const _wait = await sock.sendMessage(sender, {
-            text: `🔍 Searching: *${query}*...`,
-            contextInfo
-        }, { quoted: message });
+        const _wait = await sock.sendMessage(
+            sender,
+            {
+                text: `🔍 Searching: *${query}*...`,
+                contextInfo,
+            },
+            { quoted: message },
+        );
 
         try {
             // ── Step 1: resolve YouTube URL ──────────────────────────────
@@ -39,29 +47,40 @@ module.exports = {
 
             if (isUrl) {
                 const info = await playdl.video_info(query);
-                const det  = info.video_details;
-                videoUrl  = query;
-                title     = det.title || 'Unknown Title';
-                artist    = det.channel?.name || 'Unknown Artist';
+                const det = info.video_details;
+                videoUrl = query;
+                title = det.title || 'Unknown Title';
+                artist = det.channel?.name || 'Unknown Artist';
                 thumbnail = det.thumbnails?.[det.thumbnails.length - 1]?.url || '';
-                duration  = det.durationRaw || '';
+                duration = det.durationRaw || '';
             } else {
-                const results = await playdl.search(query, { source: { youtube: 'video' }, limit: 1 });
+                const results = await playdl.search(query, {
+                    source: { youtube: 'video' },
+                    limit: 1,
+                });
                 if (!results?.length) throw new Error('No results found');
                 const v = results[0];
-                videoUrl  = v.url;
-                title     = v.title || 'Unknown Title';
-                artist    = v.channel?.name || 'Unknown Artist';
+                videoUrl = v.url;
+                title = v.title || 'Unknown Title';
+                artist = v.channel?.name || 'Unknown Artist';
                 thumbnail = v.thumbnails?.[v.thumbnails.length - 1]?.url || '';
-                duration  = v.durationRaw || '';
+                duration = v.durationRaw || '';
             }
 
             // ── Step 2: send info card ────────────────────────────────────
             const infoCaption = `🎵 *${title}*\n🎤 *Artist:* ${artist}\n⏱ *Duration:* ${duration}\n\n_Downloading audio..._`;
             if (thumbnail) {
-                await sock.sendMessage(sender, { image: { url: thumbnail }, caption: infoCaption, contextInfo }, { quoted: message });
+                await sock.sendMessage(
+                    sender,
+                    { image: { url: thumbnail }, caption: infoCaption, contextInfo },
+                    { quoted: message },
+                );
             } else {
-                await sock.sendMessage(sender, { text: infoCaption, contextInfo }, { quoted: message });
+                await sock.sendMessage(
+                    sender,
+                    { text: infoCaption, contextInfo },
+                    { quoted: message },
+                );
             }
 
             // ── Step 3: try play-dl stream first ─────────────────────────
@@ -88,8 +107,13 @@ module.exports = {
                             data?.download ||
                             data?.url ||
                             data?.link;
-                        if (dl) { audioUrl = dl; break; }
-                    } catch { /* next */ }
+                        if (dl) {
+                            audioUrl = dl;
+                            break;
+                        }
+                    } catch {
+                        /* next */
+                    }
                 }
             }
 
@@ -105,18 +129,28 @@ module.exports = {
             await sock.sendMessage(sender, { ...audioPayload, contextInfo }, { quoted: message });
 
             // ── Step 6: send as downloadable file ────────────────────────
-            const safeTitle = title.replace(/[^\w\s-]/g, '').trim().slice(0, 50);
+            const safeTitle = title
+                .replace(/[^\w\s-]/g, '')
+                .trim()
+                .slice(0, 50);
             const docPayload = audioBuffer
                 ? { document: audioBuffer, mimetype: 'audio/mpeg', fileName: `${safeTitle}.mp3` }
-                : { document: { url: audioUrl }, mimetype: 'audio/mpeg', fileName: `${safeTitle}.mp3` };
+                : {
+                      document: { url: audioUrl },
+                      mimetype: 'audio/mpeg',
+                      fileName: `${safeTitle}.mp3`,
+                  };
 
             await sock.sendMessage(sender, { ...docPayload, contextInfo }, { quoted: message });
-
         } catch (err) {
-            await sock.sendMessage(sender, {
-                text: `❌ *Could not download:* ${err.message}`,
-                contextInfo
-            }, { quoted: message });
+            await sock.sendMessage(
+                sender,
+                {
+                    text: `❌ *Could not download:* ${err.message}`,
+                    contextInfo,
+                },
+                { quoted: message },
+            );
         }
-    }
+    },
 };

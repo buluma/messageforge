@@ -1,6 +1,6 @@
 'use strict';
 
-const fs   = require('fs');
+const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
@@ -18,7 +18,7 @@ function persistPrefix(value) {
             content = fs.readFileSync(envFile, 'utf8');
             content = content
                 .split('\n')
-                .filter(l => !l.trim().startsWith('PREFIX='))
+                .filter((l) => !l.trim().startsWith('PREFIX='))
                 .join('\n')
                 .trim();
         }
@@ -30,12 +30,12 @@ function persistPrefix(value) {
 }
 
 module.exports = {
-    commands: [ 'setprefix', 'prefix', 'changeprefix'],
+    commands: ['setprefix', 'prefix', 'changeprefix'],
     description: 'View or change the bot command prefix at runtime',
-    usage:       '.setprefix .  |  .setprefix .,!,/  |  .setprefix any  |  .setprefix none',
-    permission:  'owner',
-    group:       false,
-    private:     true,
+    usage: '.setprefix .  |  .setprefix .,!,/  |  .setprefix any  |  .setprefix none',
+    permission: 'owner',
+    group: false,
+    private: true,
 
     run: async (sock, message, args, ctx) => {
         const { isOwner, reply, fmt, config } = ctx;
@@ -46,26 +46,30 @@ module.exports = {
 
         // Show current prefix when no args
         if (!args.length) {
-            const display = current === '' || current.toLowerCase() === 'none'
-                ? '_none (no prefix)_'
-                : current.toLowerCase() === 'any'
-                    ? '_any symbol_'
-                    : `\`${current}\``;
+            const display =
+                current === '' || current.toLowerCase() === 'none'
+                    ? '_none (no prefix)_'
+                    : current.toLowerCase() === 'any'
+                      ? '_any symbol_'
+                      : `\`${current}\``;
 
-            return reply(fmt(
-                `*Current Prefix:* ${display}\n\n` +
-                `*How to change:*\n` +
-                `• \`.setprefix .\` — single prefix\n` +
-                `• \`.setprefix .,!,/,?\` — multiple (any of them works)\n` +
-                `• \`.setprefix any\` — any symbol, emoji or punctuation\n` +
-                `• \`.setprefix none\` — no prefix (bare commands)\n` +
-                `• \`.setprefix 🤖\` — emoji prefix`
-            ));
+            return reply(
+                fmt(
+                    `*Current Prefix:* ${display}\n\n` +
+                        `*How to change:*\n` +
+                        `• \`.setprefix .\` — single prefix\n` +
+                        `• \`.setprefix .,!,/,?\` — multiple (any of them works)\n` +
+                        `• \`.setprefix any\` — any symbol, emoji or punctuation\n` +
+                        `• \`.setprefix none\` — no prefix (bare commands)\n` +
+                        `• \`.setprefix 🤖\` — emoji prefix`,
+                ),
+            );
         }
 
         const newPrefix = args.join(' ').trim();
 
-        if (!newPrefix) return reply(fmt('❌ Prefix cannot be empty. Use `none` to disable the prefix.'));
+        if (!newPrefix)
+            return reply(fmt('❌ Prefix cannot be empty. Use `none` to disable the prefix.'));
 
         // Validate: reject very long values
         if (newPrefix.length > 50) return reply(fmt('❌ Prefix too long (max 50 characters).'));
@@ -77,17 +81,25 @@ module.exports = {
         persistPrefix(newPrefix);
 
         const isNone = newPrefix.toLowerCase() === 'none' || newPrefix === '';
-        const isAny  = newPrefix.toLowerCase() === 'any';
-        const list   = !isNone && !isAny ? newPrefix.split(',').map(p => p.trim()).filter(Boolean) : [];
+        const isAny = newPrefix.toLowerCase() === 'any';
+        const list =
+            !isNone && !isAny
+                ? newPrefix
+                      .split(',')
+                      .map((p) => p.trim())
+                      .filter(Boolean)
+                : [];
 
         let summary = '';
-        if (isNone)        summary = '✅ *Prefix disabled.* Commands now work without any prefix.';
-        else if (isAny)    summary = '✅ *Any-prefix mode.* Any symbol, emoji or punctuation triggers commands.';
+        if (isNone) summary = '✅ *Prefix disabled.* Commands now work without any prefix.';
+        else if (isAny)
+            summary = '✅ *Any-prefix mode.* Any symbol, emoji or punctuation triggers commands.';
         else if (list.length > 1)
-            summary = `✅ *Multi-prefix set:* ${list.map(p => `\`${p}\``).join('  ')}`;
-        else
-            summary = `✅ *Prefix set to:* \`${newPrefix}\``;
+            summary = `✅ *Multi-prefix set:* ${list.map((p) => `\`${p}\``).join('  ')}`;
+        else summary = `✅ *Prefix set to:* \`${newPrefix}\``;
 
-        return reply(fmt(summary + '\n\n_Change takes effect immediately. Restart is not required._'));
-    }
+        return reply(
+            fmt(summary + '\n\n_Change takes effect immediately. Restart is not required._'),
+        );
+    },
 };

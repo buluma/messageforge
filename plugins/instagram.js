@@ -1,6 +1,6 @@
 'use strict';
 
-const axios    = require('axios');
+const axios = require('axios');
 
 // ─── Helper: extract shortcode from any Instagram URL ───────────────────────
 function extractShortcode(url) {
@@ -20,15 +20,17 @@ function _shortcodeToId(code) {
 async function tryOEmbed(url) {
     const { data } = await axios.get(
         `https://api.instagram.com/oembed/?url=${encodeURIComponent(url)}&maxwidth=640`,
-        { timeout: 10000, headers: { 'User-Agent': 'Mozilla/5.0' } }
+        { timeout: 10000, headers: { 'User-Agent': 'Mozilla/5.0' } },
     );
     if (!data?.thumbnail_url) throw new Error('No thumbnail');
-    return [{
-        url:     data.thumbnail_url,
-        type:    'image',
-        caption: data.title || '',
-        author:  data.author_name || '',
-    }];
+    return [
+        {
+            url: data.thumbnail_url,
+            type: 'image',
+            caption: data.title || '',
+            author: data.author_name || '',
+        },
+    ];
 }
 
 // ─── Strategy 2: Instagram embed page — extract media from EmbedSimple JS ────
@@ -41,11 +43,12 @@ async function tryEmbedPage(url) {
         {
             timeout: 12000,
             headers: {
-                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-                'Accept': 'text/html,application/xhtml+xml',
+                'User-Agent':
+                    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+                Accept: 'text/html,application/xhtml+xml',
                 'Accept-Language': 'en-US,en;q=0.9',
-            }
-        }
+            },
+        },
     );
 
     const results = [];
@@ -61,7 +64,7 @@ async function tryEmbedPage(url) {
         let m;
         while ((m = pat.exec(html)) !== null) {
             const videoUrl = m[1].replace(/\\u0026/g, '&').replace(/\\\//g, '/');
-            if (videoUrl && !results.find(r => r.url === videoUrl)) {
+            if (videoUrl && !results.find((r) => r.url === videoUrl)) {
                 results.push({ url: videoUrl, type: 'video' });
             }
         }
@@ -78,7 +81,7 @@ async function tryEmbedPage(url) {
             let m;
             while ((m = pat.exec(html)) !== null) {
                 const imgUrl = m[1].replace(/\\u0026/g, '&').replace(/\\\//g, '/');
-                if (imgUrl && !results.find(r => r.url === imgUrl)) {
+                if (imgUrl && !results.find((r) => r.url === imgUrl)) {
                     results.push({ url: imgUrl, type: 'image' });
                     break;
                 }
@@ -102,46 +105,57 @@ async function tryEmbedPage(url) {
 async function tryNexoracle(url) {
     const { data } = await axios.get(
         `https://api.nexoracle.com/downloaders/igdl?url=${encodeURIComponent(url)}&apikey=free_for_use`,
-        { timeout: 12000, headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' } }
+        { timeout: 12000, headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' } },
     );
-    if (typeof data !== 'object' || Array.isArray(data) === false && !data?.result && !data?.media) {
+    if (
+        typeof data !== 'object' ||
+        (Array.isArray(data) === false && !data?.result && !data?.media)
+    ) {
         throw new Error('Nexoracle returned unexpected format');
     }
     const items = data?.result || data?.media || (Array.isArray(data) ? data : []);
     if (!items.length) throw new Error('Empty result');
-    return items.map(item => ({
-        url:  item.url || item.video_url || item.image_url,
-        type: item.type === 'video' || (item.url || '').includes('.mp4') ? 'video' : 'image',
-    })).filter(i => i.url);
+    return items
+        .map((item) => ({
+            url: item.url || item.video_url || item.image_url,
+            type: item.type === 'video' || (item.url || '').includes('.mp4') ? 'video' : 'image',
+        }))
+        .filter((i) => i.url);
 }
 
 // ─── Main plugin ─────────────────────────────────────────────────────────────
 module.exports = {
     commands: ['instagram', 'igdl', 'insta'],
     description: 'Download Instagram posts, reels, and stories',
-    permission:  'public',
-    group:       true,
-    private:     true,
+    permission: 'public',
+    group: true,
+    private: true,
 
     run: async (sock, message, args, { jid, contextInfo, reply, safeSend, getStr }) => {
         const url = args[0];
         if (!url || !url.includes('instagram.com')) {
-            return reply(`📸 Please provide a valid Instagram URL.\nExample: \`.ig https://www.instagram.com/p/xyz/\``);
+            return reply(
+                `📸 Please provide a valid Instagram URL.\nExample: \`.ig https://www.instagram.com/p/xyz/\``,
+            );
         }
 
         const botName = getStr('botName') || 'MessageForge';
 
-        const loading = await safeSend({
-            text: '⏳ Fetching Instagram content…',
-            contextInfo
-        }, { quoted: message });
+        const loading = await safeSend(
+            {
+                text: '⏳ Fetching Instagram content…',
+                contextInfo,
+            },
+            { quoted: message },
+        );
 
-        const deleteLoading = () => loading && sock.sendMessage(jid, { delete: loading.key }).catch(() => {});
+        const deleteLoading = () =>
+            loading && sock.sendMessage(jid, { delete: loading.key }).catch(() => {});
 
         const STRATEGIES = [
-            { name: 'Embed Page',  fn: () => tryEmbedPage(url)  },
-            { name: 'Nexoracle',   fn: () => tryNexoracle(url)  },
-            { name: 'oEmbed',      fn: () => tryOEmbed(url)      },
+            { name: 'Embed Page', fn: () => tryEmbedPage(url) },
+            { name: 'Nexoracle', fn: () => tryNexoracle(url) },
+            { name: 'oEmbed', fn: () => tryOEmbed(url) },
         ];
 
         let items = null;
@@ -150,7 +164,11 @@ module.exports = {
         for (const strategy of STRATEGIES) {
             try {
                 const result = await strategy.fn();
-                if (result?.length) { items = result; console.log(`[IG] Success via ${strategy.name}`); break; }
+                if (result?.length) {
+                    items = result;
+                    console.log(`[IG] Success via ${strategy.name}`);
+                    break;
+                }
             } catch (e) {
                 lastErr = e.message;
                 console.warn(`[IG] ${strategy.name} failed: ${e.message}`);
@@ -162,11 +180,11 @@ module.exports = {
         if (!items?.length) {
             return reply(
                 `❌ *Instagram download failed*\n\n` +
-                `_Reason: ${lastErr}_\n\n` +
-                `💡 *Tips:*\n` +
-                `• Make sure the post is *public*\n` +
-                `• Reels and posts work best\n` +
-                `• Stories may not be downloadable`
+                    `_Reason: ${lastErr}_\n\n` +
+                    `💡 *Tips:*\n` +
+                    `• Make sure the post is *public*\n` +
+                    `• Reels and posts work best\n` +
+                    `• Stories may not be downloadable`,
             );
         }
 
@@ -176,28 +194,32 @@ module.exports = {
             if (!item.url) continue;
 
             const isVideo = item.type === 'video';
-            const caption = i === 0
-                ? `📸 *Instagram Download*\n${slice.length > 1 ? `_(1 of ${slice.length} items)_\n` : ''}\n_Powered by ${botName}_`
-                : `_(${i + 1} of ${slice.length})_`;
+            const caption =
+                i === 0
+                    ? `📸 *Instagram Download*\n${slice.length > 1 ? `_(1 of ${slice.length} items)_\n` : ''}\n_Powered by ${botName}_`
+                    : `_(${i + 1} of ${slice.length})_`;
 
             try {
-                await safeSend({
-                    [isVideo ? 'video' : 'image']: { url: item.url },
-                    caption,
-                    contextInfo: {
-                        ...contextInfo,
-                        externalAdReply: {
-                            title:                 'Instagram',
-                            body:                  `Powered by ${botName}`,
-                            sourceUrl:             url,
-                            mediaType:             1,
-                            renderLargerThumbnail: true,
-                        }
-                    }
-                }, { quoted: message });
+                await safeSend(
+                    {
+                        [isVideo ? 'video' : 'image']: { url: item.url },
+                        caption,
+                        contextInfo: {
+                            ...contextInfo,
+                            externalAdReply: {
+                                title: 'Instagram',
+                                body: `Powered by ${botName}`,
+                                sourceUrl: url,
+                                mediaType: 1,
+                                renderLargerThumbnail: true,
+                            },
+                        },
+                    },
+                    { quoted: message },
+                );
             } catch (sendErr) {
                 console.warn(`[IG] Failed to send item ${i + 1}:`, sendErr.message);
             }
         }
-    }
+    },
 };

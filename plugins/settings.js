@@ -6,44 +6,46 @@ function tick(val) {
 
 function modeLabel(m) {
     const map = {
-        public:  '🌍 Public  (everyone can use)',
+        public: '🌍 Public  (everyone can use)',
         private: '🔒 Private (owner only)',
-        group:   '👥 Groups  (group members)',
-        inbox:   '📥 Inbox   (private chats only)',
-        both:    '🌍 Public  (everyone can use)',
+        group: '👥 Groups  (group members)',
+        inbox: '📥 Inbox   (private chats only)',
+        both: '🌍 Public  (everyone can use)',
     };
     return map[(m || '').toLowerCase()] || m;
 }
 
 module.exports = {
-    commands: [ 'config'],
+    commands: ['config'],
     description: 'Show all current bot settings and toggles',
-    permission:  'owner',
-    group:       true,
-    private:     true,
+    permission: 'owner',
+    group: true,
+    private: true,
 
     async run(sock, message, args, ctx) {
         const { reply, config, fmt, getStr } = ctx;
 
-        const botName  = getStr('botName') || config.BOT_NAME  || 'MessageForge';
+        const botName = getStr('botName') || config.BOT_NAME || 'MessageForge';
         const ownerNum = (config.OWNER_NUMBER || process.env.OWNER_NUMBER || '').replace(/\D/g, '');
-        const prefix   = config.PREFIX || '.';
-        const theme    = config.THEME || 'messageforge';
-        const mode     = config.MODE   || 'both';
+        const prefix = config.PREFIX || '.';
+        const theme = config.THEME || 'messageforge';
+        const mode = config.MODE || 'both';
 
-        let greetText    = false;
+        let greetText = false;
         let greetEnabled = false;
         try {
             const gp = require('path').join(__dirname, '../data/greet.json');
             if (require('fs').existsSync(gp)) {
                 const gd = JSON.parse(require('fs').readFileSync(gp, 'utf8'));
-                greetText    = !!(gd['__text__'] || (config.GREETING || '').trim());
+                greetText = !!(gd['__text__'] || (config.GREETING || '').trim());
                 greetEnabled = gd['__enabled__'] !== false && greetText;
             } else {
-                greetText    = !!(config.GREETING || '').trim();
+                greetText = !!(config.GREETING || '').trim();
                 greetEnabled = greetText;
             }
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
         const greetSet = greetText;
 
         const lines = [
@@ -79,7 +81,7 @@ module.exports = {
             `  ${tick(config.AUTO_UNFOLLOW_NEWSLETTER)}  Auto Unfollow Newsletters`,
             ``,
             `👋 *Greeting*`,
-            `  ${tick(greetEnabled)}  Auto-Greeting *${greetEnabled ? 'ON' : (greetSet ? 'OFF (paused)' : 'OFF')}* — once per day`,
+            `  ${tick(greetEnabled)}  Auto-Greeting *${greetEnabled ? 'ON' : greetSet ? 'OFF (paused)' : 'OFF'}* — once per day`,
             `  ${greetSet ? `Use \`${prefix}getgreet\` to view • \`${prefix}greeton\`/\`${prefix}greetoff\` to toggle` : `Set with \`${prefix}setgreet <msg>\` or GREETING= in config`}`,
             ``,
             `📌 *Change settings*`,
@@ -88,5 +90,5 @@ module.exports = {
         ];
 
         return reply(fmt(lines.join('\n')));
-    }
+    },
 };

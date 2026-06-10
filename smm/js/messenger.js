@@ -81,10 +81,11 @@ export function mountMessenger() {
 
         const statusEl = document.getElementById('activeChatStatus');
         if (jid.endsWith('@g.us')) {
-            const onlineCount = values.filter((p) =>
-                p.lastKnownPresence === 'available' ||
-                p.lastKnownPresence === 'composing' ||
-                p.lastKnownPresence === 'paused',
+            const onlineCount = values.filter(
+                (p) =>
+                    p.lastKnownPresence === 'available' ||
+                    p.lastKnownPresence === 'composing' ||
+                    p.lastKnownPresence === 'paused',
             ).length;
             if (onlineCount > 0) statusEl.textContent = `${onlineCount} online`;
         } else {
@@ -93,7 +94,8 @@ export function mountMessenger() {
             const presence = p.lastKnownPresence;
             if (presence === 'composing') statusEl.textContent = 'typing...';
             else if (presence === 'recording') statusEl.textContent = 'recording...';
-            else if (presence === 'available' || presence === 'paused') statusEl.textContent = 'Online';
+            else if (presence === 'available' || presence === 'paused')
+                statusEl.textContent = 'Online';
             else statusEl.textContent = 'Offline';
         }
     });
@@ -135,6 +137,7 @@ export function mountMessenger() {
     document.getElementById('renameChat').onclick = renameActiveChat;
     document.getElementById('togglePin').onclick = toggleActivePin;
     document.getElementById('toggleArchive').onclick = toggleActiveArchive;
+    document.getElementById('viewChatMedia').onclick = openChatMediaModal;
     document.getElementById('loadOlderBtn').onclick = loadOlderMessages;
     document.getElementById('scrollToBottomBtn').onclick = () =>
         scrollThreadToBottom({ force: true });
@@ -340,12 +343,12 @@ function applyChatFilter(rawQuery) {
     const q = String(rawQuery || '')
         .trim()
         .toLowerCase();
-    
+
     let baseChats = state.chats;
     if (state.currentTab === 'archived') {
-        baseChats = state.chats.filter(c => c.isArchived);
+        baseChats = state.chats.filter((c) => c.isArchived);
     } else {
-        baseChats = state.chats.filter(c => !c.isArchived);
+        baseChats = state.chats.filter((c) => !c.isArchived);
     }
 
     state.filteredChats = sortedChats(
@@ -385,7 +388,8 @@ async function runFullTextSearch(q) {
     const chatListEl = document.getElementById('chatList');
     if (!resultsEl || !chatListEl) return;
 
-    resultsEl.innerHTML = '<div class="empty-state" style="padding:10px 14px;font-size:12px">Searching…</div>';
+    resultsEl.innerHTML =
+        '<div class="empty-state" style="padding:10px 14px;font-size:12px">Searching…</div>';
     resultsEl.hidden = false;
     chatListEl.hidden = true;
     searchMode = true;
@@ -395,7 +399,8 @@ async function runFullTextSearch(q) {
         const results = data?.results || [];
 
         if (!results.length) {
-            resultsEl.innerHTML = '<div class="empty-state" style="padding:10px 14px;font-size:12px">No messages found</div>';
+            resultsEl.innerHTML =
+                '<div class="empty-state" style="padding:10px 14px;font-size:12px">No messages found</div>';
             appendSearchClearBtn(resultsEl);
             return;
         }
@@ -408,9 +413,7 @@ async function runFullTextSearch(q) {
             item.role = 'button';
             const name = escapeHtml(r.pushName || jidShort(r.jid));
             const snippet = escapeHtml((r.message?.text || '').slice(0, 80));
-            const ts = r.message?.timestamp
-                ? safeMomentFormat(r.message.timestamp)
-                : '';
+            const ts = r.message?.timestamp ? safeMomentFormat(r.message.timestamp) : '';
             item.innerHTML = `
                 <div class="search-result-meta">
                     <span class="search-result-name">${name}</span>
@@ -440,7 +443,8 @@ async function runFullTextSearch(q) {
         resultsEl.appendChild(frag);
         appendSearchClearBtn(resultsEl);
     } catch (err) {
-        resultsEl.innerHTML = '<div class="empty-state" style="padding:10px 14px;font-size:12px">Search failed</div>';
+        resultsEl.innerHTML =
+            '<div class="empty-state" style="padding:10px 14px;font-size:12px">Search failed</div>';
         appendSearchClearBtn(resultsEl);
     }
 }
@@ -591,7 +595,9 @@ async function selectChat(chat) {
         ? 'Group'
         : '—';
     document.getElementById('togglePin').textContent = chat.isPinned ? '⭐' : '☆';
-    document.getElementById('toggleArchive').textContent = chat.isArchived ? '📦 Unarchive' : '📦 Archive';
+    document.getElementById('toggleArchive').textContent = chat.isArchived
+        ? '📦 Unarchive'
+        : '📦 Archive';
 
     const av = document.getElementById('activeChatAvatar');
     av.style.backgroundColor = getAvatarColor(chat.jid);
@@ -826,7 +832,10 @@ function updateReactionBadge(msgId, emoji, sender) {
     const counts = {};
     for (const e of reacts.values()) counts[e] = (counts[e] || 0) + 1;
     container.innerHTML = Object.entries(counts)
-        .map(([e, c]) => `<span class="msg-reaction-badge">${escapeHtml(e)}${c > 1 ? ` ${c}` : ''}</span>`)
+        .map(
+            ([e, c]) =>
+                `<span class="msg-reaction-badge">${escapeHtml(e)}${c > 1 ? ` ${c}` : ''}</span>`,
+        )
         .join('');
 }
 
@@ -968,7 +977,8 @@ function renderQrPopupList() {
     if (!listEl) return;
 
     if (!quickReplies.length) {
-        listEl.innerHTML = '<div class="qr-empty">No templates yet. Click + Add to create one.</div>';
+        listEl.innerHTML =
+            '<div class="qr-empty">No templates yet. Click + Add to create one.</div>';
         return;
     }
 
@@ -1102,17 +1112,19 @@ async function removeQuickReply(id) {
 async function toggleActiveArchive() {
     if (!state.activeJid) return;
     const current = state.chats.find((c) => c.jid === state.activeJid);
-    const isArchiving = !(current?.isArchived);
+    const isArchiving = !current?.isArchived;
     try {
         const { data } = await axios.post('/api/toggle-archive', {
             jid: state.activeJid,
-            archive: isArchiving
+            archive: isArchiving,
         });
         if (data.success) {
             await fetchChats();
             const next = state.chats.find((c) => c.jid === state.activeJid);
             if (next) {
-                document.getElementById('toggleArchive').textContent = next.isArchived ? '📦 Unarchive' : '📦 Archive';
+                document.getElementById('toggleArchive').textContent = next.isArchived
+                    ? '📦 Unarchive'
+                    : '📦 Archive';
             }
         }
     } catch (e) {
@@ -1120,3 +1132,64 @@ async function toggleActiveArchive() {
         alert('Failed to toggle archive');
     }
 }
+
+async function openChatMediaModal() {
+    if (!state.activeJid) return;
+    const modal = document.getElementById('chatMediaModal');
+    const grid = document.getElementById('chatMediaGrid');
+    modal.hidden = false;
+    grid.innerHTML = '<div class="empty-state">Loading media...</div>';
+
+    try {
+        const data = await api.fetchChatMedia(state.activeJid);
+        const msgs = data.messages || [];
+        if (msgs.length === 0) {
+            grid.innerHTML = '<div class="empty-state">No media found in this chat.</div>';
+            return;
+        }
+
+        grid.innerHTML = msgs
+            .map((msg) => {
+                const m = msg.message;
+                if (!m) return '';
+                let type = Object.keys(m)[0];
+                let mediaObj = m[type];
+                if (['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2'].includes(type)) {
+                    if (!m[type].message) return '';
+                    type = Object.keys(m[type].message)[0];
+                    mediaObj = m[type].message[type];
+                }
+
+                const isVideo = type === 'videoMessage';
+                const isAudio = type === 'audioMessage';
+                const isDoc = type === 'documentMessage';
+                const isSticker = type === 'stickerMessage';
+                const url = `/api/media/${encodeURIComponent(state.activeJid)}/${msg.msgId}`;
+
+                let content = '';
+                if (isVideo) {
+                    content = `<video src="${url}" controls style="width: 100%; height: 100%; object-fit: cover;"></video>`;
+                } else if (isAudio) {
+                    content = `<div style="display:flex;align-items:center;justify-content:center;height:100%;background:rgba(0,0,0,0.2);"><audio src="${url}" controls style="width: 90%;"></audio></div>`;
+                } else if (isDoc) {
+                    content = `<a href="${url}" target="_blank" style="display:flex;align-items:center;justify-content:center;height:100%;background:rgba(0,0,0,0.2);text-decoration:none;color:inherit;">📄 ${mediaObj.fileName || 'Document'}</a>`;
+                } else {
+                    content = `<img src="${url}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy" />`;
+                }
+
+                return `
+                <div class="media-card" style="aspect-ratio: 1; overflow: hidden; background: var(--surface); border-radius: 8px; border: 1px solid var(--border);">
+                    ${content}
+                </div>
+            `;
+            })
+            .join('');
+    } catch (e) {
+        grid.innerHTML = `<div class="empty-state">Error loading media: ${e.message}</div>`;
+    }
+}
+
+document.getElementById('chatMediaModalClose').addEventListener('click', () => {
+    document.getElementById('chatMediaModal').hidden = true;
+    document.getElementById('chatMediaGrid').innerHTML = '';
+});

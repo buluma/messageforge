@@ -43,7 +43,12 @@
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                     </svg>
                 </button>
-                <button class="rail-btn" data-view="dashboard" title="Dashboard" aria-label="Dashboard">
+                <button
+                    class="rail-btn"
+                    data-view="dashboard"
+                    title="Dashboard"
+                    aria-label="Dashboard"
+                >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />
                     </svg>
@@ -57,10 +62,10 @@
                 </button>
                 <button class="rail-btn" data-view="media" title="Media" aria-label="Media">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="7" rx="1"/>
-                        <rect x="14" y="3" width="7" height="7" rx="1"/>
-                        <rect x="3" y="14" width="7" height="7" rx="1"/>
-                        <path d="M17 14v7M14 17h7"/>
+                        <rect x="3" y="3" width="7" height="7" rx="1" />
+                        <rect x="14" y="3" width="7" height="7" rx="1" />
+                        <rect x="3" y="14" width="7" height="7" rx="1" />
+                        <path d="M17 14v7M14 17h7" />
                     </svg>
                 </button>
                 <div class="rail-spacer"></div>
@@ -86,7 +91,14 @@
                     <aside class="chat-list-panel">
                         <header class="panel-header">
                             <h2>Chats</h2>
-                            <button id="refreshChats" class="ghost-btn" title="Refresh" aria-label="Refresh chats">↻</button>
+                            <button
+                                id="refreshChats"
+                                class="ghost-btn"
+                                title="Refresh"
+                                aria-label="Refresh chats"
+                            >
+                                ↻
+                            </button>
                         </header>
                         <div class="search-wrap">
                             <input
@@ -97,9 +109,21 @@
                                 aria-label="Search chats and messages"
                             />
                         </div>
-                        <div class="chat-tabs" style="display: flex; gap: 8px; margin: 0 16px 8px;">
-                            <button id="tabActive" class="ghost-btn active" style="flex: 1; border: 1px solid var(--border);">Active</button>
-                            <button id="tabArchived" class="ghost-btn" style="flex: 1; border: 1px solid var(--border); opacity: 0.7;">Archived</button>
+                        <div class="chat-tabs" style="display: flex; gap: 8px; margin: 0 16px 8px">
+                            <button
+                                id="tabActive"
+                                class="ghost-btn active"
+                                style="flex: 1; border: 1px solid var(--border)"
+                            >
+                                Active
+                            </button>
+                            <button
+                                id="tabArchived"
+                                class="ghost-btn"
+                                style="flex: 1; border: 1px solid var(--border); opacity: 0.7"
+                            >
+                                Archived
+                            </button>
                         </div>
                         <div id="searchResults" class="search-results" hidden></div>
                         <div id="chatList" class="chat-list">
@@ -117,11 +141,38 @@
                                 </div>
                             </div>
                             <div class="chat-actions">
-                                <button id="renameChat" class="ghost-btn" title="Rename chat label" aria-label="Rename chat">
+                                <button
+                                    id="renameChat"
+                                    class="ghost-btn"
+                                    title="Rename chat label"
+                                    aria-label="Rename chat"
+                                >
                                     ✎
                                 </button>
-                                <button id="togglePin" class="ghost-btn" title="Pin" aria-label="Toggle pin">☆</button>
-                                <button id="toggleArchive" class="ghost-btn" title="Archive" aria-label="Toggle archive">📦</button>
+                                <button
+                                    id="togglePin"
+                                    class="ghost-btn"
+                                    title="Pin"
+                                    aria-label="Toggle pin"
+                                >
+                                    ☆
+                                </button>
+                                <button
+                                    id="toggleArchive"
+                                    class="ghost-btn"
+                                    title="Archive"
+                                    aria-label="Toggle archive"
+                                >
+                                    📦
+                                </button>
+                                <button
+                                    id="viewChatMedia"
+                                    class="ghost-btn"
+                                    title="View Media"
+                                    aria-label="View media"
+                                >
+                                    🖼️
+                                </button>
                             </div>
                         </header>
 
@@ -140,7 +191,9 @@
 
                         <div id="replyPreview" class="reply-preview" hidden>
                             <div class="reply-text" id="replyText"></div>
-                            <button class="ghost-btn" id="cancelReplyBtn" aria-label="Cancel reply">✕</button>
+                            <button class="ghost-btn" id="cancelReplyBtn" aria-label="Cancel reply">
+                                ✕
+                            </button>
                         </div>
 
                         <button
@@ -155,11 +208,25 @@
 
                         <div id="chatInputArea" class="chat-input-area" hidden>
                             <div class="qr-popup-wrap">
-                                <button id="quickReplyBtn" class="ghost-btn qr-trigger-btn" title="Quick replies" aria-label="Quick replies">⚡</button>
+                                <button
+                                    id="quickReplyBtn"
+                                    class="ghost-btn qr-trigger-btn"
+                                    title="Quick replies"
+                                    aria-label="Quick replies"
+                                >
+                                    ⚡
+                                </button>
                                 <div id="qrPopup" class="qr-popup" hidden>
                                     <div class="qr-popup-header">
                                         <span>Quick Replies</span>
-                                        <button id="qrManageBtn" class="ghost-btn" style="font-size:12px" aria-label="Manage templates">+ Add</button>
+                                        <button
+                                            id="qrManageBtn"
+                                            class="ghost-btn"
+                                            style="font-size: 12px"
+                                            aria-label="Manage templates"
+                                        >
+                                            + Add
+                                        </button>
                                     </div>
                                     <div id="qrList" class="qr-list"></div>
                                 </div>
@@ -171,7 +238,12 @@
                                 autocomplete="off"
                                 aria-label="Message text"
                             />
-                            <button id="sendMessage" class="primary-btn" title="Send" aria-label="Send message">
+                            <button
+                                id="sendMessage"
+                                class="primary-btn"
+                                title="Send"
+                                aria-label="Send message"
+                            >
                                 <svg
                                     width="18"
                                     height="18"
@@ -186,17 +258,47 @@
                         </div>
 
                         <!-- Quick-reply template manager modal -->
-                        <div id="qrModal" class="qr-modal" role="dialog" aria-labelledby="qrModalTitle" aria-modal="true" hidden>
+                        <div
+                            id="qrModal"
+                            class="qr-modal"
+                            role="dialog"
+                            aria-labelledby="qrModalTitle"
+                            aria-modal="true"
+                            hidden
+                        >
                             <div class="qr-modal-box">
                                 <div class="qr-modal-header">
                                     <h3 id="qrModalTitle">Quick Reply Templates</h3>
-                                    <button id="qrModalClose" class="ghost-btn" aria-label="Close modal">✕</button>
+                                    <button
+                                        id="qrModalClose"
+                                        class="ghost-btn"
+                                        aria-label="Close modal"
+                                    >
+                                        ✕
+                                    </button>
                                 </div>
                                 <div id="qrModalList" class="qr-modal-list"></div>
                                 <div class="qr-modal-add">
-                                    <input type="text" id="qrNewLabel" placeholder="Label (e.g. Greeting)" autocomplete="off" aria-label="Template label" />
-                                    <textarea id="qrNewText" placeholder="Template text…" rows="3" aria-label="Template text"></textarea>
-                                    <button id="qrAddBtn" class="primary-btn" style="align-self:flex-end">Save</button>
+                                    <input
+                                        type="text"
+                                        id="qrNewLabel"
+                                        placeholder="Label (e.g. Greeting)"
+                                        autocomplete="off"
+                                        aria-label="Template label"
+                                    />
+                                    <textarea
+                                        id="qrNewText"
+                                        placeholder="Template text…"
+                                        rows="3"
+                                        aria-label="Template text"
+                                    ></textarea>
+                                    <button
+                                        id="qrAddBtn"
+                                        class="primary-btn"
+                                        style="align-self: flex-end"
+                                    >
+                                        Save
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -271,7 +373,14 @@
                     <header class="view-header">
                         <h1>Plugins</h1>
                         <div class="plugins-controls">
-                            <button id="reloadPluginsBtn" class="ghost-btn" title="Hot-reload all plugins" aria-label="Reload all plugins">↻ Reload</button>
+                            <button
+                                id="reloadPluginsBtn"
+                                class="ghost-btn"
+                                title="Hot-reload all plugins"
+                                aria-label="Reload all plugins"
+                            >
+                                ↻ Reload
+                            </button>
                             <input
                                 id="pluginSearch"
                                 class="plugin-search-input"
@@ -305,7 +414,14 @@
                             <button class="pill" data-type="image">Image</button>
                             <button class="pill" data-type="audio">Audio</button>
                         </div>
-                        <input id="mediaSearch" class="plugin-search-input" type="search" placeholder="Search files…" autocomplete="off" aria-label="Search files" />
+                        <input
+                            id="mediaSearch"
+                            class="plugin-search-input"
+                            type="search"
+                            placeholder="Search files…"
+                            autocomplete="off"
+                            aria-label="Search files"
+                        />
                         <select id="mediaSort" class="media-sort-select">
                             <option value="date-desc">Newest first</option>
                             <option value="date-asc">Oldest first</option>
@@ -314,10 +430,30 @@
                             <option value="name-asc">Name A–Z</option>
                             <option value="name-desc">Name Z–A</option>
                         </select>
-                        <button id="mediaUploadBtn" class="media-upload-btn" title="Upload media file" aria-label="Upload media">↑ Upload</button>
-                        <input id="mediaUploadInput" type="file" accept="video/*,image/*,audio/*" hidden />
+                        <select
+                            id="mediaSourceFilter"
+                            class="media-sort-select"
+                            aria-label="Filter by source"
+                        >
+                            <option value="all">All sources</option>
+                        </select>
+                        <button
+                            id="mediaUploadBtn"
+                            class="media-upload-btn"
+                            title="Upload media file"
+                            aria-label="Upload media"
+                        >
+                            ↑ Upload
+                        </button>
+                        <input
+                            id="mediaUploadInput"
+                            type="file"
+                            accept="video/*,image/*,audio/*"
+                            hidden
+                        />
                     </div>
                     <div id="mediaActiveFilters" class="media-active-filters" hidden></div>
+                    <div id="mediaBulkBar" class="media-bulk-bar" hidden></div>
                     <div id="mediaLoading" class="empty-state" role="status">Loading media…</div>
                     <div id="mediaGrid" class="media-grid" hidden></div>
 
@@ -325,10 +461,24 @@
                     <div id="peopleSectionWrap">
                         <div class="people-header">
                             <h2 class="people-title">People</h2>
-                            <div style="display:flex;gap:8px;align-items:center">
-                                <span id="indexStatus" class="muted" style="font-size:12px" role="status"></span>
-                                <button id="mergeCancelBtn" class="ghost-btn" hidden>Cancel merge</button>
-                                <button id="indexFacesBtn" class="ghost-btn" title="Scan thumbnails for faces" aria-label="Scan faces">Scan faces</button>
+                            <div style="display: flex; gap: 8px; align-items: center">
+                                <span
+                                    id="indexStatus"
+                                    class="muted"
+                                    style="font-size: 12px"
+                                    role="status"
+                                ></span>
+                                <button id="mergeCancelBtn" class="ghost-btn" hidden>
+                                    Cancel merge
+                                </button>
+                                <button
+                                    id="indexFacesBtn"
+                                    class="ghost-btn"
+                                    title="Scan thumbnails for faces"
+                                    aria-label="Scan faces"
+                                >
+                                    Scan faces
+                                </button>
                             </div>
                         </div>
                         <div id="peopleGrid" class="people-grid"></div>
@@ -338,28 +488,86 @@
                     <div id="duplicatesSectionWrap">
                         <div class="duplicates-header">
                             <h2 class="people-title">Duplicate Files</h2>
-                            <button id="scanDuplicatesBtn" class="ghost-btn" aria-label="Scan duplicates">Scan duplicates</button>
+                            <button
+                                id="scanDuplicatesBtn"
+                                class="ghost-btn"
+                                aria-label="Scan duplicates"
+                            >
+                                Scan duplicates
+                            </button>
                         </div>
                         <div id="duplicatesGrid" class="duplicates-grid"></div>
                     </div>
                 </section>
 
                 <!-- ── Media lightbox ────────────────────────────────────── -->
-                <div id="mediaLightbox" class="media-lightbox" role="dialog" aria-label="Media lightbox" aria-modal="true" hidden>
+                <div
+                    id="mediaLightbox"
+                    class="media-lightbox"
+                    role="dialog"
+                    aria-label="Media lightbox"
+                    aria-modal="true"
+                    hidden
+                >
                     <div class="media-lightbox-backdrop"></div>
                     <div class="media-lightbox-box">
                         <button class="media-lightbox-close" aria-label="Close lightbox">✕</button>
-                        <button class="media-lightbox-nav media-lightbox-prev" id="lbPrev" aria-label="Previous">‹</button>
-                        <button class="media-lightbox-nav media-lightbox-next" id="lbNext" aria-label="Next">›</button>
+                        <button
+                            class="media-lightbox-nav media-lightbox-prev"
+                            id="lbPrev"
+                            aria-label="Previous"
+                        >
+                            ‹
+                        </button>
+                        <button
+                            class="media-lightbox-nav media-lightbox-next"
+                            id="lbNext"
+                            aria-label="Next"
+                        >
+                            ›
+                        </button>
                         <div id="mediaLightboxContent" class="media-lightbox-content"></div>
                         <div class="media-lightbox-meta">
                             <div id="mediaLightboxName" class="media-lightbox-name"></div>
-                            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-                                <button id="lbAutoplay" class="lb-toggle" title="Toggle autoplay" aria-label="Toggle autoplay">⏭ Auto</button>
-                                <button id="lbLoop" class="lb-toggle" title="Toggle loop" aria-label="Toggle loop">🔁 Loop</button>
+                            <div
+                                style="
+                                    display: flex;
+                                    gap: 10px;
+                                    align-items: center;
+                                    flex-wrap: wrap;
+                                "
+                            >
+                                <button
+                                    id="lbAutoplay"
+                                    class="lb-toggle"
+                                    title="Toggle autoplay"
+                                    aria-label="Toggle autoplay"
+                                >
+                                    ⏭ Auto
+                                </button>
+                                <button
+                                    id="lbLoop"
+                                    class="lb-toggle"
+                                    title="Toggle loop"
+                                    aria-label="Toggle loop"
+                                >
+                                    🔁 Loop
+                                </button>
                                 <span id="lbCounter" class="media-lightbox-counter"></span>
-                                <a id="mediaLightboxDownload" class="media-lightbox-download" download aria-label="Download media">↓ Download</a>
-                                <button id="mediaLightboxDelete" class="media-lightbox-del" aria-label="Delete media">🗑 Delete</button>
+                                <a
+                                    id="mediaLightboxDownload"
+                                    class="media-lightbox-download"
+                                    download
+                                    aria-label="Download media"
+                                    >↓ Download</a
+                                >
+                                <button
+                                    id="mediaLightboxDelete"
+                                    class="media-lightbox-del"
+                                    aria-label="Delete media"
+                                >
+                                    🗑 Delete
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -370,12 +578,53 @@
         <script type="module" src="/js/main.js"></script>
 
         <!-- Auth token modal -->
-        <div id="authModal" class="auth-modal" role="dialog" aria-labelledby="authModalTitle" aria-modal="true" hidden>
+        <div
+            id="authModal"
+            class="auth-modal"
+            role="dialog"
+            aria-labelledby="authModalTitle"
+            aria-modal="true"
+            hidden
+        >
             <div class="auth-modal-box">
                 <h3 id="authModalTitle">Dashboard Token Required</h3>
-                <input type="password" id="authTokenInput" placeholder="Enter token…" autocomplete="current-password" aria-label="Dashboard token" />
+                <input
+                    type="password"
+                    id="authTokenInput"
+                    placeholder="Enter token…"
+                    autocomplete="current-password"
+                    aria-label="Dashboard token"
+                />
                 <div class="auth-modal-actions">
                     <button id="authTokenSubmit" class="primary-btn">Connect</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Media Modal -->
+        <div id="chatMediaModal" class="qr-modal" role="dialog" aria-modal="true" hidden>
+            <div
+                class="qr-modal-box"
+                style="
+                    max-width: 800px;
+                    width: 90%;
+                    height: 80vh;
+                    display: flex;
+                    flex-direction: column;
+                "
+            >
+                <div class="qr-modal-header">
+                    <h3>Chat Media</h3>
+                    <button id="chatMediaModalClose" class="ghost-btn" aria-label="Close modal">
+                        ✕
+                    </button>
+                </div>
+                <div
+                    id="chatMediaGrid"
+                    class="media-grid"
+                    style="flex: 1; overflow-y: auto; padding: 16px"
+                >
+                    <div class="empty-state">Loading media...</div>
                 </div>
             </div>
         </div>

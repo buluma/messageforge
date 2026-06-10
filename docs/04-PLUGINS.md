@@ -3,28 +3,31 @@
 MessageForge is built on a highly modular plugin system, making it easy to add or modify functionality without touching the core logic.
 
 ## 📂 Location
+
 All command plugins are located in the `/plugins` directory. Every `.js` file in this folder is automatically loaded at startup.
 
 ## 🛠️ Plugin Structure
+
 A standard plugin file exports an object with the following properties:
 
 ```javascript
 module.exports = {
-    commands: ['cmd', 'alias'],  // Trigger words (without prefix)
+    commands: ['cmd', 'alias'], // Trigger words (without prefix)
     description: 'What it does', // Shown in the menu
-    usage: '.cmd <args>',        // Optional: specific usage guide
-    permission: 'public',        // 'public', 'admin', 'owner', or 'sudo'
-    group: true,                 // Set false to block in groups
-    private: true,               // Set false to block in private DMs
-    botAdmin: false,             // Set true if bot needs group admin rights
+    usage: '.cmd <args>', // Optional: specific usage guide
+    permission: 'public', // 'public', 'admin', 'owner', or 'sudo'
+    group: true, // Set false to block in groups
+    private: true, // Set false to block in private DMs
+    botAdmin: false, // Set true if bot needs group admin rights
     run: async (sock, message, args, ctx) => {
         // Your logic here
         await ctx.reply('Hello World!');
-    }
+    },
 };
 ```
 
 ## 🧠 The Context Object (`ctx`)
+
 The `run` function receives a `ctx` object that provides easy access to common tools:
 
 - `sock`: The raw Baileys socket.
@@ -42,15 +45,18 @@ The `run` function receives a `ctx` object that provides easy access to common t
 ---
 
 ## 🚀 Creating Your First Plugin
+
 1. Create a new file in `plugins/hello.js`.
 2. Add the following code:
+
 ```javascript
 module.exports = {
     commands: ['hello'],
     description: 'Says hi!',
     run: async (sock, message, args, ctx) => {
         await ctx.reply('Hi there! I am MessageForge.');
-    }
+    },
 };
 ```
+
 3. Restart the bot, and your new command will be available!

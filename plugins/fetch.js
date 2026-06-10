@@ -3,19 +3,18 @@
 const axios = require('axios');
 
 module.exports = {
-    commands:    ['fetch', 'get'],
+    commands: ['fetch', 'get'],
     description: 'Fetch a URL and return its content or file',
-    permission:  'public',
-    group:       true,
-    private:     true,
+    permission: 'public',
+    group: true,
+    private: true,
 
     run: async (sock, message, args, ctx) => {
         const { contextInfo } = ctx;
-        const jid    = message.key.remoteJid;
+        const jid = message.key.remoteJid;
         const sender = message.key.participant || jid;
 
-        const reply = (text) =>
-            sock.sendMessage(jid, { text, contextInfo }, { quoted: message });
+        const reply = (text) => sock.sendMessage(jid, { text, contextInfo }, { quoted: message });
 
         try {
             // Resolve URL from args or quoted message text
@@ -36,7 +35,7 @@ module.exports = {
 
             const res = await axios.get(url, {
                 responseType: 'arraybuffer',
-                timeout:      15000,
+                timeout: 15000,
             });
 
             // Guard against huge files
@@ -55,10 +54,10 @@ module.exports = {
                     {
                         document: Buffer.from(res.data),
                         fileName,
-                        mimetype:    contentType,
+                        mimetype: contentType,
                         contextInfo: { ...contextInfo, mentionedJid: [sender] },
                     },
-                    { quoted: message }
+                    { quoted: message },
                 );
             }
 
@@ -76,9 +75,8 @@ module.exports = {
             return sock.sendMessage(
                 jid,
                 { text: txt, contextInfo: { ...contextInfo, mentionedJid: [sender] } },
-                { quoted: message }
+                { quoted: message },
             );
-
         } catch (err) {
             console.error('[fetch]', err.message);
             return reply(`❌ Error fetching URL:\n${err.message}`);

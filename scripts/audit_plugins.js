@@ -26,7 +26,9 @@ function boolToTri(v) {
 }
 
 function normalizePermission(p) {
-    return String(p || 'public').trim().toLowerCase();
+    return String(p || 'public')
+        .trim()
+        .toLowerCase();
 }
 
 function main() {
@@ -79,7 +81,12 @@ function main() {
                 code: 'ADMIN_IN_PRIVATE',
                 message:
                     "permission:'admin' but private chats are allowed. In DMs this behaves like owner-only; consider `private:false` or `permission:'owner'`.",
-                meta: { permission: perm, group: boolToTri(group), private: boolToTri(priv), botAdmin: boolToTri(plugin.botAdmin) }
+                meta: {
+                    permission: perm,
+                    group: boolToTri(group),
+                    private: boolToTri(priv),
+                    botAdmin: boolToTri(plugin.botAdmin),
+                },
             });
         }
 
@@ -91,7 +98,12 @@ function main() {
                 primary,
                 code: 'BOT_ADMIN_IN_PRIVATE',
                 message: 'botAdmin:true but private chats are allowed. Consider `private:false`.',
-                meta: { permission: perm, group: boolToTri(group), private: boolToTri(priv), botAdmin: boolToTri(plugin.botAdmin) }
+                meta: {
+                    permission: perm,
+                    group: boolToTri(group),
+                    private: boolToTri(priv),
+                    botAdmin: boolToTri(plugin.botAdmin),
+                },
             });
         }
 
@@ -102,8 +114,14 @@ function main() {
                 file,
                 primary,
                 code: 'PUBLIC_PRIVATE_ONLY',
-                message: "permission:'public' but group:false (private-only public command). Verify intent.",
-                meta: { permission: perm, group: boolToTri(group), private: boolToTri(priv), botAdmin: boolToTri(plugin.botAdmin) }
+                message:
+                    "permission:'public' but group:false (private-only public command). Verify intent.",
+                meta: {
+                    permission: perm,
+                    group: boolToTri(group),
+                    private: boolToTri(priv),
+                    botAdmin: boolToTri(plugin.botAdmin),
+                },
             });
         }
 
@@ -115,7 +133,12 @@ function main() {
                 primary,
                 code: 'UNKNOWN_PERMISSION',
                 message: `Unknown permission '${perm}'. Handler treats this as public; likely a bug.`,
-                meta: { permission: perm, group: boolToTri(group), private: boolToTri(priv), botAdmin: boolToTri(plugin.botAdmin) }
+                meta: {
+                    permission: perm,
+                    group: boolToTri(group),
+                    private: boolToTri(priv),
+                    botAdmin: boolToTri(plugin.botAdmin),
+                },
             });
         }
     }
@@ -128,7 +151,7 @@ function main() {
                 primary: '(load failed)',
                 code: 'PLUGIN_LOAD_ERROR',
                 message: `Failed to require plugin: ${e.err}`,
-                meta: {}
+                meta: {},
             });
         }
     }
@@ -145,7 +168,7 @@ function main() {
         console.log(`  ${f.code}: ${f.message}`);
         if (f.meta && Object.keys(f.meta).length) {
             console.log(
-                `  meta: permission=${f.meta.permission} group=${f.meta.group} private=${f.meta.private} botAdmin=${f.meta.botAdmin}`
+                `  meta: permission=${f.meta.permission} group=${f.meta.group} private=${f.meta.private} botAdmin=${f.meta.botAdmin}`,
             );
         }
         console.log('');

@@ -1,6 +1,6 @@
 'use strict';
 
-const fs   = require('fs');
+const fs = require('fs');
 const path = require('path');
 
 const DATA_PATH = path.join(__dirname, '../data/antigm.json');
@@ -8,7 +8,9 @@ const DATA_PATH = path.join(__dirname, '../data/antigm.json');
 function loadData() {
     try {
         if (fs.existsSync(DATA_PATH)) return JSON.parse(fs.readFileSync(DATA_PATH, 'utf8'));
-    } catch { /* ignore */ }
+    } catch {
+        /* ignore */
+    }
     return {};
 }
 
@@ -17,7 +19,9 @@ function saveData(data) {
         const dir = path.dirname(DATA_PATH);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2));
-    } catch { /* ignore */ }
+    } catch {
+        /* ignore */
+    }
 }
 
 let antigmData = loadData();
@@ -27,16 +31,17 @@ function getGroupConfig(jid) {
 }
 
 module.exports = {
-    commands:    ['antigm'],
-    description: 'Anti group mention — prevent @everyone mass-mention spam in groups. Actions: delete | warn | kick',
-    permission:  'admin',
-    group:       true,
-    private:     false,
+    commands: ['antigm'],
+    description:
+        'Anti group mention — prevent @everyone mass-mention spam in groups. Actions: delete | warn | kick',
+    permission: 'admin',
+    group: true,
+    private: false,
 
     async run(sock, message, args, ctx) {
         const { reply, jid, getStr } = ctx;
         const botName = getStr('botName') || 'MessageForge';
-        const footer  = getStr('footer')  || '';
+        const footer = getStr('footer') || '';
 
         const cfg = getGroupConfig(jid);
         const sub = (args[0] || '').toLowerCase();
@@ -45,22 +50,24 @@ module.exports = {
         if (!sub) {
             return reply(
                 `*${botName}* — Anti Group Mention\n\n` +
-                `Status: ${cfg.enabled ? '✅ ON' : '❌ OFF'}\n` +
-                `Action: *${cfg.action}*\n\n` +
-                `*Commands:*\n` +
-                `• \`.antigm on\` — enable\n` +
-                `• \`.antigm off\` — disable\n` +
-                `• \`.antigm action delete\` — silently delete the message\n` +
-                `• \`.antigm action warn\` — warn the sender\n` +
-                `• \`.antigm action kick\` — kick the sender\n\n` +
-                footer
+                    `Status: ${cfg.enabled ? '✅ ON' : '❌ OFF'}\n` +
+                    `Action: *${cfg.action}*\n\n` +
+                    `*Commands:*\n` +
+                    `• \`.antigm on\` — enable\n` +
+                    `• \`.antigm off\` — disable\n` +
+                    `• \`.antigm action delete\` — silently delete the message\n` +
+                    `• \`.antigm action warn\` — warn the sender\n` +
+                    `• \`.antigm action kick\` — kick the sender\n\n` +
+                    footer,
             );
         }
 
         if (sub === 'on') {
             antigmData[jid] = { ...cfg, enabled: true };
             saveData(antigmData);
-            return reply(`*${botName}*\n\n✅ Anti Group Mention *enabled*.\nAction: *${cfg.action}*\n\n${footer}`);
+            return reply(
+                `*${botName}*\n\n✅ Anti Group Mention *enabled*.\nAction: *${cfg.action}*\n\n${footer}`,
+            );
         }
 
         if (sub === 'off') {
@@ -88,11 +95,13 @@ module.exports = {
 
         const hasGroupMention =
             !!msgObj.groupMentionedMessage ||
-            !!(msgObj.extendedTextMessage?.groupMentionedMessage) ||
-            !!(msgObj.groupMentionMessage);
+            !!msgObj.extendedTextMessage?.groupMentionedMessage ||
+            !!msgObj.groupMentionMessage;
 
-        const mentionedJids = msgObj.extendedTextMessage?.contextInfo?.mentionedJid ||
-                              msgObj.contextInfo?.mentionedJid || [];
+        const mentionedJids =
+            msgObj.extendedTextMessage?.contextInfo?.mentionedJid ||
+            msgObj.contextInfo?.mentionedJid ||
+            [];
 
         const isLargeMention = Array.isArray(mentionedJids) && mentionedJids.length >= 10;
 
@@ -105,12 +114,14 @@ module.exports = {
         try {
             const meta = await sock.groupMetadata(jid);
             const botId = sock.user?.id || '';
-            for (const p of (meta?.participants || [])) {
+            for (const p of meta?.participants || []) {
                 const adm = p.admin === 'admin' || p.admin === 'superadmin';
                 if (p.id === senderJid || p.lid === senderJid) isAdmin = adm;
                 if (p.id === botId || p.lid === botId) isBotAdmin = adm;
             }
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
 
         if (isAdmin) return;
 
@@ -118,13 +129,15 @@ module.exports = {
 
         try {
             await sock.sendMessage(jid, { delete: message.key });
-        } catch { /* ignore */ }
+        } catch {
+            /* ignore */
+        }
 
         if (cfg.action === 'warn') {
             const warnMsg = `*${botName}*\n\n⚠️ @${senderJid.split('@')[0]}, group mentions are *not allowed* in this group!`;
             await sock.sendMessage(jid, {
                 text: warnMsg,
-                mentions: [senderJid]
+                mentions: [senderJid],
             });
             return;
         }
@@ -134,9 +147,11 @@ module.exports = {
                 await sock.groupParticipantsUpdate(jid, [senderJid], 'remove');
                 await sock.sendMessage(jid, {
                     text: `*${botName}*\n\n🚫 @${senderJid.split('@')[0]} was removed for using group mentions.`,
-                    mentions: [senderJid]
+                    mentions: [senderJid],
                 });
-            } catch { /* ignore */ }
+            } catch {
+                /* ignore */
+            }
         }
-    }
+    },
 };

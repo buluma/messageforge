@@ -1,22 +1,31 @@
 'use strict';
 
 module.exports = {
-    commands:    ['autojoin'],
+    commands: ['autojoin'],
     description: 'Manually trigger group auto-join (owner only)',
-    permission:  'owner',
-    group:       false,
-    private:     true,
+    permission: 'owner',
+    group: false,
+    private: true,
 
     run: async (sock, message, _args, { sender, contextInfo, config }) => {
-        const codes = (config.AUTO_JOIN_GROUPS || '').split(',').map(c => c.trim()).filter(Boolean);
+        const codes = (config.AUTO_JOIN_GROUPS || '')
+            .split(',')
+            .map((c) => c.trim())
+            .filter(Boolean);
         if (!codes.length) {
-            return sock.sendMessage(sender, {
-                text: '⚠️ No AUTO_JOIN_GROUPS configured.',
-                contextInfo
-            }, { quoted: message });
+            return sock.sendMessage(
+                sender,
+                {
+                    text: '⚠️ No AUTO_JOIN_GROUPS configured.',
+                    contextInfo,
+                },
+                { quoted: message },
+            );
         }
 
-        let joined = 0, skipped = 0, failed = 0;
+        let joined = 0,
+            skipped = 0,
+            failed = 0;
         for (const code of codes) {
             try {
                 await sock.groupAcceptInvite(code);
@@ -24,13 +33,20 @@ module.exports = {
             } catch (e) {
                 const msg = e.message || '';
                 if (/already/i.test(msg) || /409/.test(msg)) skipped++;
-                else { failed++; console.error(`[AutoJoin] ${code}: ${msg}`); }
+                else {
+                    failed++;
+                    console.error(`[AutoJoin] ${code}: ${msg}`);
+                }
             }
         }
 
-        await sock.sendMessage(sender, {
-            text: `✅ *Auto-join complete*\n• Joined: ${joined}\n• Already in: ${skipped}\n• Failed: ${failed}`,
-            contextInfo
-        }, { quoted: message });
-    }
+        await sock.sendMessage(
+            sender,
+            {
+                text: `✅ *Auto-join complete*\n• Joined: ${joined}\n• Already in: ${skipped}\n• Failed: ${failed}`,
+                contextInfo,
+            },
+            { quoted: message },
+        );
+    },
 };

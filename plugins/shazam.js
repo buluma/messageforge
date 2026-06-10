@@ -1,33 +1,39 @@
 'use strict';
 
 const axios = require('axios');
-const fs    = require('fs');
-const path  = require('path');
-const os    = require('os');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 
 module.exports = {
-    commands:    ['shazam', 'identify', 'song'],
+    commands: ['shazam', 'identify', 'song'],
     description: 'Identify a song from a replied audio/video message using AudD',
-    permission:  'public',
-    group:       true,
-    private:     true,
+    permission: 'public',
+    group: true,
+    private: true,
 
     run: async (sock, message, args, ctx) => {
         const { contextInfo, safeSend } = ctx;
         const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
         if (!quoted) {
-            return safeSend({
-                text: '🎵 Please *reply* to an audio or video message to identify the song.',
-                contextInfo
-            }, { quoted: message });
+            return safeSend(
+                {
+                    text: '🎵 Please *reply* to an audio or video message to identify the song.',
+                    contextInfo,
+                },
+                { quoted: message },
+            );
         }
 
         const msgType = Object.keys(quoted)[0];
         if (!['audioMessage', 'videoMessage'].includes(msgType)) {
-            return safeSend({
-                text: '❌ Please reply to an *audio* or *video* message.',
-                contextInfo
-            }, { quoted: message });
+            return safeSend(
+                {
+                    text: '❌ Please reply to an *audio* or *video* message.',
+                    contextInfo,
+                },
+                { quoted: message },
+            );
         }
 
         await safeSend({ text: '🎧 Identifying song...', contextInfo }, { quoted: message });
@@ -35,7 +41,10 @@ module.exports = {
         let tempFile = null;
         try {
             const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
-            const stream = await downloadContentFromMessage(quoted[msgType], msgType.replace('Message', ''));
+            const stream = await downloadContentFromMessage(
+                quoted[msgType],
+                msgType.replace('Message', ''),
+            );
             let buffer = Buffer.alloc(0);
             for await (const chunk of stream) buffer = Buffer.concat([buffer, chunk]);
 
@@ -51,10 +60,13 @@ module.exports = {
             const result = res.data?.result;
 
             if (!result) {
-                return safeSend({
-                    text: '❌ Could not identify the song. Try a clearer audio clip.',
-                    contextInfo
-                }, { quoted: message });
+                return safeSend(
+                    {
+                        text: '❌ Could not identify the song. Try a clearer audio clip.',
+                        contextInfo,
+                    },
+                    { quoted: message },
+                );
             }
 
             const text =
@@ -69,12 +81,15 @@ module.exports = {
             await safeSend({ text, contextInfo }, { quoted: message });
         } catch (err) {
             console.error('[Shazam]', err.message);
-            await safeSend({
-                text: `⚠️ Shazam failed: ${err.message}`,
-                contextInfo
-            }, { quoted: message });
+            await safeSend(
+                {
+                    text: `⚠️ Shazam failed: ${err.message}`,
+                    contextInfo,
+                },
+                { quoted: message },
+            );
         } finally {
             if (tempFile && fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
         }
-    }
+    },
 };

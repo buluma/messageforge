@@ -6,7 +6,11 @@ const { getCommand } = require('../lib/command');
 const dataFile = path.join(__dirname, '..', 'data', 'recurring.json');
 
 function loadReminders() {
-    try { return JSON.parse(fs.readFileSync(dataFile, 'utf8')); } catch { return {}; }
+    try {
+        return JSON.parse(fs.readFileSync(dataFile, 'utf8'));
+    } catch {
+        return {};
+    }
 }
 function saveReminders(data) {
     fs.mkdirSync(path.dirname(dataFile), { recursive: true });
@@ -37,7 +41,7 @@ function startReminder(sock, id, reminder) {
             const mentionArr = reminder.isGroup ? [reminder.sender] : [];
             await sock.sendMessage(reminder.chatJid, {
                 text: `🔔 *Recurring Reminder*\n\n${mention}${reminder.message}\n\n_Repeats: ${reminder.interval} | Stop: \`.stopremind ${id}\`_`,
-                mentions: mentionArr
+                mentions: mentionArr,
             });
         } catch {}
     }, interval);
@@ -45,7 +49,14 @@ function startReminder(sock, id, reminder) {
 }
 
 module.exports = {
-    commands: ['rremind', 'recurringremind', 'repeatremind', 'stopremind', 'myreminders', 'clearreminders'],
+    commands: [
+        'rremind',
+        'recurringremind',
+        'repeatremind',
+        'stopremind',
+        'myreminders',
+        'clearreminders',
+    ],
     description: 'Set recurring reminders (daily, weekly, hourly, etc.)',
     usage: '.rremind daily Take vitamins | .rremind weekly Team meeting | .myreminders',
     permission: 'public',
@@ -66,74 +77,131 @@ module.exports = {
         if (rawCmd === 'clearreminders') {
             const userReminders = Object.entries(reminders).filter(([, r]) => r.sender === sender);
             for (const [id] of userReminders) {
-                if (activeIntervals.has(id)) { clearInterval(activeIntervals.get(id)); activeIntervals.delete(id); }
+                if (activeIntervals.has(id)) {
+                    clearInterval(activeIntervals.get(id));
+                    activeIntervals.delete(id);
+                }
                 delete reminders[id];
             }
             saveReminders(reminders);
-            return sock.sendMessage(jid, { text: `🗑️ *${userReminders.length} reminders cleared.*`, contextInfo }, { quoted: message });
+            return sock.sendMessage(
+                jid,
+                { text: `🗑️ *${userReminders.length} reminders cleared.*`, contextInfo },
+                { quoted: message },
+            );
         }
 
         if (rawCmd === 'stopremind') {
             const id = args[0];
             if (!id || !reminders[id]) {
-                return sock.sendMessage(jid, {
-                    text: '❌ Provide a valid reminder ID.\n\nUse `.myreminders` to see your IDs.',
-                    contextInfo
-                }, { quoted: message });
+                return sock.sendMessage(
+                    jid,
+                    {
+                        text: '❌ Provide a valid reminder ID.\n\nUse `.myreminders` to see your IDs.',
+                        contextInfo,
+                    },
+                    { quoted: message },
+                );
             }
             if (reminders[id].sender !== sender) {
-                return sock.sendMessage(jid, { text: '❌ You can only stop your own reminders.', contextInfo }, { quoted: message });
+                return sock.sendMessage(
+                    jid,
+                    { text: '❌ You can only stop your own reminders.', contextInfo },
+                    { quoted: message },
+                );
             }
-            if (activeIntervals.has(id)) { clearInterval(activeIntervals.get(id)); activeIntervals.delete(id); }
+            if (activeIntervals.has(id)) {
+                clearInterval(activeIntervals.get(id));
+                activeIntervals.delete(id);
+            }
             reminders[id].active = false;
             saveReminders(reminders);
-            return sock.sendMessage(jid, { text: `✅ *Reminder \`${id}\` stopped.*`, contextInfo }, { quoted: message });
+            return sock.sendMessage(
+                jid,
+                { text: `✅ *Reminder \`${id}\` stopped.*`, contextInfo },
+                { quoted: message },
+            );
         }
 
         if (rawCmd === 'myreminders') {
-            const userReminders = Object.entries(reminders).filter(([, r]) => r.sender === sender && r.active);
+            const userReminders = Object.entries(reminders).filter(
+                ([, r]) => r.sender === sender && r.active,
+            );
             if (!userReminders.length) {
-                return sock.sendMessage(jid, {
-                    text: '📭 *No active recurring reminders.*\n\nSet one with:\n`.rremind daily Drink water`\n`.rremind weekly Check emails`',
-                    contextInfo
-                }, { quoted: message });
+                return sock.sendMessage(
+                    jid,
+                    {
+                        text: '📭 *No active recurring reminders.*\n\nSet one with:\n`.rremind daily Drink water`\n`.rremind weekly Check emails`',
+                        contextInfo,
+                    },
+                    { quoted: message },
+                );
             }
 
-            const list = userReminders.map(([id, r]) => {
-                return `🔔 *ID:* \`${id}\`\n   📝 ${r.message}\n   🔁 Every ${r.interval}`;
-            }).join('\n\n');
+            const list = userReminders
+                .map(([id, r]) => {
+                    return `🔔 *ID:* \`${id}\`\n   📝 ${r.message}\n   🔁 Every ${r.interval}`;
+                })
+                .join('\n\n');
 
-            return sock.sendMessage(jid, {
-                text: `📋 *Your Recurring Reminders*\n\n${list}\n\n_Stop: \`.stopremind <id>\`_`,
-                contextInfo
-            }, { quoted: message });
+            return sock.sendMessage(
+                jid,
+                {
+                    text: `📋 *Your Recurring Reminders*\n\n${list}\n\n_Stop: \`.stopremind <id>\`_`,
+                    contextInfo,
+                },
+                { quoted: message },
+            );
         }
 
         if (['rremind', 'recurringremind', 'repeatremind'].includes(rawCmd)) {
             if (!args.length) {
-                const intervalList = Object.keys(intervals).map(i => `• ${i}`).join('\n');
-                return sock.sendMessage(jid, {
-                    text: `🔁 *Recurring Reminders*\n\nSet reminders that repeat automatically!\n\n*Usage:*\n\`.rremind <interval> <message>\`\n\n*Intervals:*\n${intervalList}\n\n*Examples:*\n\`.rremind daily Take vitamins\`\n\`.rremind weekly Team standup\`\n\`.rremind 2h Drink water\`\n\n*Other commands:*\n• \`.myreminders\` — list active\n• \`.stopremind <id>\` — stop one\n• \`.clearreminders\` — stop all`,
-                    contextInfo
-                }, { quoted: message });
+                const intervalList = Object.keys(intervals)
+                    .map((i) => `• ${i}`)
+                    .join('\n');
+                return sock.sendMessage(
+                    jid,
+                    {
+                        text: `🔁 *Recurring Reminders*\n\nSet reminders that repeat automatically!\n\n*Usage:*\n\`.rremind <interval> <message>\`\n\n*Intervals:*\n${intervalList}\n\n*Examples:*\n\`.rremind daily Take vitamins\`\n\`.rremind weekly Team standup\`\n\`.rremind 2h Drink water\`\n\n*Other commands:*\n• \`.myreminders\` — list active\n• \`.stopremind <id>\` — stop one\n• \`.clearreminders\` — stop all`,
+                        contextInfo,
+                    },
+                    { quoted: message },
+                );
             }
 
             const interval = args[0].toLowerCase();
             if (!intervals[interval]) {
-                return sock.sendMessage(jid, {
-                    text: `❌ Invalid interval. Choose from: ${Object.keys(intervals).join(', ')}`,
-                    contextInfo
-                }, { quoted: message });
+                return sock.sendMessage(
+                    jid,
+                    {
+                        text: `❌ Invalid interval. Choose from: ${Object.keys(intervals).join(', ')}`,
+                        contextInfo,
+                    },
+                    { quoted: message },
+                );
             }
 
             const msg = args.slice(1).join(' ').trim();
             if (!msg) {
-                return sock.sendMessage(jid, { text: '❌ Please provide a reminder message.', contextInfo }, { quoted: message });
+                return sock.sendMessage(
+                    jid,
+                    { text: '❌ Please provide a reminder message.', contextInfo },
+                    { quoted: message },
+                );
             }
 
-            const userCount = Object.values(reminders).filter(r => r.sender === sender && r.active).length;
+            const userCount = Object.values(reminders).filter(
+                (r) => r.sender === sender && r.active,
+            ).length;
             if (userCount >= 10) {
-                return sock.sendMessage(jid, { text: '❌ Max 10 active reminders. Delete some first with `.clearreminders`.', contextInfo }, { quoted: message });
+                return sock.sendMessage(
+                    jid,
+                    {
+                        text: '❌ Max 10 active reminders. Delete some first with `.clearreminders`.',
+                        contextInfo,
+                    },
+                    { quoted: message },
+                );
             }
 
             const id = `r${Date.now().toString(36)}`;
@@ -144,15 +212,19 @@ module.exports = {
                 interval,
                 active: true,
                 isGroup: jid.endsWith('@g.us'),
-                createdAt: Date.now()
+                createdAt: Date.now(),
             };
             saveReminders(reminders);
             startReminder(sock, id, reminders[id]);
 
-            return sock.sendMessage(jid, {
-                text: `✅ *Recurring reminder set!*\n\n🔔 *ID:* \`${id}\`\n📝 *Message:* ${msg}\n🔁 *Repeats:* Every ${interval}\n\n_Stop anytime: \`.stopremind ${id}\`_`,
-                contextInfo
-            }, { quoted: message });
+            return sock.sendMessage(
+                jid,
+                {
+                    text: `✅ *Recurring reminder set!*\n\n🔔 *ID:* \`${id}\`\n📝 *Message:* ${msg}\n🔁 *Repeats:* Every ${interval}\n\n_Stop anytime: \`.stopremind ${id}\`_`,
+                    contextInfo,
+                },
+                { quoted: message },
+            );
         }
-    }
+    },
 };

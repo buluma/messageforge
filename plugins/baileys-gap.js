@@ -81,14 +81,14 @@ async function runPrivacyCommand(sock, ctx, args) {
         const current = await sock.fetchPrivacySettings(true).catch(() => null);
         const summary = current
             ? [
-                `lastseen: ${current.last || 'unknown'}`,
-                `online: ${current.online || 'unknown'}`,
-                `profile: ${current.profile || 'unknown'}`,
-                `status: ${current.status || 'unknown'}`,
-                `readreceipts: ${current.readreceipts || 'unknown'}`,
-                `groupsadd: ${current.groupadd || 'unknown'}`,
-                `disappearing: ${current.disappearing_mode || 'unknown'}`,
-            ].join('\n')
+                  `lastseen: ${current.last || 'unknown'}`,
+                  `online: ${current.online || 'unknown'}`,
+                  `profile: ${current.profile || 'unknown'}`,
+                  `status: ${current.status || 'unknown'}`,
+                  `readreceipts: ${current.readreceipts || 'unknown'}`,
+                  `groupsadd: ${current.groupadd || 'unknown'}`,
+                  `disappearing: ${current.disappearing_mode || 'unknown'}`,
+              ].join('\n')
             : 'Could not fetch privacy settings.';
         return ctx.reply(`🔐 *Privacy Settings*\n\n${summary}\n\n${PRIVACY_HELP}`);
     }
@@ -97,7 +97,9 @@ async function runPrivacyCommand(sock, ctx, args) {
         const seconds = Number(args[1]);
         const allowed = new Set([0, 86400, 604800, 7776000]);
         if (!allowed.has(seconds)) {
-            return ctx.reply('❌ Invalid disappearing value. Use one of: 0, 86400, 604800, 7776000');
+            return ctx.reply(
+                '❌ Invalid disappearing value. Use one of: 0, 86400, 604800, 7776000',
+            );
         }
         await sock.updateDefaultDisappearingMode(seconds);
         return ctx.reply(`✅ Default disappearing mode updated to *${seconds}* seconds.`);
@@ -143,16 +145,30 @@ async function runPrivacyCommand(sock, ctx, args) {
 module.exports = {
     commands: [
         'privacy',
-        'chatarchive', 'chatunarchive',
-        'chatmute', 'chatunmute',
-        'chatread', 'chatunread',
-        'chatstar', 'chatunstar',
-        'chatdelete', 'chatclear', 'clearhist',
-        'broadcastlist', 'blistinfo',
-        'removepp', 'clearpp',
+        'chatarchive',
+        'chatunarchive',
+        'chatmute',
+        'chatunmute',
+        'chatread',
+        'chatunread',
+        'chatstar',
+        'chatunstar',
+        'chatdelete',
+        'chatclear',
+        'clearhist',
+        'broadcastlist',
+        'blistinfo',
+        'removepp',
+        'clearpp',
         'msgedit',
         'paircode',
-        'waon', 'statusof', 'bizprofileof', 'ppurlof', 'presub', 'sendpresence', 'readmsg',
+        'waon',
+        'statusof',
+        'bizprofileof',
+        'ppurlof',
+        'presub',
+        'sendpresence',
+        'readmsg',
     ],
     description: 'Baileys gap commands (privacy/chat/broadcast/pairing/edit/primitives)',
     permission: 'owner',
@@ -164,11 +180,16 @@ module.exports = {
         const jid = ctx.jid;
 
         if (cmd === 'privacy') {
-            return runPrivacyCommand(sock, ctx, args).catch((e) => ctx.reply(`❌ Privacy update failed: ${e.message}`));
+            return runPrivacyCommand(sock, ctx, args).catch((e) =>
+                ctx.reply(`❌ Privacy update failed: ${e.message}`),
+            );
         }
 
         if (cmd === 'chatarchive' || cmd === 'chatunarchive') {
-            await sock.chatModify({ archive: cmd === 'chatarchive', lastMessages: [lastMessagePatch(message, jid)] }, jid);
+            await sock.chatModify(
+                { archive: cmd === 'chatarchive', lastMessages: [lastMessagePatch(message, jid)] },
+                jid,
+            );
             return ctx.reply(cmd === 'chatarchive' ? '✅ Chat archived.' : '✅ Chat unarchived.');
         }
 
@@ -179,7 +200,11 @@ module.exports = {
                 return ctx.reply('✅ Chat unmuted.');
             }
             const duration = (args[0] || '8h').toLowerCase();
-            const map = { '8h': 8 * 60 * 60 * 1000, '7d': 7 * 24 * 60 * 60 * 1000, '1d': 24 * 60 * 60 * 1000 };
+            const map = {
+                '8h': 8 * 60 * 60 * 1000,
+                '7d': 7 * 24 * 60 * 60 * 1000,
+                '1d': 24 * 60 * 60 * 1000,
+            };
             const ms = map[duration] ?? Number(args[0]);
             if (!Number.isFinite(ms) || ms <= 0) {
                 return ctx.reply('❌ Usage: .chatmute <8h|1d|7d|milliseconds>');
@@ -189,8 +214,13 @@ module.exports = {
         }
 
         if (cmd === 'chatread' || cmd === 'chatunread') {
-            await sock.chatModify({ markRead: cmd === 'chatread', lastMessages: [lastMessagePatch(message, jid)] }, jid);
-            return ctx.reply(cmd === 'chatread' ? '✅ Chat marked as read.' : '✅ Chat marked as unread.');
+            await sock.chatModify(
+                { markRead: cmd === 'chatread', lastMessages: [lastMessagePatch(message, jid)] },
+                jid,
+            );
+            return ctx.reply(
+                cmd === 'chatread' ? '✅ Chat marked as read.' : '✅ Chat marked as unread.',
+            );
         }
 
         if (cmd === 'chatstar' || cmd === 'chatunstar') {
@@ -201,46 +231,58 @@ module.exports = {
         }
 
         if (cmd === 'chatdelete') {
-            await sock.chatModify({
-                delete: true,
-                lastMessages: [lastMessagePatch(message, jid)],
-            }, jid);
+            await sock.chatModify(
+                {
+                    delete: true,
+                    lastMessages: [lastMessagePatch(message, jid)],
+                },
+                jid,
+            );
             return ctx.reply('✅ Chat deleted from your chat list.');
         }
 
         if (cmd === 'chatclear') {
             const q = quotedInfo(message);
             if (!q?.stanzaId) return ctx.reply('❌ Reply to a message to clear it for yourself.');
-            await sock.chatModify({
-                clear: {
-                    messages: [{
-                        id: q.stanzaId,
-                        fromMe: false,
-                        timestamp: String(Math.floor(Date.now() / 1000)),
-                    }],
+            await sock.chatModify(
+                {
+                    clear: {
+                        messages: [
+                            {
+                                id: q.stanzaId,
+                                fromMe: false,
+                                timestamp: String(Math.floor(Date.now() / 1000)),
+                            },
+                        ],
+                    },
                 },
-            }, jid);
+                jid,
+            );
             return ctx.reply('✅ Cleared quoted message for this account.');
         }
 
         if (cmd === 'clearhist') {
             const { softDeleteChat } = require('../lib/messengerStore');
             await softDeleteChat(jid);
-            return ctx.reply('✅ Chat history cleared from local database. Will restore automatically when the next message arrives.');
+            return ctx.reply(
+                '✅ Chat history cleared from local database. Will restore automatically when the next message arrives.',
+            );
         }
 
         if (cmd === 'broadcastlist' || cmd === 'blistinfo') {
             const broadcastJid = args[0] || (jid.endsWith('@broadcast') ? jid : '');
             if (!broadcastJid || !broadcastJid.endsWith('@broadcast')) {
-                return ctx.reply('❌ Usage: .broadcastlist <timestamp@broadcast>\nTip: use .jid in the broadcast list chat to copy its JID.');
+                return ctx.reply(
+                    '❌ Usage: .broadcastlist <timestamp@broadcast>\nTip: use .jid in the broadcast list chat to copy its JID.',
+                );
             }
             const info = await sock.getBroadcastListInfo(broadcastJid);
             const recipients = Array.isArray(info?.recipients) ? info.recipients : [];
             return ctx.reply(
                 `📡 *Broadcast List Info*\n\n` +
-                `JID: ${broadcastJid}\n` +
-                `Name: ${info?.subject || info?.name || 'N/A'}\n` +
-                `Recipients: ${recipients.length}`,
+                    `JID: ${broadcastJid}\n` +
+                    `Name: ${info?.subject || info?.name || 'N/A'}\n` +
+                    `Recipients: ${recipients.length}`,
             );
         }
 
@@ -253,7 +295,10 @@ module.exports = {
         if (cmd === 'msgedit') {
             const q = quotedInfo(message);
             const newText = args.join(' ').trim();
-            if (!q?.stanzaId) return ctx.reply('❌ Reply to your message and provide new text.\nUsage: .msgedit <new text>');
+            if (!q?.stanzaId)
+                return ctx.reply(
+                    '❌ Reply to your message and provide new text.\nUsage: .msgedit <new text>',
+                );
             if (!newText) return ctx.reply('❌ Usage: .msgedit <new text>');
             const editKey = {
                 remoteJid: q.remoteJid || jid,
@@ -269,7 +314,9 @@ module.exports = {
             const number = normalizePhone(args[0] || process.env.PAIRING_NUMBER || '');
             if (!number) return ctx.reply('❌ Usage: .paircode <number_with_country_code>');
             if (sock?.authState?.creds?.registered) {
-                return ctx.reply('ℹ️ This session is already registered. Pairing code is only available before login.');
+                return ctx.reply(
+                    'ℹ️ This session is already registered. Pairing code is only available before login.',
+                );
             }
             const code = await sock.requestPairingCode(number);
             return ctx.reply(`🔐 Pairing code for ${number}:\n\n*${code}*`);
@@ -280,7 +327,9 @@ module.exports = {
             if (!number) return ctx.reply('❌ Usage: .waon <number>');
             const res = await sock.onWhatsApp(`${number}@s.whatsapp.net`);
             const entry = res?.[0];
-            return ctx.reply(entry?.exists ? `✅ ${number} is on WhatsApp.` : `❌ ${number} is not on WhatsApp.`);
+            return ctx.reply(
+                entry?.exists ? `✅ ${number} is on WhatsApp.` : `❌ ${number} is not on WhatsApp.`,
+            );
         }
 
         if (cmd === 'statusof') {
@@ -297,7 +346,9 @@ module.exports = {
             if (!number) return ctx.reply('❌ Usage: .bizprofileof <number>');
             const b = await sock.getBusinessProfile(`${number}@s.whatsapp.net`);
             if (!b) return ctx.reply('No business profile found.');
-            return ctx.reply(`🏢 *Business Profile*\n\nCategory: ${b.category || 'N/A'}\nDescription: ${b.description || 'N/A'}\nWebsite: ${(b.website || []).join(', ') || 'N/A'}`);
+            return ctx.reply(
+                `🏢 *Business Profile*\n\nCategory: ${b.category || 'N/A'}\nDescription: ${b.description || 'N/A'}\nWebsite: ${(b.website || []).join(', ') || 'N/A'}`,
+            );
         }
 
         if (cmd === 'ppurlof') {
@@ -316,8 +367,17 @@ module.exports = {
 
         if (cmd === 'sendpresence') {
             const state = (args[0] || '').toLowerCase();
-            const allowed = new Set(['available', 'unavailable', 'composing', 'recording', 'paused']);
-            if (!allowed.has(state)) return ctx.reply('❌ Usage: .sendpresence <available|unavailable|composing|recording|paused> [number]');
+            const allowed = new Set([
+                'available',
+                'unavailable',
+                'composing',
+                'recording',
+                'paused',
+            ]);
+            if (!allowed.has(state))
+                return ctx.reply(
+                    '❌ Usage: .sendpresence <available|unavailable|composing|recording|paused> [number]',
+                );
             const number = normalizePhone(args[1] || '');
             const target = number ? `${number}@s.whatsapp.net` : jid;
             await sock.sendPresenceUpdate(state, target);
@@ -327,12 +387,14 @@ module.exports = {
         if (cmd === 'readmsg') {
             const q = quotedInfo(message);
             if (!q?.stanzaId) return ctx.reply('❌ Reply to a message to mark it read.');
-            await sock.readMessages([{
-                remoteJid: q.remoteJid || jid,
-                id: q.stanzaId,
-                participant: q.participant,
-                fromMe: false,
-            }]);
+            await sock.readMessages([
+                {
+                    remoteJid: q.remoteJid || jid,
+                    id: q.stanzaId,
+                    participant: q.participant,
+                    fromMe: false,
+                },
+            ]);
             return ctx.reply('✅ Message marked as read.');
         }
     },

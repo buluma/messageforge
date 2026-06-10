@@ -1434,8 +1434,13 @@ async function createWhatsAppSocket() {
             for (const c of chatsArray) {
                 if (c.id) {
                     const isArch = c.archive !== undefined ? c.archive : c.archived;
-                    if (isArch === true && !archived.includes(c.id)) { archived.push(c.id); changed = true; }
-                    else if (isArch === false && archived.includes(c.id)) { archived = archived.filter(j => j !== c.id); changed = true; }
+                    if (isArch === true && !archived.includes(c.id)) {
+                        archived.push(c.id);
+                        changed = true;
+                    } else if (isArch === false && archived.includes(c.id)) {
+                        archived = archived.filter((j) => j !== c.id);
+                        changed = true;
+                    }
                 }
             }
             if (changed) await db.set('messenger_archived', archived);
@@ -1789,6 +1794,32 @@ app.get('/api/chats', async (req, res) => {
     }
 });
 
+app.get('/api/chats/:jid/messages', async (req, res) => {
+    const { jid } = req.params;
+    try {
+        if (!store) return res.status(503).json({ error: 'Store not ready' });
+        const chatMsgs = store.chats.get(jid);
+        const liveMessages = chatMsgs ? Array.from(chatMsgs.values()) : [];
+        const page = await messengerStore.getMessagesPage(jid, liveMessages, {
+            limit: req.query.limit,
+            before: req.query.before,
+        });
+        res.json(page);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/chats/:jid/media', async (req, res) => {
+    const { jid } = req.params;
+    try {
+        const mediaMsgs = await messengerStore.getChatMedia(jid);
+        res.json({ messages: mediaMsgs });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.get('/api/chat-aliases', (req, res) => {
     res.json({ aliases: readChatAliases() });
 });
@@ -1949,12 +1980,35 @@ app.get('/api/media/:jid/:msgId', async (req, res) => {
         const chatMsgs = store.chats.get(jid);
         const liveMessages = chatMsgs ? Array.from(chatMsgs.values()) : [];
         const persisted = await messengerStore.getMessageById(jid, msgId, liveMessages);
-        const msg = liveMsg?.message ? liveMsg : persisted;
+        let msg = liveMsg?.message ? liveMsg : persisted;
         if (!msg?.message) return res.status(404).json({ error: 'Message not found' });
 
         const { dlAuto } = require('./lib/dlmedia');
-        const { buffer, msgContent } = await dlAuto(msg.message);
 
+        let dlResult;
+        try {
+            dlResult = await dlAuto(msg.message);
+        } catch (e) {
+            if (
+                e.message?.includes('status code 403') ||
+                e.message?.includes('410') ||
+                e.response?.status === 403
+            ) {
+                if (global.sock && typeof global.sock.updateMediaMessage === 'function') {
+                    // Refresh expired media URL
+                    msg = await global.sock.updateMediaMessage(msg);
+                    dlResult = await dlAuto(msg.message);
+                    // Persist updated message to avoid future 403s
+                    messengerStore.persistMessages([msg]).catch(() => {});
+                } else {
+                    throw e;
+                }
+            } else {
+                throw e;
+            }
+        }
+
+        const { buffer, msgContent } = dlResult;
         res.set('Content-Type', msgContent.mimetype || 'application/octet-stream');
         res.send(buffer);
     } catch (e) {
@@ -1979,7 +2033,6 @@ app.post('/api/send', async (req, res) => {
         res.status(500).json({ error: e.message });
     }
 });
-
 
 app.post('/api/toggle-pin', async (req, res) => {
     const { jid } = req.body;
@@ -2007,7 +2060,9 @@ app.post('/api/toggle-archive', async (req, res) => {
     try {
         const isArchiving = !!archive;
         if (global.sock) {
-            await global.sock.chatModify({ archive: isArchiving, lastMessages: [] }, jid).catch(() => {});
+            await global.sock
+                .chatModify({ archive: isArchiving, lastMessages: [] }, jid)
+                .catch(() => {});
         }
         const db = require('./lib/dbManager');
         let archived = await db.get('messenger_archived', []);

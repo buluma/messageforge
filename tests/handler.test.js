@@ -37,8 +37,15 @@ jest.mock('fs', () => {
 });
 
 const {
-    handleMessages, safeSend, PERM, plugins,
-    jidToNum, sameNumber, levenshtein, predictCommand, groupCache,
+    handleMessages,
+    safeSend,
+    PERM,
+    plugins,
+    jidToNum,
+    sameNumber,
+    levenshtein,
+    predictCommand,
+    groupCache,
 } = require('../handler');
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -202,11 +209,11 @@ describe('levenshtein', () => {
 // ─── predictCommand ───────────────────────────────────────────────────────────
 
 describe('predictCommand', () => {
-    const ping   = makePlugin(['ping']);
-    const pint   = makePlugin(['pint']);
+    const ping = makePlugin(['ping']);
+    const pint = makePlugin(['pint']);
     const pirate = makePlugin(['pirate']);
-    const help   = makePlugin(['help']);
-    const hello  = makePlugin(['hello']);
+    const help = makePlugin(['help']);
+    const hello = makePlugin(['hello']);
 
     test('exact prefix match: typed ≥ 3 chars matching one command', () => {
         const result = predictCommand('pin', [ping, help]);
@@ -284,7 +291,10 @@ describe('handleMessages', () => {
 
     test('ignores message with no message body', async () => {
         const sock = makeSock();
-        await handleMessages(sock, { key: { remoteJid: '123@s.whatsapp.net', id: 'x', fromMe: false }, message: null });
+        await handleMessages(sock, {
+            key: { remoteJid: '123@s.whatsapp.net', id: 'x', fromMe: false },
+            message: null,
+        });
         expect(sock.sendMessage).not.toHaveBeenCalled();
     });
 
@@ -493,9 +503,7 @@ describe('handleMessages', () => {
         await handleMessages(sock, makeMsg({ text: '.pong' }));
         expect(plugin.run).toHaveBeenCalledTimes(1);
         const calls = sock.sendMessage.mock.calls;
-        const noteCall = calls.find(([, content]) =>
-            content.text && content.text.includes('ping'),
-        );
+        const noteCall = calls.find(([, content]) => content.text && content.text.includes('ping'));
         expect(noteCall).toBeDefined();
     });
 
@@ -509,8 +517,8 @@ describe('handleMessages', () => {
             expect(plugin.run).not.toHaveBeenCalled();
             expect(pint.run).not.toHaveBeenCalled();
             const calls = sock.sendMessage.mock.calls;
-            const ambiguousCall = calls.find(([, content]) =>
-                content.text && content.text.includes('Did you mean'),
+            const ambiguousCall = calls.find(
+                ([, content]) => content.text && content.text.includes('Did you mean'),
             );
             expect(ambiguousCall).toBeDefined();
         } finally {
@@ -545,7 +553,9 @@ describe('handleMessages', () => {
     test('ctx passed to plugin has all required keys', async () => {
         const sock = makeSock();
         let capturedCtx;
-        plugin.run = jest.fn((_sock, _msg, _args, ctx) => { capturedCtx = ctx; });
+        plugin.run = jest.fn((_sock, _msg, _args, ctx) => {
+            capturedCtx = ctx;
+        });
         await handleMessages(sock, makeMsg({ text: '.ping foo' }));
         expect(capturedCtx).toMatchObject({
             jid: expect.any(String),

@@ -2,17 +2,16 @@
 
 const config = require('../config');
 
-
 if (typeof global.antivvEnabled === 'undefined') {
     global.antivvEnabled = config.ANTIVV !== false;
 }
 
 module.exports = {
-    commands:    ['antivv', 'avv'],
+    commands: ['antivv', 'avv'],
     description: 'Toggle automatic view-once reveal on/off',
-    permission:  'owner',
-    group:       true,
-    private:     true,
+    permission: 'owner',
+    group: true,
+    private: true,
 
     run: async (sock, message, args, { _sender, contextInfo }) => {
         const jid = message.key.remoteJid;
@@ -28,16 +27,24 @@ module.exports = {
             global.antivvEnabled = !global.antivvEnabled;
         }
 
-        const state  = global.antivvEnabled;
-        const icon   = state ? '✅' : '❌';
-        const label  = state ? 'ENABLED' : 'DISABLED';
+        const state = global.antivvEnabled;
+        const icon = state ? '✅' : '❌';
+        const label = state ? 'ENABLED' : 'DISABLED';
 
-        await sock.sendMessage(jid, { react: { text: state ? '👁️' : '🙈', key: message.key } }).catch((e) => console.warn('[antivv] react failed:', e.message));
-        await sock.sendMessage(jid, {
-            text: `${icon} *Anti-ViewOnce ${label}*\n\n${state
-                ? '👁️ All view-once messages will be automatically revealed and forwarded to the owner.'
-                : '🙈 Automatic view-once reveal is now off.'}`,
-            contextInfo
-        }, { quoted: message });
-    }
+        await sock
+            .sendMessage(jid, { react: { text: state ? '👁️' : '🙈', key: message.key } })
+            .catch((e) => console.warn('[antivv] react failed:', e.message));
+        await sock.sendMessage(
+            jid,
+            {
+                text: `${icon} *Anti-ViewOnce ${label}*\n\n${
+                    state
+                        ? '👁️ All view-once messages will be automatically revealed and forwarded to the owner.'
+                        : '🙈 Automatic view-once reveal is now off.'
+                }`,
+                contextInfo,
+            },
+            { quoted: message },
+        );
+    },
 };

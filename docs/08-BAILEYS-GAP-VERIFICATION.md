@@ -37,13 +37,13 @@ From owner account:
 
 1. `.privacy` and verify current values are listed.
 2. Update each field and verify success response:
-   - `.privacy lastseen contacts`
-   - `.privacy online match_last_seen`
-   - `.privacy profile contacts`
-   - `.privacy status contacts`
-   - `.privacy readreceipts all`
-   - `.privacy groupsadd contacts`
-   - `.privacy disappearing 86400`
+    - `.privacy lastseen contacts`
+    - `.privacy online match_last_seen`
+    - `.privacy profile contacts`
+    - `.privacy status contacts`
+    - `.privacy readreceipts all`
+    - `.privacy groupsadd contacts`
+    - `.privacy disappearing 86400`
 3. Send invalid values (for example `.privacy online foo`) and verify usage/error response.
 
 ## Chat Management Commands
@@ -74,8 +74,8 @@ Expected: success responses and no crashes.
 ### Boot path
 
 1. Set:
-   - `PAIRING_CODE=true`
-   - `PAIRING_NUMBER=<digits>`
+    - `PAIRING_CODE=true`
+    - `PAIRING_NUMBER=<digits>`
 2. Restart bot with unregistered auth and confirm code logs on `connection.update`.
 3. Simulate/observe transient failure and confirm retry occurs on subsequent `connection.update` (flag reset path).
 4. Verify QR fallback still prints when pairing is not configured or fails.
@@ -117,9 +117,9 @@ From owner account, validate each command:
 2. Force reconnect (toggle network or restart process).
 3. Send same command again.
 4. Confirm:
-   - one response only (no duplicate handling),
-   - no duplicate startup side effects beyond expected throttling,
-   - no repeated event spam indicating duplicate listeners.
+    - one response only (no duplicate handling),
+    - no duplicate startup side effects beyond expected throttling,
+    - no repeated event spam indicating duplicate listeners.
 
 ## Sign-off Template
 

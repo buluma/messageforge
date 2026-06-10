@@ -1,23 +1,23 @@
 'use strict';
 
-const os      = require('os');
+const os = require('os');
 const { performance } = require('perf_hooks');
-const moment  = require('moment-timezone');
+const moment = require('moment-timezone');
 
 const TZ = 'Africa/Nairobi';
 
 module.exports = {
-    commands:    ['alive', 'bot', 'botinfo'],
+    commands: ['alive', 'bot', 'botinfo'],
     description: 'Show bot status with full theme styling',
-    permission:  'public',
-    group:       true,
-    private:     true,
+    permission: 'public',
+    group: true,
+    private: true,
 
     run: async (sock, message, args, { sender, contextInfo, config, getActiveTheme }) => {
         const t = getActiveTheme()?.global || {};
 
         const start = performance.now();
-        const ping  = (performance.now() - start).toFixed(1);
+        const ping = (performance.now() - start).toFixed(1);
 
         const upRaw = process.uptime();
         const h = Math.floor(upRaw / 3600);
@@ -26,25 +26,24 @@ module.exports = {
         const uptime = `${h}h ${m}m ${s}s`;
 
         const totalRam = (os.totalmem() / 1073741824).toFixed(2);
-        const usedRam  = (os.totalmem() - os.freemem()) / 1073741824;
+        const usedRam = (os.totalmem() - os.freemem()) / 1073741824;
 
-        const mode   = (config.MODE || 'PUBLIC').toUpperCase();
-        const owner  = config.OWNER_NUMBER || global.botNum || 'Unknown';
+        const mode = (config.MODE || 'PUBLIC').toUpperCase();
+        const owner = config.OWNER_NUMBER || global.botNum || 'Unknown';
         const prefix = config.PREFIX || '.';
-        const theme  = (config.THEME || 'messageforge').toLowerCase();
+        const theme = (config.THEME || 'messageforge').toLowerCase();
 
-        const now    = moment().tz(TZ);
-        const date   = now.format('ddd, D MMM YYYY');
-        const time   = now.format('hh:mm A');
+        const now = moment().tz(TZ);
+        const date = now.format('ddd, D MMM YYYY');
+        const time = now.format('hh:mm A');
 
-        const botName  = t.botName  || 'MessageForge';
-        const footer   = t.footer   || 'MessageForge';
-        const alive    = t.alive    || 'System online. All functions nominal.';
-        const emoji    = t.aliveEmoji || '⚡';
+        const botName = t.botName || 'MessageForge';
+        const footer = t.footer || 'MessageForge';
+        const alive = t.alive || 'System online. All functions nominal.';
+        const emoji = t.aliveEmoji || '⚡';
         const modeEmoji = mode === 'PUBLIC' ? '🟢' : mode === 'PRIVATE' ? '🔒' : '🔵';
 
-        const caption =
-`${emoji}  *${botName}* — is Alive!
+        const caption = `${emoji}  *${botName}* — is Alive!
 
 ╭──────────────────
 │ 🤖  *Bot:*      ${botName}
@@ -64,5 +63,5 @@ module.exports = {
 ✦ ${footer}`;
 
         await sock.sendMessage(sender, { text: caption, contextInfo }, { quoted: message });
-    }
+    },
 };

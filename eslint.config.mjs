@@ -33,8 +33,8 @@ export default [
             'no-console': 'off',
             'no-empty': ['error', { allowEmptyCatch: true }],
             // Formatting is handled by Prettier; avoid style errors blocking CI.
-            'quotes': 'off',
-            'semi': 'off',
+            quotes: 'off',
+            semi: 'off',
             'no-useless-escape': 'off',
             // This repo includes mixed runtime code (Node, browser bundles, plugin-embedded JS).
             // Avoid turning "no-undef" into a constant source of noise; rely on tests/runtime.
@@ -52,7 +52,7 @@ export default [
                     selector:
                         "CallExpression[callee.object.name='sock'][callee.property.name='sendMessage'] > ObjectExpression:nth-child(2) Property[key.name='text']",
                     message:
-                        "Prefer ctx.safeSend() for plain-text replies in plugins (keeps pacing consistent). If this is intentional, refactor to ctx.safeSend or add a local justification comment.",
+                        'Prefer ctx.safeSend() for plain-text replies in plugins (keeps pacing consistent). If this is intentional, refactor to ctx.safeSend or add a local justification comment.',
                 },
             ],
         },

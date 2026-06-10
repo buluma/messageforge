@@ -3,9 +3,27 @@ const config = require('../config');
 
 // Default word list — extend as needed
 const DEFAULT_BAD_WORDS = [
-    'fuck', 'shit', 'bitch', 'asshole', 'bastard', 'cunt', 'dick', 'pussy',
-    'nigger', 'nigga', 'faggot', 'retard', 'whore', 'slut', 'motherfucker',
-    'bullshit', 'damn', 'ass', 'piss', 'cock', 'rape',
+    'fuck',
+    'shit',
+    'bitch',
+    'asshole',
+    'bastard',
+    'cunt',
+    'dick',
+    'pussy',
+    'nigger',
+    'nigga',
+    'faggot',
+    'retard',
+    'whore',
+    'slut',
+    'motherfucker',
+    'bullshit',
+    'damn',
+    'ass',
+    'piss',
+    'cock',
+    'rape',
 ];
 
 // Allow group admins/owners to customize the list per group
@@ -29,7 +47,7 @@ function containsBadWord(text, badWords) {
 module.exports = [
     // ── Toggle command ────────────────────────────────────────────────────────
     {
-        commands: [ 'antibadwords', 'antiswear', 'noswear'],
+        commands: ['antibadwords', 'antiswear', 'noswear'],
         description: 'Toggle anti-bad-words filter in a group — auto-deletes profanity',
         usage: '.antibad on/off',
         permission: 'admin',
@@ -46,8 +64,8 @@ module.exports = [
                 config.ANTI_BAD = true;
                 return reply(
                     `🤬 *Anti-Bad Words: ON*\n\n` +
-                    `I will delete any message containing profanity and warn the sender.\n\n` +
-                    `_Admins and the owner are exempt._`
+                        `I will delete any message containing profanity and warn the sender.\n\n` +
+                        `_Admins and the owner are exempt._`,
                 );
             }
             if (action === 'off') {
@@ -58,13 +76,13 @@ module.exports = [
             const status = config.ANTI_BAD ? '✅ ON' : '❌ OFF';
             reply(
                 `🤬 *Anti-Bad Words Filter*\n\n` +
-                `Status: ${status}\n\n` +
-                `*Usage:*\n` +
-                `• \`.antibad on\` — enable\n` +
-                `• \`.antibad off\` — disable\n` +
-                `• \`.addword <word>\` — add a custom banned word\n` +
-                `• \`.removeword <word>\` — remove a word\n` +
-                `• \`.badwordslist\` — see all banned words`
+                    `Status: ${status}\n\n` +
+                    `*Usage:*\n` +
+                    `• \`.antibad on\` — enable\n` +
+                    `• \`.antibad off\` — disable\n` +
+                    `• \`.addword <word>\` — add a custom banned word\n` +
+                    `• \`.removeword <word>\` — remove a word\n` +
+                    `• \`.badwordslist\` — see all banned words`,
             );
         },
     },
@@ -107,9 +125,10 @@ module.exports = [
             if (!word) return reply(`❓ Provide a word: \`.removeword word\``);
 
             const removed = groupCustomWords.get(jid)?.delete(word);
-            reply(removed
-                ? `✅ *"${word}"* has been removed from the banned words list.`
-                : `⚠️ *"${word}"* was not in the custom list. (Built-in words cannot be removed via this command.)`
+            reply(
+                removed
+                    ? `✅ *"${word}"* has been removed from the banned words list.`
+                    : `⚠️ *"${word}"* was not in the custom list. (Built-in words cannot be removed via this command.)`,
             );
         },
     },
@@ -128,8 +147,8 @@ module.exports = [
             const custom = [...(groupCustomWords.get(jid) || [])];
             reply(
                 `🤬 *Banned Words*\n\n` +
-                `*Built-in (${DEFAULT_BAD_WORDS.length}):* _[hidden for privacy]_\n\n` +
-                `*Custom (${custom.length}):*\n${custom.length ? custom.map((w, i) => `${i + 1}. ${w}`).join('\n') : '_(none added)_'}`
+                    `*Built-in (${DEFAULT_BAD_WORDS.length}):* _[hidden for privacy]_\n\n` +
+                    `*Custom (${custom.length}):*\n${custom.length ? custom.map((w, i) => `${i + 1}. ${w}`).join('\n') : '_(none added)_'}`,
             );
         },
     },
@@ -150,11 +169,12 @@ module.exports = [
             const { isAdmin, isOwner, isBotAdmin } = ctx;
             if (isAdmin || isOwner) return; // Exempt admins/owner
 
-            const text = message.message?.conversation
-                || message.message?.extendedTextMessage?.text
-                || message.message?.imageMessage?.caption
-                || message.message?.videoMessage?.caption
-                || '';
+            const text =
+                message.message?.conversation ||
+                message.message?.extendedTextMessage?.text ||
+                message.message?.imageMessage?.caption ||
+                message.message?.videoMessage?.caption ||
+                '';
 
             if (!text) return;
 
@@ -169,15 +189,21 @@ module.exports = [
                 await sock.sendMessage(jid, { delete: message.key });
                 const sender = message.key.participant || message.key.remoteJid;
                 const senderNum = sender.split('@')[0];
-                await sock.sendMessage(jid, {
-                    text:
-                        `⚠️ *Warning!* @${senderNum}\n\n` +
-                        `Your message was deleted — it contained inappropriate language.\n` +
-                        `Please keep the chat respectful! 🙏\n\n` +
-                        `_${config.BOT_NAME || 'MessageForge'} Anti-Bad Words_`,
-                    mentions: [sender],
-                }, { quoted: message });
-            } catch { /* silent fail */ }
+                await sock.sendMessage(
+                    jid,
+                    {
+                        text:
+                            `⚠️ *Warning!* @${senderNum}\n\n` +
+                            `Your message was deleted — it contained inappropriate language.\n` +
+                            `Please keep the chat respectful! 🙏\n\n` +
+                            `_${config.BOT_NAME || 'MessageForge'} Anti-Bad Words_`,
+                        mentions: [sender],
+                    },
+                    { quoted: message },
+                );
+            } catch {
+                /* silent fail */
+            }
         },
     },
 ];

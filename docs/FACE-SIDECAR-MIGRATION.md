@@ -68,7 +68,7 @@ Request (path mode):
 
 ```json
 {
-  "path": "/absolute/path/to/file.jpg"
+    "path": "/absolute/path/to/file.jpg"
 }
 ```
 
@@ -76,7 +76,7 @@ Request (base64 mode):
 
 ```json
 {
-  "image_b64": "..."
+    "image_b64": "..."
 }
 ```
 
@@ -84,18 +84,18 @@ Response (minimum accepted shape):
 
 ```json
 {
-  "faces": [
-    {
-      "x": 10,
-      "y": 20,
-      "w": 100,
-      "h": 100,
-      "score": 0.93,
-      "embedding": [0.0, 0.1]
-    }
-  ],
-  "image_w": 1280,
-  "image_h": 720
+    "faces": [
+        {
+            "x": 10,
+            "y": 20,
+            "w": 100,
+            "h": 100,
+            "score": 0.93,
+            "embedding": [0.0, 0.1]
+        }
+    ],
+    "image_w": 1280,
+    "image_h": 720
 }
 ```
 
@@ -113,12 +113,10 @@ Request:
 
 ```json
 {
-  "faces": [
-    { "embedding": [0.0, 0.1], "quality_score": 0.9 }
-  ],
-  "eps": 1.05,
-  "min_points": 2,
-  "quality_weighted_centroid": true
+    "faces": [{ "embedding": [0.0, 0.1], "quality_score": 0.9 }],
+    "eps": 1.05,
+    "min_points": 2,
+    "quality_weighted_centroid": true
 }
 ```
 
@@ -126,10 +124,8 @@ Response (minimum accepted shape):
 
 ```json
 {
-  "clusters": [
-    { "member_idxs": [0, 2, 5], "centroid": [0.0, 0.1], "face_count": 3 }
-  ],
-  "noise": [1, 3]
+    "clusters": [{ "member_idxs": [0, 2, 5], "centroid": [0.0, 0.1], "face_count": 3 }],
+    "noise": [1, 3]
 }
 ```
 
@@ -174,36 +170,36 @@ New `data/face-index.json` shape:
 
 ```json
 {
-  "version": 2,
-  "model": "buffalo_l",
-  "dim": 512,
-  "indexed": [],
-  "faces": [
-    {
-      "id": "face_...",
-      "mediaUrl": "/media-files/...",
-      "x": 10,
-      "y": 20,
-      "w": 100,
-      "h": 100,
-      "score": 0.93,
-      "qualityScore": 0.88,
-      "embedding": [],
-      "personId": "person_..."
-    }
-  ],
-  "persons": [
-    {
-      "id": "person_...",
-      "name": "Person 1",
-      "faceUrl": "/api/media/face/person_....jpg",
-      "mediaUrls": [],
-      "centroid": [],
-      "faceCount": 12,
-      "jid": null,
-      "confidence": 0.21
-    }
-  ]
+    "version": 2,
+    "model": "buffalo_l",
+    "dim": 512,
+    "indexed": [],
+    "faces": [
+        {
+            "id": "face_...",
+            "mediaUrl": "/media-files/...",
+            "x": 10,
+            "y": 20,
+            "w": 100,
+            "h": 100,
+            "score": 0.93,
+            "qualityScore": 0.88,
+            "embedding": [],
+            "personId": "person_..."
+        }
+    ],
+    "persons": [
+        {
+            "id": "person_...",
+            "name": "Person 1",
+            "faceUrl": "/api/media/face/person_....jpg",
+            "mediaUrls": [],
+            "centroid": [],
+            "faceCount": 12,
+            "jid": null,
+            "confidence": 0.21
+        }
+    ]
 }
 ```
 
@@ -356,9 +352,9 @@ Cleanup references:
 - Images: send directly to `/detect`.
 - Videos: only scan when `FACE_SCAN_VIDEO=true`.
 - Video frame sampling when enabled:
-  - max `FACE_VIDEO_MAX_FRAMES` frames per file;
-  - minimum spacing `FACE_VIDEO_MIN_SPACING_SEC` seconds;
-  - skip frames/files on extraction failure without aborting full scan.
+    - max `FACE_VIDEO_MAX_FRAMES` frames per file;
+    - minimum spacing `FACE_VIDEO_MIN_SPACING_SEC` seconds;
+    - skip frames/files on extraction failure without aborting full scan.
 
 Implementation note:
 
@@ -368,9 +364,9 @@ Implementation note:
 ## Important Guardrails
 
 - Do not index dot-directories:
-  - `data/.thumbs`
-  - `data/.faces`
-  - `data/face-models`
+    - `data/.thumbs`
+    - `data/.faces`
+    - `data/face-models`
 - Do not write sidecar-derived people over a good existing index until detection and clustering both succeed.
 - Do not mix face-api descriptors with buffalo_l embeddings.
 - Keep person labels and linked JIDs whenever reclustering can confidently match old centroids.

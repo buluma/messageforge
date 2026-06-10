@@ -1,8 +1,8 @@
 'use strict';
 
 let afkActive = false;
-let afkReason  = 'No reason given';
-let afkSince   = 0;
+let afkReason = 'No reason given';
+let afkSince = 0;
 
 function formatDuration(ms) {
     const s = Math.floor(ms / 1000);
@@ -16,42 +16,59 @@ function formatDuration(ms) {
 }
 
 module.exports = {
-    commands:    ['afk', 'back'],
+    commands: ['afk', 'back'],
     description: 'Owner AFK mode — bot auto-replies to everyone while you are away',
-    permission:  'owner',
-    group:       true,
-    private:     true,
+    permission: 'owner',
+    group: true,
+    private: true,
 
-    isAfk:      () => afkActive,
+    isAfk: () => afkActive,
     getAfkData: () => ({ reason: afkReason, since: afkSince }),
 
     run: async (sock, message, args, ctx) => {
         const { safeSend, contextInfo } = ctx;
-        const cmdText = (message.message?.conversation || message.message?.extendedTextMessage?.text || '')
-            .trim().split(/\s+/)[0].replace(/^[^a-zA-Z]*/, '').toLowerCase();
+        const cmdText = (
+            message.message?.conversation ||
+            message.message?.extendedTextMessage?.text ||
+            ''
+        )
+            .trim()
+            .split(/\s+/)[0]
+            .replace(/^[^a-zA-Z]*/, '')
+            .toLowerCase();
 
         if (cmdText === 'afk') {
             afkActive = true;
-            afkReason  = args.join(' ') || 'No reason given';
-            afkSince   = Date.now();
-            await safeSend({
-                text: `🌙 *AFK Mode Activated*\n\n📝 Reason: ${afkReason}\n\n_Anyone who messages will receive an auto-reply until you use .back_`,
-                contextInfo
-            }, { quoted: message });
+            afkReason = args.join(' ') || 'No reason given';
+            afkSince = Date.now();
+            await safeSend(
+                {
+                    text: `🌙 *AFK Mode Activated*\n\n📝 Reason: ${afkReason}\n\n_Anyone who messages will receive an auto-reply until you use .back_`,
+                    contextInfo,
+                },
+                { quoted: message },
+            );
             return;
         }
 
         if (cmdText === 'back') {
             if (!afkActive) {
-                await sock.sendMessage(message.key.remoteJid, { text: '✅ AFK mode is not currently active.', contextInfo }, { quoted: message });
+                await sock.sendMessage(
+                    message.key.remoteJid,
+                    { text: '✅ AFK mode is not currently active.', contextInfo },
+                    { quoted: message },
+                );
                 return;
             }
             const duration = formatDuration(Date.now() - afkSince);
             afkActive = false;
-            await safeSend({
-                text: `🌸 *Welcome back!*\n\n⏱ You were away for *${duration}*.`,
-                contextInfo
-            }, { quoted: message });
+            await safeSend(
+                {
+                    text: `🌸 *Welcome back!*\n\n⏱ You were away for *${duration}*.`,
+                    contextInfo,
+                },
+                { quoted: message },
+            );
         }
-    }
+    },
 };

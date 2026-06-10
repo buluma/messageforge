@@ -1,42 +1,42 @@
 {
-  "theme": "Naruto",
-  "AUTHOR": "Valiant.v()",
-  "LANGUAGE": "English",
-  "LANGCODE": "en",
-  "STRINGS": {
-    "global": {
-      "botName": "𝙽𝚊𝚛𝚞𝚝𝚘-𝚃𝚑𝚎𝚖𝚎",
-      "body": "𝑊ℎ𝑎𝑡𝑠𝑎𝑝𝑝 𝐵𝑜𝑡",
-      "greet": "Believe it",
-      "greet2": "Hokage",
-      "pic1": "https://i.pinimg.com/originals/d9/41/8b/d9418bc48ce0520e7cc96de465fe8fff.jpg",
-      "pic2": "https://4kwallpapers.com/images/wallpapers/naruto-digital-art-black-background-amoled-3840x2160-5056.png",
-      "pic3": "https://wallpapercave.com/wp/wp5308812.jpg",
-      "pic4": "https://www.whatspaper.com/wp-content/uploads/2022/05/hd-naruto-wallpaper-whatspaper-25.jpg",
-      "pic5": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ1VwQOTD6uVyD0q2t2Wm7zjsKafXzDxeAffQ&usqp=CAU",
-      "pic6": "https://1.bp.blogspot.com/-RyV9J0B2Myw/YGk4E7liJNI/AAAAAAAAR5Q/YKOnZN_H_5ALufwy18u-aE4WWe8BHPV8wCLcBGAsYHQ/s600/Naruto.jpeg",
-      "pic7": "https://i.pinimg.com/originals/02/07/94/020794d07925b51b3f219f2639e56214.jpg",
-      "dotbody": "are you hurt, Scaredy cat.",
-      "promote": "Admin Role Given to genin",
-      "demote": "Uhh, Admin Role Taken back",
-      "antlink": "Link Detected.\n*Good Bye Rouge ninja*",
-      "mention": "Please mention any user shinobi",
-      "title": "ɴᴀʀᴜᴛᴏ-ᴍᴅ",
-      "footer": "ɴᴀʀᴜᴛᴏ",
-      "by": "Made by: citelvoid",
-      "success": "Done ✓",
-      "wait": "ᴘʀᴏᴄᴇssɪɴɢ ʏᴏᴜʀ ʀᴇᴏ̨ᴜᴇsᴛ𝒕✅",
-      "admin": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ɢʀᴏᴜᴘ ᴀᴅᴍɪɴ⚠️!",
-      "botAdmin": "ᴘʟᴇᴀsᴇ ᴘʀᴏᴠɪᴅᴇ ᴍᴇ ᴀᴅᴍɪɴ ʀᴏʟᴇ.❗",
-      "owner": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ʜᴏᴋᴀɢᴇ ⚠️",
-      "group": "ᴛʜɪs ғᴇᴀᴛᴜʀᴇ ɪs ᴏɴʟʏ ғᴏʀ sʜɪɴᴏʙɪ ᴠɪʟʟᴀɢᴇs❗",
-      "private": "ᴛʜɪs ғᴇᴀᴛᴜʀᴇ ɪs ᴏɴʟʏ ғᴏʀ ʜᴏᴋᴀɢᴇ ⚠️",
-      "bot": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ʜᴏᴋᴀɢᴇ⚠️",
-      "alive": "Believe it! I'm alive and ready, dattebayo!",
-      "aliveEmoji": "🍥"
-    },
-    "error": {
-      "text": "*You may come to regret trying to manipulate me.\nNow go get this Error fixed*"
+    "theme": "Naruto",
+    "AUTHOR": "Valiant.v()",
+    "LANGUAGE": "English",
+    "LANGCODE": "en",
+    "STRINGS": {
+        "global": {
+            "botName": "𝙽𝚊𝚛𝚞𝚝𝚘-𝚃𝚑𝚎𝚖𝚎",
+            "body": "𝑊ℎ𝑎𝑡𝑠𝑎𝑝𝑝 𝐵𝑜𝑡",
+            "greet": "Believe it",
+            "greet2": "Hokage",
+            "pic1": "https://i.pinimg.com/originals/d9/41/8b/d9418bc48ce0520e7cc96de465fe8fff.jpg",
+            "pic2": "https://4kwallpapers.com/images/wallpapers/naruto-digital-art-black-background-amoled-3840x2160-5056.png",
+            "pic3": "https://wallpapercave.com/wp/wp5308812.jpg",
+            "pic4": "https://www.whatspaper.com/wp-content/uploads/2022/05/hd-naruto-wallpaper-whatspaper-25.jpg",
+            "pic5": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ1VwQOTD6uVyD0q2t2Wm7zjsKafXzDxeAffQ&usqp=CAU",
+            "pic6": "https://1.bp.blogspot.com/-RyV9J0B2Myw/YGk4E7liJNI/AAAAAAAAR5Q/YKOnZN_H_5ALufwy18u-aE4WWe8BHPV8wCLcBGAsYHQ/s600/Naruto.jpeg",
+            "pic7": "https://i.pinimg.com/originals/02/07/94/020794d07925b51b3f219f2639e56214.jpg",
+            "dotbody": "are you hurt, Scaredy cat.",
+            "promote": "Admin Role Given to genin",
+            "demote": "Uhh, Admin Role Taken back",
+            "antlink": "Link Detected.\n*Good Bye Rouge ninja*",
+            "mention": "Please mention any user shinobi",
+            "title": "ɴᴀʀᴜᴛᴏ-ᴍᴅ",
+            "footer": "ɴᴀʀᴜᴛᴏ",
+            "by": "Made by: citelvoid",
+            "success": "Done ✓",
+            "wait": "ᴘʀᴏᴄᴇssɪɴɢ ʏᴏᴜʀ ʀᴇᴏ̨ᴜᴇsᴛ𝒕✅",
+            "admin": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ɢʀᴏᴜᴘ ᴀᴅᴍɪɴ⚠️!",
+            "botAdmin": "ᴘʟᴇᴀsᴇ ᴘʀᴏᴠɪᴅᴇ ᴍᴇ ᴀᴅᴍɪɴ ʀᴏʟᴇ.❗",
+            "owner": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ʜᴏᴋᴀɢᴇ ⚠️",
+            "group": "ᴛʜɪs ғᴇᴀᴛᴜʀᴇ ɪs ᴏɴʟʏ ғᴏʀ sʜɪɴᴏʙɪ ᴠɪʟʟᴀɢᴇs❗",
+            "private": "ᴛʜɪs ғᴇᴀᴛᴜʀᴇ ɪs ᴏɴʟʏ ғᴏʀ ʜᴏᴋᴀɢᴇ ⚠️",
+            "bot": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ʜᴏᴋᴀɢᴇ⚠️",
+            "alive": "Believe it! I'm alive and ready, dattebayo!",
+            "aliveEmoji": "🍥"
+        },
+        "error": {
+            "text": "*You may come to regret trying to manipulate me.\nNow go get this Error fixed*"
+        }
     }
-  }
 }

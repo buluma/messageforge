@@ -1,27 +1,33 @@
 'use strict';
 
-const fs   = require('fs');
+const fs = require('fs');
 const path = require('path');
 const { getStr } = require('../lib/theme');
 const SETTINGS_PATH = path.join(__dirname, '../anti-call-settings.json');
 
 const DEFAULT_SETTINGS = {
-    rejectCalls:    true,
-    blockCaller:    false,
-    notifyAdmin:    true,
-    autoReply:      '🚫 I don\'t accept calls. Please send a text message instead.',
-    blockedUsers:   []
+    rejectCalls: true,
+    blockCaller: false,
+    notifyAdmin: true,
+    autoReply: "🚫 I don't accept calls. Please send a text message instead.",
+    blockedUsers: [],
 };
 
 function loadSettings() {
     try {
         if (fs.existsSync(SETTINGS_PATH)) return JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf8'));
-    } catch (e) { console.warn('[anticall] failed to load settings:', e.message); }
+    } catch (e) {
+        console.warn('[anticall] failed to load settings:', e.message);
+    }
     return { ...DEFAULT_SETTINGS };
 }
 
 function saveSettings(s) {
-    try { fs.writeFileSync(SETTINGS_PATH, JSON.stringify(s, null, 2)); } catch (e) { console.warn('[anticall] failed to save settings:', e.message); }
+    try {
+        fs.writeFileSync(SETTINGS_PATH, JSON.stringify(s, null, 2));
+    } catch (e) {
+        console.warn('[anticall] failed to save settings:', e.message);
+    }
 }
 
 const settings = loadSettings();
@@ -34,7 +40,11 @@ function initCallHandler(sock, ownerJid) {
             const caller = call.from;
 
             if (settings.blockedUsers.includes(caller) || settings.rejectCalls) {
-                try { await sock.rejectCall(call.id, caller); } catch (e) { console.warn('[anticall] rejectCall failed:', e.message); }
+                try {
+                    await sock.rejectCall(call.id, caller);
+                } catch (e) {
+                    console.warn('[anticall] rejectCall failed:', e.message);
+                }
             }
 
             if (settings.autoReply) {
@@ -43,21 +53,25 @@ function initCallHandler(sock, ownerJid) {
                         text: settings.autoReply,
                         contextInfo: {
                             externalAdReply: {
-                                title:        'Call Rejected',
-                                body:         (getStr('botName') || 'MessageForge') + ' Anti-Call',
-                                mediaType:    1
-                            }
-                        }
+                                title: 'Call Rejected',
+                                body: (getStr('botName') || 'MessageForge') + ' Anti-Call',
+                                mediaType: 1,
+                            },
+                        },
                     });
-                } catch (e) { console.warn('[anticall] autoReply failed:', e.message); }
+                } catch (e) {
+                    console.warn('[anticall] autoReply failed:', e.message);
+                }
             }
 
             if (settings.notifyAdmin && ownerJid) {
                 try {
                     await sock.sendMessage(ownerJid, {
-                        text: `📞 *Anti-Call Alert*\n\nCaller: ${caller}\nType: ${call.isVideo ? 'video' : 'voice'}\nStatus: Rejected`
+                        text: `📞 *Anti-Call Alert*\n\nCaller: ${caller}\nType: ${call.isVideo ? 'video' : 'voice'}\nStatus: Rejected`,
                     });
-                } catch (e) { console.warn('[anticall] admin notify failed:', e.message); }
+                } catch (e) {
+                    console.warn('[anticall] admin notify failed:', e.message);
+                }
             }
 
             if (settings.blockCaller && !settings.blockedUsers.includes(caller)) {
@@ -70,63 +84,101 @@ function initCallHandler(sock, ownerJid) {
 }
 
 module.exports = {
-    commands:    ['anticall'],
+    commands: ['anticall'],
     description: 'Manage anti-call protection — owner only',
-    permission:  'owner',
-    group:       false,
-    private:     true,
+    permission: 'owner',
+    group: false,
+    private: true,
     initCallHandler,
 
     run: async (sock, message, args, { sender, contextInfo }) => {
         const action = args[0]?.toLowerCase();
 
         if (!action) {
-            return sock.sendMessage(sender, {
-                text:
-`🤖 *Anti-Call Status*
+            return sock.sendMessage(
+                sender,
+                {
+                    text: `🤖 *Anti-Call Status*
 • Protection: ${settings.rejectCalls ? 'ENABLED' : 'DISABLED'}
 • Block on call: ${settings.blockCaller ? 'ON' : 'OFF'}
 • Auto-reply: ${settings.autoReply ? 'ON' : 'OFF'}
 • Blocked users: ${settings.blockedUsers.length}
 
 Usage: .anticall [on|off|block <num>|unblock <num>]`,
-                contextInfo
-            }, { quoted: message });
+                    contextInfo,
+                },
+                { quoted: message },
+            );
         }
 
         switch (action) {
             case 'on':
                 settings.rejectCalls = true;
                 saveSettings(settings);
-                await sock.sendMessage(sender, { text: '✅ Anti-call protection *enabled*.' }, { quoted: message });
+                await sock.sendMessage(
+                    sender,
+                    { text: '✅ Anti-call protection *enabled*.' },
+                    { quoted: message },
+                );
                 break;
             case 'off':
                 settings.rejectCalls = false;
                 saveSettings(settings);
-                await sock.sendMessage(sender, { text: '✅ Anti-call protection *disabled*.' }, { quoted: message });
+                await sock.sendMessage(
+                    sender,
+                    { text: '✅ Anti-call protection *disabled*.' },
+                    { quoted: message },
+                );
                 break;
             case 'block': {
                 const num = (args[1] || '').replace(/\D/g, '') + '@s.whatsapp.net';
-                if (!args[1]) return sock.sendMessage(sender, { text: '❌ Usage: .anticall block <number>' }, { quoted: message });
-                if (settings.blockedUsers.includes(num)) return sock.sendMessage(sender, { text: 'ℹ️ Already blocked.' }, { quoted: message });
+                if (!args[1])
+                    return sock.sendMessage(
+                        sender,
+                        { text: '❌ Usage: .anticall block <number>' },
+                        { quoted: message },
+                    );
+                if (settings.blockedUsers.includes(num))
+                    return sock.sendMessage(
+                        sender,
+                        { text: 'ℹ️ Already blocked.' },
+                        { quoted: message },
+                    );
                 settings.blockedUsers.push(num);
                 saveSettings(settings);
-                await sock.sendMessage(sender, { text: `✅ ${args[1]} blocked from calling.` }, { quoted: message });
+                await sock.sendMessage(
+                    sender,
+                    { text: `✅ ${args[1]} blocked from calling.` },
+                    { quoted: message },
+                );
                 break;
             }
             case 'unblock': {
                 const num = (args[1] || '').replace(/\D/g, '') + '@s.whatsapp.net';
-                if (!args[1]) return sock.sendMessage(sender, { text: '❌ Usage: .anticall unblock <number>' }, { quoted: message });
-                settings.blockedUsers = settings.blockedUsers.filter(u => u !== num);
+                if (!args[1])
+                    return sock.sendMessage(
+                        sender,
+                        { text: '❌ Usage: .anticall unblock <number>' },
+                        { quoted: message },
+                    );
+                settings.blockedUsers = settings.blockedUsers.filter((u) => u !== num);
                 saveSettings(settings);
-                await sock.sendMessage(sender, { text: `✅ ${args[1]} unblocked.` }, { quoted: message });
+                await sock.sendMessage(
+                    sender,
+                    { text: `✅ ${args[1]} unblocked.` },
+                    { quoted: message },
+                );
                 break;
             }
             default:
-                await sock.sendMessage(sender, {
-                    text: '❌ Unknown option. Usage: .anticall [on|off|block|unblock]',
-                    contextInfo
-                }, { quoted: message });
+                await sock.sendMessage(
+                    sender,
+                    {
+                        text: '❌ Unknown option. Usage: .anticall [on|off|block|unblock]',
+                        contextInfo,
+                    },
+                    { quoted: message },
+                );
         }
-    }
+    },
 };

@@ -13,17 +13,17 @@ A feature-rich multi-device WhatsApp bot built with Node.js and the Baileys libr
 
 ## Key Components
 
-| File/Dir                | Purpose                                         |
-| ----------------------- | ----------------------------------------------- |
-| `messageforge.js`       | Main entry — connects to WhatsApp, runs Express |
-| `handler.js`            | Message handler & command dispatcher            |
-| `config.js`             | Config reader (env vars / config.env)           |
-| `plugins/`              | Individual feature plugins (1200+ commands)     |
-| `themes/`               | Theme JSON files (19 themes — messageforge default)    |
-| `lib/theme.js`          | Theme loader — `getStr()`, `setActiveTheme()`   |
-| `lib/`                  | Shared utilities and functions                  |
-| `utils/`                | Delay, safeSend, warmupGroup helpers            |
-| `smm/messageforge.html` | Admin dashboard (served as static file)         |
+| File/Dir                | Purpose                                             |
+| ----------------------- | --------------------------------------------------- |
+| `messageforge.js`       | Main entry — connects to WhatsApp, runs Express     |
+| `handler.js`            | Message handler & command dispatcher                |
+| `config.js`             | Config reader (env vars / config.env)               |
+| `plugins/`              | Individual feature plugins (1200+ commands)         |
+| `themes/`               | Theme JSON files (19 themes — messageforge default) |
+| `lib/theme.js`          | Theme loader — `getStr()`, `setActiveTheme()`       |
+| `lib/`                  | Shared utilities and functions                      |
+| `utils/`                | Delay, safeSend, warmupGroup helpers                |
+| `smm/messageforge.html` | Admin dashboard (served as static file)             |
 
 ## Environment Variables
 

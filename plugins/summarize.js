@@ -2,7 +2,7 @@
 const { askTextAI } = require('../lib/aiClient');
 
 module.exports = {
-    commands: [ 'summarize', 'summary', 'brief'],
+    commands: ['summarize', 'summary', 'brief'],
     description: 'AI summarizes any long text, article, or quoted message',
     usage: '.summarize <text> OR reply to a long message',
     permission: 'public',

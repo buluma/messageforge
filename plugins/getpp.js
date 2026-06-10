@@ -1,11 +1,11 @@
 'use strict';
 
 module.exports = {
-    commands:    ['spp', 'profile', 'getpp'],
-    description: 'Get a user\'s profile picture',
-    permission:  'public',
-    group:       true,
-    private:     true,
+    commands: ['spp', 'profile', 'getpp'],
+    description: "Get a user's profile picture",
+    permission: 'public',
+    group: true,
+    private: true,
     run: async (sock, message, args, { sender, isGroup, mentionedJid, contextInfo }) => {
         try {
             let user = sender;
@@ -23,15 +23,31 @@ module.exports = {
             const name = user.split('@')[0];
 
             if (!pp) {
-                return sock.sendMessage(sender, { text: `❌ No profile picture set for +${name}.`, contextInfo }, { quoted: message });
+                return sock.sendMessage(
+                    sender,
+                    { text: `❌ No profile picture set for +${name}.`, contextInfo },
+                    { quoted: message },
+                );
             }
-            await sock.sendMessage(sender, { image: { url: pp }, caption: `🖼️ *Profile Picture*\n\n📱 *User:* +${name}`, contextInfo }, { quoted: message });
+            await sock.sendMessage(
+                sender,
+                {
+                    image: { url: pp },
+                    caption: `🖼️ *Profile Picture*\n\n📱 *User:* +${name}`,
+                    contextInfo,
+                },
+                { quoted: message },
+            );
         } catch (err) {
             console.error('[GetPP]', err.message);
-            await sock.sendMessage(sender, {
-                text: "❌ Couldn't fetch profile picture. The user may not have one set.",
-                contextInfo
-            }, { quoted: message });
+            await sock.sendMessage(
+                sender,
+                {
+                    text: "❌ Couldn't fetch profile picture. The user may not have one set.",
+                    contextInfo,
+                },
+                { quoted: message },
+            );
         }
-    }
+    },
 };

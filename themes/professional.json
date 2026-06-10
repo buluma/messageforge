@@ -1,42 +1,42 @@
 {
-  "theme": "Professional",
-  "AUTHOR": "ShadowNet",
-  "LANGUAGE": "English",
-  "LANGCODE": "en",
-  "STRINGS": {
-    "global": {
-      "botName": "System Assistant",
-      "body": "Corporate WhatsApp Bot",
-      "greet": "Sir/Madam",
-      "greet2": "Greetings",
-      "pic1": "",
-      "pic2": "",
-      "pic3": "",
-      "pic4": "",
-      "pic5": "",
-      "pic6": "",
-      "pic7": "",
-      "dotbody": "System Assistant is online.",
-      "promote": "User has been promoted to administrator.",
-      "demote": "User's administrator role has been revoked.",
-      "antlink": "Link detected. The message has been removed as per group policy.",
-      "mention": "Please specify a user.",
-      "title": "System Assistant",
-      "footer": "System Assistant",
-      "by": "Developed by: ShadowNet",
-      "success": "Operation successful.",
-      "wait": "Processing your request. Please wait.",
-      "admin": "Access Denied: This command is restricted to group administrators.",
-      "botAdmin": "Action Required: Please grant administrator privileges to the bot.",
-      "owner": "Access Denied: This command is restricted to the bot owner.",
-      "group": "This command can only be executed within a group chat.",
-      "private": "This command can only be executed in a private chat.",
-      "bot": "This command is for use by the bot only.",
-      "alive": "System is online and fully operational.",
-      "aliveEmoji": "✅"
-    },
-    "error": {
-      "text": "An error has occurred. Please report this incident if it persists."
+    "theme": "Professional",
+    "AUTHOR": "ShadowNet",
+    "LANGUAGE": "English",
+    "LANGCODE": "en",
+    "STRINGS": {
+        "global": {
+            "botName": "System Assistant",
+            "body": "Corporate WhatsApp Bot",
+            "greet": "Sir/Madam",
+            "greet2": "Greetings",
+            "pic1": "",
+            "pic2": "",
+            "pic3": "",
+            "pic4": "",
+            "pic5": "",
+            "pic6": "",
+            "pic7": "",
+            "dotbody": "System Assistant is online.",
+            "promote": "User has been promoted to administrator.",
+            "demote": "User's administrator role has been revoked.",
+            "antlink": "Link detected. The message has been removed as per group policy.",
+            "mention": "Please specify a user.",
+            "title": "System Assistant",
+            "footer": "System Assistant",
+            "by": "Developed by: ShadowNet",
+            "success": "Operation successful.",
+            "wait": "Processing your request. Please wait.",
+            "admin": "Access Denied: This command is restricted to group administrators.",
+            "botAdmin": "Action Required: Please grant administrator privileges to the bot.",
+            "owner": "Access Denied: This command is restricted to the bot owner.",
+            "group": "This command can only be executed within a group chat.",
+            "private": "This command can only be executed in a private chat.",
+            "bot": "This command is for use by the bot only.",
+            "alive": "System is online and fully operational.",
+            "aliveEmoji": "✅"
+        },
+        "error": {
+            "text": "An error has occurred. Please report this incident if it persists."
+        }
     }
-  }
 }

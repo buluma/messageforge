@@ -4,15 +4,15 @@ const { performance } = require('perf_hooks');
 const os = require('os');
 
 module.exports = {
-    commands:    ['ping', 'uptime', 'runtime'],
+    commands: ['ping', 'uptime', 'runtime'],
     description: 'Check bot response time, uptime, and system stats',
-    permission:  'public',
-    group:       true,
-    private:     true,
+    permission: 'public',
+    group: true,
+    private: true,
     run: async (sock, message, args, { contextInfo, safeSend, getStr }) => {
         const botName = getStr('botName') || 'MessageForge';
         const pic = getStr('pic1') || '';
-        
+
         const start = performance.now();
         await safeSend({ text: '🏓 _Pinging..._' }, { quoted: message });
         const ms = (performance.now() - start).toFixed(2);
@@ -27,8 +27,7 @@ module.exports = {
         const totalMem = (os.totalmem() / 1073741824).toFixed(2);
         const freeMem = (os.freemem() / 1073741824).toFixed(2);
 
-        const caption =
-`┏━━━━━━━━━━━━━━━┓
+        const caption = `┏━━━━━━━━━━━━━━━┓
       ✦ *${botName} Status* ✦
 ┗━━━━━━━━━━━━━━━┛
 
@@ -45,5 +44,5 @@ module.exports = {
         } else {
             await safeSend({ text: caption, contextInfo }, { quoted: message });
         }
-    }
+    },
 };

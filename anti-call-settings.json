@@ -1,8 +1,8 @@
 {
-  "rejectCalls": true,
-  "blockCaller": false,
-  "notifyAdmin": true,
-  "autoReply": "Sorry, I don't accept calls. Please send a text message instead.",
-  "blockedUsers": [],
-  "adminNumber": "254759704347@s.whatsapp.net"
+    "rejectCalls": true,
+    "blockCaller": false,
+    "notifyAdmin": true,
+    "autoReply": "Sorry, I don't accept calls. Please send a text message instead.",
+    "blockedUsers": [],
+    "adminNumber": "254759704347@s.whatsapp.net"
 }

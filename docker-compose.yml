@@ -1,77 +1,77 @@
 services:
-  messageforge:
-    container_name: messageforge
-    build:
-      context: .
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    init: true
-    env_file:
-      - .env
-    ports:
-      - "25680:25680"
-    volumes:
-      - ./session:/app/session
-      - ./data:/app/data
-      - ./logs:/app/logs
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "require('http').get('http://127.0.0.1:25680/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1));",
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 45s
-    stop_grace_period: 45s
-    security_opt:
-      - no-new-privileges:true
-    pids_limit: 256
-    cpus: "1.0"
-    mem_limit: 1g
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DATABASE_TYPE: postgres
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: messageforge
-      POSTGRES_DB: messageforge
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-    secrets:
-      - postgres_password
+    messageforge:
+        container_name: messageforge
+        build:
+            context: .
+            dockerfile: Dockerfile
+        restart: unless-stopped
+        init: true
+        env_file:
+            - .env
+        ports:
+            - '25680:25680'
+        volumes:
+            - ./session:/app/session
+            - ./data:/app/data
+            - ./logs:/app/logs
+        healthcheck:
+            test:
+                [
+                    'CMD',
+                    'node',
+                    '-e',
+                    "require('http').get('http://127.0.0.1:25680/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1));",
+                ]
+            interval: 30s
+            timeout: 10s
+            retries: 5
+            start_period: 45s
+        stop_grace_period: 45s
+        security_opt:
+            - no-new-privileges:true
+        pids_limit: 256
+        cpus: '1.0'
+        mem_limit: 1g
+        logging:
+            driver: json-file
+            options:
+                max-size: '10m'
+                max-file: '5'
+        depends_on:
+            postgres:
+                condition: service_healthy
+        environment:
+            DATABASE_TYPE: postgres
+            POSTGRES_HOST: postgres
+            POSTGRES_PORT: 5432
+            POSTGRES_USER: messageforge
+            POSTGRES_DB: messageforge
+            POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+        secrets:
+            - postgres_password
 
-  postgres:
-    image: postgres:16-alpine
-    container_name: messageforge-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: messageforge
-      POSTGRES_DB: messageforge
-      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
-    secrets:
-      - postgres_password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U messageforge -d messageforge"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
+    postgres:
+        image: postgres:16-alpine
+        container_name: messageforge-postgres
+        restart: unless-stopped
+        environment:
+            POSTGRES_USER: messageforge
+            POSTGRES_DB: messageforge
+            POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+        secrets:
+            - postgres_password
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        healthcheck:
+            test: ['CMD-SHELL', 'pg_isready -U messageforge -d messageforge']
+            interval: 10s
+            timeout: 5s
+            retries: 10
+            start_period: 10s
 
 volumes:
-  postgres_data:
+    postgres_data:
 
 secrets:
-  postgres_password:
-    file: ./secrets/postgres_password.txt
+    postgres_password:
+        file: ./secrets/postgres_password.txt

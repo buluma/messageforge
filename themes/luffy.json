@@ -1,42 +1,42 @@
 {
-  "theme": "Luffy",
-  "AUTHOR": "Suhail",
-  "LANGUAGE": "English",
-  "LANGCODE": "en",
-  "STRINGS": {
-    "global": {
-      "botName": "LUFFY",
-      "body": "𝑊ℎ𝑎𝑡𝑠𝑎𝑝𝑝 𝐵𝑜𝑡",
-      "greet": "Believe it",
-      "greet2": "Suhail king",
-      "pic1": "https://telegra.ph/file/4b31b5e22992c04ab68c2.jpg",
-      "pic2": "https://telegra.ph/file/4b31b5e22992c04ab68c2.jpg",
-      "pic3": "https://telegra.ph/file/4b31b5e22992c04ab68c2.jpg",
-      "pic4": "https://telegra.ph/file/4b31b5e22992c04ab68c2.jpg",
-      "pic5": "https://telegra.ph/file/4b31b5e22992c04ab68c2.jpg",
-      "pic6": "https://telegra.ph/file/4b31b5e22992c04ab68c2.jpg",
-      "pic7": "https://telegra.ph/file/4b31b5e22992c04ab68c2.jpg",
-      "dotbody": "I decided being Pirate King.",
-      "promote": "Admin Role Given to Suhail",
-      "demote": "Uhh, Admin Role Taken back",
-      "antlink": "Link Detected.\n*Good Bye Rouge pirate*",
-      "mention": "Please mention any user pirate",
-      "title": "ʟᴜғғʏ-ᴍᴅ",
-      "footer": "sᴜʜᴀɪʟ ᴛᴇᴄʜ ɪɴғᴏ",
-      "by": "Made by: Suhail Tech Info",
-      "success": "Done ✓",
-      "wait": "ᴘʀᴏᴄᴇssɪɴɢ ʏᴏᴜʀ ʀᴇᴏ̨ᴜᴇsᴛ✅",
-      "admin": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ɢʀᴏᴜᴘ ᴀᴅᴍɪɴ⚠️!",
-      "botAdmin": "ᴘʟᴇᴀsᴇ ᴘʀᴏᴠɪᴅᴇ ᴍᴇ ᴀᴅᴍɪɴ ʀᴏʟᴇ.❗",
-      "owner": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ᴘɪʀᴀᴛᴇ ᴋɪɴɢ ⚠️",
-      "group": "ᴛʜɪs ғᴇᴀᴛᴜʀᴇ ɪs ᴏɴʟʏ ғᴏʀ ɢʀᴏᴜᴘ❗",
-      "private": "ᴛʜɪs ғᴇᴀᴛᴜʀᴇ ɪs ᴏɴʟʏ ғᴏʀ ᴘɪʀᴀᴛᴇ ᴋɪɴɢ ⚠️",
-      "bot": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ᴘɪʀᴀᴛᴇ ᴋɪɴɢ ⚠️",
-      "alive": "I'm gonna be King of the Bots! Alive!",
-      "aliveEmoji": "🏴‍☠️"
-    },
-    "error": {
-      "text": "*You may come to regret trying to manipulate me.\nNow go get this Error fixed*"
+    "theme": "Luffy",
+    "AUTHOR": "Suhail",
+    "LANGUAGE": "English",
+    "LANGCODE": "en",
+    "STRINGS": {
+        "global": {
+            "botName": "LUFFY",
+            "body": "𝑊ℎ𝑎𝑡𝑠𝑎𝑝𝑝 𝐵𝑜𝑡",
+            "greet": "Believe it",
+            "greet2": "Suhail king",
+            "pic1": "https://telegra.ph/file/4b31b5e22992c04ab68c2.jpg",
+            "pic2": "https://telegra.ph/file/4b31b5e22992c04ab68c2.jpg",
+            "pic3": "https://telegra.ph/file/4b31b5e22992c04ab68c2.jpg",
+            "pic4": "https://telegra.ph/file/4b31b5e22992c04ab68c2.jpg",
+            "pic5": "https://telegra.ph/file/4b31b5e22992c04ab68c2.jpg",
+            "pic6": "https://telegra.ph/file/4b31b5e22992c04ab68c2.jpg",
+            "pic7": "https://telegra.ph/file/4b31b5e22992c04ab68c2.jpg",
+            "dotbody": "I decided being Pirate King.",
+            "promote": "Admin Role Given to Suhail",
+            "demote": "Uhh, Admin Role Taken back",
+            "antlink": "Link Detected.\n*Good Bye Rouge pirate*",
+            "mention": "Please mention any user pirate",
+            "title": "ʟᴜғғʏ-ᴍᴅ",
+            "footer": "sᴜʜᴀɪʟ ᴛᴇᴄʜ ɪɴғᴏ",
+            "by": "Made by: Suhail Tech Info",
+            "success": "Done ✓",
+            "wait": "ᴘʀᴏᴄᴇssɪɴɢ ʏᴏᴜʀ ʀᴇᴏ̨ᴜᴇsᴛ✅",
+            "admin": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ɢʀᴏᴜᴘ ᴀᴅᴍɪɴ⚠️!",
+            "botAdmin": "ᴘʟᴇᴀsᴇ ᴘʀᴏᴠɪᴅᴇ ᴍᴇ ᴀᴅᴍɪɴ ʀᴏʟᴇ.❗",
+            "owner": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ᴘɪʀᴀᴛᴇ ᴋɪɴɢ ⚠️",
+            "group": "ᴛʜɪs ғᴇᴀᴛᴜʀᴇ ɪs ᴏɴʟʏ ғᴏʀ ɢʀᴏᴜᴘ❗",
+            "private": "ᴛʜɪs ғᴇᴀᴛᴜʀᴇ ɪs ᴏɴʟʏ ғᴏʀ ᴘɪʀᴀᴛᴇ ᴋɪɴɢ ⚠️",
+            "bot": "ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ɪs ᴏɴʟʏ ғᴏʀ ᴘɪʀᴀᴛᴇ ᴋɪɴɢ ⚠️",
+            "alive": "I'm gonna be King of the Bots! Alive!",
+            "aliveEmoji": "🏴‍☠️"
+        },
+        "error": {
+            "text": "*You may come to regret trying to manipulate me.\nNow go get this Error fixed*"
+        }
     }
-  }
 }

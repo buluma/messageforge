@@ -1,19 +1,23 @@
 'use strict';
 
-const { dlBuffer }    = require('../lib/dlmedia');
+const { dlBuffer } = require('../lib/dlmedia');
 
 module.exports = {
-    commands: [ 'nitumie', 'statussave'],
+    commands: ['nitumie', 'statussave'],
     description: 'Save a WhatsApp status (reply to a status with this command)',
-    permission:  'public',
-    group:       false,
-    private:     true,
+    permission: 'public',
+    group: false,
+    private: true,
 
     run: async (sock, message, args, { sender, contextInfo, reply, getStr, fmt }) => {
         try {
             const quoted = message.message?.extendedTextMessage?.contextInfo?.quotedMessage;
             if (!quoted) {
-                return reply(fmt('📌 *Reply to a status* to save it.\nExample: reply to a status image/video with `.save`'));
+                return reply(
+                    fmt(
+                        '📌 *Reply to a status* to save it.\nExample: reply to a status image/video with `.save`',
+                    ),
+                );
             }
 
             const isImage = !!quoted.imageMessage;
@@ -23,34 +27,37 @@ module.exports = {
                 return reply(fmt('❌ Only *image* and *video* statuses can be saved.'));
             }
 
-            const mediaType  = isImage ? 'image' : 'video';
+            const mediaType = isImage ? 'image' : 'video';
             const msgContent = isImage ? quoted.imageMessage : quoted.videoMessage;
 
             await sock.sendPresenceUpdate('composing', sender);
 
             const buffer = await dlBuffer(msgContent, mediaType);
 
-            const caption = msgContent.caption
-                || `📥 *Status saved by ${getStr('botName') || 'MessageForge'}*`;
+            const caption =
+                msgContent.caption || `📥 *Status saved by ${getStr('botName') || 'MessageForge'}*`;
 
-            await sock.sendMessage(sender, {
-                [mediaType]: buffer,
-                caption,
-                contextInfo: {
-                    ...contextInfo,
-                    externalAdReply: {
-                        title:        'Status Saved ✅',
-                        body:         (getStr('botName') || 'MessageForge') + ' · Status Downloader',
-                        mediaType:    1
-                    }
-                }
-            }, { quoted: message });
+            await sock.sendMessage(
+                sender,
+                {
+                    [mediaType]: buffer,
+                    caption,
+                    contextInfo: {
+                        ...contextInfo,
+                        externalAdReply: {
+                            title: 'Status Saved ✅',
+                            body: (getStr('botName') || 'MessageForge') + ' · Status Downloader',
+                            mediaType: 1,
+                        },
+                    },
+                },
+                { quoted: message },
+            );
 
             await sock.sendPresenceUpdate('paused', sender);
-
         } catch (err) {
             console.error('[StatusSave]', err.message);
             await reply(fmt(`❌ Failed to save status: ${err.message}`));
         }
-    }
+    },
 };

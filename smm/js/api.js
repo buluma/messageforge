@@ -85,6 +85,10 @@ export const fetchMessages = (jid, options = {}) => {
         .then((r) => r.data);
 };
 
+export const fetchChatMedia = (jid) => {
+    return api.get(`/api/chats/${encodeURIComponent(jid)}/media`).then((r) => r.data);
+};
+
 // ── Send / actions ────────────────────────────────────────────────
 export const sendText = (jid, text, quoted) =>
     api.post('/api/send', { jid, text, ...(quoted ? { quoted } : {}) }).then((r) => r.data);

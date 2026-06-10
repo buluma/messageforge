@@ -5,16 +5,16 @@ import { mountMedia } from './media.js';
 
 // ── View switching via rail nav ────────────────────────────────────
 function setView(name) {
-  document.querySelectorAll('.view').forEach(v => {
-    v.classList.toggle('active', v.id === `view-${name}`);
-  });
-  document.querySelectorAll('.rail-btn[data-view]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.view === name);
-  });
+    document.querySelectorAll('.view').forEach((v) => {
+        v.classList.toggle('active', v.id === `view-${name}`);
+    });
+    document.querySelectorAll('.rail-btn[data-view]').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.view === name);
+    });
 }
 
-document.querySelectorAll('.rail-btn[data-view]').forEach(btn => {
-  btn.onclick = () => setView(btn.dataset.view);
+document.querySelectorAll('.rail-btn[data-view]').forEach((btn) => {
+    btn.onclick = () => setView(btn.dataset.view);
 });
 
 // ── Init ───────────────────────────────────────────────────────────

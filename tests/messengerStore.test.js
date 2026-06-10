@@ -93,8 +93,9 @@ describe('softDeleteChat', () => {
 
         await store.softDeleteChat(jid);
 
-        const hiddenWritesAfterDelete = fs.writeFileSync.mock.calls
-            .filter(([p]) => String(p).includes('hidden-chats.json'));
+        const hiddenWritesAfterDelete = fs.writeFileSync.mock.calls.filter(([p]) =>
+            String(p).includes('hidden-chats.json'),
+        );
         expect(hiddenWritesAfterDelete.length).toBeGreaterThan(0);
         const deletePayload = hiddenWritesAfterDelete[hiddenWritesAfterDelete.length - 1][1];
         expect(JSON.parse(deletePayload)).toContain(jid);
@@ -108,8 +109,9 @@ describe('softDeleteChat', () => {
             },
         ]);
 
-        const hiddenWritesAfterPersist = fs.writeFileSync.mock.calls
-            .filter(([p]) => String(p).includes('hidden-chats.json'));
+        const hiddenWritesAfterPersist = fs.writeFileSync.mock.calls.filter(([p]) =>
+            String(p).includes('hidden-chats.json'),
+        );
         expect(hiddenWritesAfterPersist.length).toBeGreaterThan(hiddenWritesAfterDelete.length);
         const persistPayload = hiddenWritesAfterPersist[hiddenWritesAfterPersist.length - 1][1];
         expect(JSON.parse(persistPayload)).not.toContain(jid);

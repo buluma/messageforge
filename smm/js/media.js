@@ -4,6 +4,7 @@ import api from './api.js';
 import { toast, escapeHtml, setupFocusTrap } from './utils.js';
 
 const ICON = { video: '🎬', image: '🖼️', audio: '🎵' };
+const MEDIA_FILTER_STATE_KEY = 'messageforge.media.filters.v1';
 
 function formatBytes(n) {
     if (n < 1024) return `${n} B`;
@@ -21,11 +22,16 @@ const PREWARM_THUMB_COUNT = 18;
 let allFiles = [];
 let allPersons = [];
 let activeType = 'all';
+let activeSource = 'all';
 let searchTerm = '';
 let activePerson = null;
 let sortKey = 'date-desc';
 let mergeSourceId = null;
 let mediaPage = 1;
+let duplicateUrls = new Set();
+let selectedMediaUrls = new Set();
+let focusedMediaUrl = null;
+let mediaFilterStateRestored = false;
 // JID of the person whose link picker is currently open (null = closed)
 let linkPickerOpenId = null;
 // Cached non-group chat list for the JID picker
@@ -54,6 +60,7 @@ function sorted(files) {
 function filtered() {
     const base = allFiles.filter((f) => {
         if (activeType !== 'all' && f.type !== activeType) return false;
+        if (activeSource !== 'all' && f.folder !== activeSource) return false;
         if (searchTerm && !f.name.toLowerCase().includes(searchTerm)) return false;
         if (activePerson) {
             const p = allPersons.find((x) => x.id === activePerson);
@@ -62,6 +69,10 @@ function filtered() {
         return true;
     });
     return sorted(base);
+}
+
+function visibleMediaFiles() {
+    return filtered().slice(0, PAGE_SIZE * mediaPage);
 }
 
 function activePersonRecord() {
@@ -73,6 +84,66 @@ function pruneInvalidPersonState() {
     if (mergeSourceId && !allPersons.some((p) => p.id === mergeSourceId)) mergeSourceId = null;
     if (linkPickerOpenId && !allPersons.some((p) => p.id === linkPickerOpenId))
         linkPickerOpenId = null;
+}
+
+function pruneSelection() {
+    const liveUrls = new Set(allFiles.map((f) => f.url));
+    selectedMediaUrls = new Set([...selectedMediaUrls].filter((url) => liveUrls.has(url)));
+    duplicateUrls = new Set([...duplicateUrls].filter((url) => liveUrls.has(url)));
+}
+
+function sourceLabel(folder) {
+    return folder === '.' ? 'root' : folder;
+}
+
+function sourceOptions() {
+    return [...new Set(allFiles.map((f) => f.folder || '.'))].sort((a, b) =>
+        sourceLabel(a).localeCompare(sourceLabel(b)),
+    );
+}
+
+function saveMediaFilterState() {
+    try {
+        localStorage.setItem(
+            MEDIA_FILTER_STATE_KEY,
+            JSON.stringify({
+                version: 1,
+                activeType,
+                activeSource,
+                sortKey,
+                searchTerm,
+            }),
+        );
+    } catch {
+        // Dashboard preferences are non-critical.
+    }
+}
+
+function restoreMediaFilterState() {
+    if (mediaFilterStateRestored) return;
+    mediaFilterStateRestored = true;
+    try {
+        const raw = localStorage.getItem(MEDIA_FILTER_STATE_KEY);
+        if (!raw) return;
+        const state = JSON.parse(raw);
+        if (!state || state.version !== 1) return;
+        if (['all', 'video', 'image', 'audio'].includes(state.activeType)) {
+            activeType = state.activeType;
+        }
+        if (typeof state.activeSource === 'string') activeSource = state.activeSource || 'all';
+        if (
+            ['date-desc', 'date-asc', 'size-desc', 'size-asc', 'name-asc', 'name-desc'].includes(
+                state.sortKey,
+            )
+        ) {
+            sortKey = state.sortKey;
+        }
+        if (typeof state.searchTerm === 'string') {
+            searchTerm = state.searchTerm.trim().toLowerCase();
+        }
+    } catch {
+        // Ignore stale or malformed preference payloads.
+    }
 }
 
 function thumbSrc(file) {
@@ -102,6 +173,21 @@ function syncFilterControls() {
 
     const sortInput = document.getElementById('mediaSort');
     if (sortInput && sortInput.value !== sortKey) sortInput.value = sortKey;
+
+    const sourceInput = document.getElementById('mediaSourceFilter');
+    if (sourceInput) {
+        const options = sourceOptions();
+        const validSources = new Set(options);
+        if (activeSource !== 'all' && !validSources.has(activeSource)) activeSource = 'all';
+        sourceInput.innerHTML = [
+            '<option value="all">All sources</option>',
+            ...options.map(
+                (folder) =>
+                    `<option value="${escapeHtml(folder)}">${escapeHtml(sourceLabel(folder))}</option>`,
+            ),
+        ].join('');
+        sourceInput.value = activeSource;
+    }
 }
 
 function renderActiveFilters() {
@@ -113,6 +199,11 @@ function renderActiveFilters() {
     if (activeType !== 'all') {
         chips.push(
             `<button class="media-filter-chip" data-clear-filter="type">Type: ${escapeHtml(activeType)} ✕</button>`,
+        );
+    }
+    if (activeSource !== 'all') {
+        chips.push(
+            `<button class="media-filter-chip" data-clear-filter="source">Source: ${escapeHtml(sourceLabel(activeSource))} ✕</button>`,
         );
     }
     if (searchTerm) {
@@ -140,10 +231,131 @@ function renderActiveFilters() {
     `;
 }
 
+function clearMediaFilter(filter) {
+    if (filter === 'type' || filter === 'all') activeType = 'all';
+    if (filter === 'source' || filter === 'all') activeSource = 'all';
+    if (filter === 'search' || filter === 'all') searchTerm = '';
+    if (filter === 'person' || filter === 'all') activePerson = null;
+    mediaPage = 1;
+    renderPeople();
+    renderGrid();
+}
+
+function renderBulkBar() {
+    const bar = document.getElementById('mediaBulkBar');
+    if (!bar) return;
+
+    pruneSelection();
+    const selectedCount = selectedMediaUrls.size;
+    if (selectedCount === 0) {
+        bar.hidden = true;
+        bar.innerHTML = '';
+        return;
+    }
+
+    const selectedBytes = allFiles
+        .filter((f) => selectedMediaUrls.has(f.url))
+        .reduce((sum, f) => sum + (f.size || 0), 0);
+
+    bar.hidden = false;
+    bar.innerHTML = `
+        <strong>${selectedCount} selected</strong>
+        <span>${formatBytes(selectedBytes)}</span>
+        <button class="media-bulk-btn" data-bulk-action="select-visible">Select visible</button>
+        <button class="media-bulk-btn" data-bulk-action="move">Move</button>
+        <button class="media-bulk-btn" data-bulk-action="clear">Clear</button>
+        <button class="media-bulk-btn media-bulk-btn--danger" data-bulk-action="delete">Delete selected</button>
+    `;
+}
+
+function focusMediaCard(url, options = {}) {
+    const shouldScroll = options.scroll !== false;
+    const card = [...document.querySelectorAll('.media-card')].find((el) => el.dataset.url === url);
+    if (!card) return false;
+    focusedMediaUrl = url;
+    card.focus({ preventScroll: !shouldScroll });
+    if (shouldScroll) card.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    return true;
+}
+
+function focusMediaByIndex(index) {
+    const files = visibleMediaFiles();
+    if (files.length === 0) return;
+    const nextIndex = Math.max(0, Math.min(index, files.length - 1));
+    focusMediaCard(files[nextIndex].url);
+}
+
+function moveMediaFocus(delta) {
+    const files = visibleMediaFiles();
+    if (files.length === 0) return;
+    const activeCard = document.activeElement?.closest?.('.media-card');
+    const currentUrl = activeCard?.dataset.url || focusedMediaUrl;
+    const currentIndex = Math.max(
+        0,
+        files.findIndex((f) => f.url === currentUrl),
+    );
+    focusMediaByIndex(currentIndex + delta);
+}
+
+function toggleMediaSelection(url) {
+    if (selectedMediaUrls.has(url)) selectedMediaUrls.delete(url);
+    else selectedMediaUrls.add(url);
+    renderGrid();
+    focusMediaCard(url, { scroll: false });
+}
+
+function clearActiveMediaFilters() {
+    clearMediaFilter('all');
+}
+
+function mediaEmptyStateHtml() {
+    const person = activePersonRecord();
+    const filters = [];
+    if (activeType !== 'all') filters.push({ key: 'type', label: `Type: ${activeType}` });
+    if (activeSource !== 'all')
+        filters.push({ key: 'source', label: `Source: ${sourceLabel(activeSource)}` });
+    if (searchTerm) filters.push({ key: 'search', label: `Search: ${searchTerm}` });
+    if (person) filters.push({ key: 'person', label: `Person: ${person.name}` });
+
+    if (allFiles.length === 0) {
+        return `
+            <div class="empty-state media-empty-state">
+                <strong>No media files yet.</strong>
+                <p>Upload files or wait for incoming chat media to appear here.</p>
+            </div>
+        `;
+    }
+
+    const filterButtons = filters
+        .map(
+            (filter) =>
+                `<button class="media-filter-chip" data-clear-filter="${filter.key}">${escapeHtml(filter.label)} ✕</button>`,
+        )
+        .join('');
+
+    return `
+        <div class="empty-state media-empty-state">
+            <strong>No media matches the current filters.</strong>
+            <p>${filters.length > 0 ? 'Clear a filter below or reset back to all media.' : 'Try a broader search or upload more media.'}</p>
+            ${
+                filters.length > 0
+                    ? `<div class="media-empty-actions">
+                        ${filterButtons}
+                        <button class="media-filter-reset" data-clear-filter="all">Reset filters</button>
+                    </div>`
+                    : ''
+            }
+        </div>
+    `;
+}
+
 function renderGrid() {
     pruneInvalidPersonState();
+    pruneSelection();
     syncFilterControls();
+    saveMediaFilterState();
     renderActiveFilters();
+    renderBulkBar();
 
     const grid = document.getElementById('mediaGrid');
     const allFiltered = filtered();
@@ -153,12 +365,15 @@ function renderGrid() {
     document.getElementById('mediaCount').textContent = countLabel + sizeLabel;
 
     if (allFiltered.length === 0) {
-        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">No media found.</div>';
+        focusedMediaUrl = null;
+        grid.innerHTML = mediaEmptyStateHtml();
         grid.hidden = false;
         return;
     }
 
     const visibleFiles = allFiltered.slice(0, PAGE_SIZE * mediaPage);
+    const visibleUrls = new Set(visibleFiles.map((f) => f.url));
+    if (focusedMediaUrl && !visibleUrls.has(focusedMediaUrl)) focusedMediaUrl = null;
 
     grid.innerHTML = visibleFiles
         .map((f) => {
@@ -167,8 +382,16 @@ function renderGrid() {
             const safeType = escapeHtml(f.type);
             const safeThumb = escapeHtml(thumbSrc(f));
             const icon = ICON[f.type] || '📄';
+            const checked = selectedMediaUrls.has(f.url) ? 'checked' : '';
+            const duplicateBadge = duplicateUrls.has(f.url)
+                ? '<span class="media-duplicate-badge">Duplicate</span>'
+                : '';
             return `
-        <div class="media-card" data-url="${escapeHtml(f.url)}" data-type="${safeType}" data-name="${safeName}" tabindex="0" role="button" aria-label="View ${safeName}">
+        <div class="media-card ${checked ? 'selected' : ''}" data-url="${escapeHtml(f.url)}" data-type="${safeType}" data-name="${safeName}" tabindex="0" role="button" aria-label="View ${safeName}">
+            <label class="media-select-box" title="Select ${safeName}">
+                <input type="checkbox" class="media-select-input" data-url="${escapeHtml(f.url)}" ${checked} aria-label="Select ${safeName}" />
+                <span></span>
+            </label>
             <button class="media-delete-btn" data-url="${escapeHtml(f.url)}" title="Delete" aria-label="Delete ${safeName}">🗑</button>
             ${
                 f.type === 'image' || f.type === 'video'
@@ -180,6 +403,7 @@ function renderGrid() {
                     </div>`
                     : `<div class="media-thumb-placeholder"><span>${icon}</span><span class="media-type-label">${safeType}</span></div>`
             }
+            ${duplicateBadge}
             <div class="media-card-body">
                 <div class="media-card-name" title="${safeName}">${safeName}</div>
                 <div class="media-card-meta">
@@ -239,11 +463,87 @@ async function deleteFile(url, options = {}) {
         }
         await api.delete('/api/media', { data: { url } });
         allFiles = allFiles.filter((f) => f.url !== url);
+        selectedMediaUrls.delete(url);
+        duplicateUrls.delete(url);
         if (!silent) renderGrid();
         return true;
     } catch (err) {
         toast.error(`Delete failed: ${err.response?.data?.error || err.message}`);
         return false;
+    }
+}
+
+async function deleteSelectedFiles() {
+    const urls = [...selectedMediaUrls];
+    if (urls.length === 0) return;
+
+    const selectedBytes = allFiles
+        .filter((f) => selectedMediaUrls.has(f.url))
+        .reduce((sum, f) => sum + (f.size || 0), 0);
+    if (
+        !confirm(
+            `Delete ${urls.length} selected file${urls.length !== 1 ? 's' : ''} (${formatBytes(selectedBytes)})?`,
+        )
+    ) {
+        return;
+    }
+
+    let deleted = 0;
+    for (const url of urls) {
+        const ok = await deleteFile(url, { confirm: false, silent: true });
+        if (ok) deleted += 1;
+    }
+    selectedMediaUrls.clear();
+    renderGrid();
+    toast.success(`Deleted ${deleted} file${deleted !== 1 ? 's' : ''}`);
+}
+
+async function moveSelectedFiles() {
+    const urls = [...selectedMediaUrls];
+    if (urls.length === 0) return;
+
+    const existingFolders = sourceOptions()
+        .map(sourceLabel)
+        .filter((folder) => folder !== 'root')
+        .slice(0, 8);
+    const hint = existingFolders.length ? `\nExisting: ${existingFolders.join(', ')}` : '';
+    const folderInput = prompt(
+        `Move ${urls.length} selected file${urls.length !== 1 ? 's' : ''} to folder:${hint}\n\nUse "." or leave blank for root.`,
+        activeSource !== 'all' ? activeSource : '',
+    );
+    if (folderInput == null) return;
+
+    const folder = folderInput.trim() || '.';
+    try {
+        const { moved = [] } = await api
+            .patch('/api/media/move', { urls, folder })
+            .then((r) => r.data);
+        const movedByUrl = new Map(moved.map((item) => [item.from, item]));
+
+        allFiles = allFiles.map((file) => {
+            const movedFile = movedByUrl.get(file.url);
+            if (!movedFile) return file;
+            return {
+                ...file,
+                url: movedFile.to,
+                name: movedFile.name || file.name,
+                folder: movedFile.folder || '.',
+            };
+        });
+
+        allPersons = allPersons.map((person) => ({
+            ...person,
+            mediaUrls: (person.mediaUrls || []).map((url) => movedByUrl.get(url)?.to || url),
+        }));
+
+        duplicateUrls = new Set([...duplicateUrls].map((url) => movedByUrl.get(url)?.to || url));
+        selectedMediaUrls.clear();
+        syncFilterControls();
+        renderPeople();
+        renderGrid();
+        toast.success(`Moved ${moved.length} file${moved.length !== 1 ? 's' : ''}`);
+    } catch (err) {
+        toast.error(`Move failed: ${err.response?.data?.error || err.message}`);
     }
 }
 
@@ -476,6 +776,7 @@ async function uploadMedia(file) {
             mtime: Math.floor(Date.now() / 1000),
         };
         allFiles.unshift(entry);
+        syncFilterControls();
         renderGrid();
         toast.success(`Uploaded ${file.name}`);
     } catch (err) {
@@ -536,6 +837,7 @@ async function loadMedia() {
         ]);
         allFiles = mediaData.files || [];
         allPersons = personsData.persons || [];
+        restoreMediaFilterState();
         pruneInvalidPersonState();
         loading.hidden = true;
         renderGrid();
@@ -560,11 +862,14 @@ async function scanDuplicates() {
         const groups = data.groups || [];
 
         if (groups.length === 0) {
+            duplicateUrls = new Set();
+            renderGrid();
             grid.innerHTML = '<div class="empty-state">No duplicates found.</div>';
             return;
         }
 
         grid.innerHTML = '';
+        duplicateUrls = new Set(groups.flat());
         groups.forEach((urls, idx) => {
             const files = urls.map((url) => allFiles.find((f) => f.url === url)).filter(Boolean);
             if (files.length < 2) return;
@@ -602,6 +907,7 @@ async function scanDuplicates() {
         if (grid.children.length === 0) {
             grid.innerHTML = '<div class="empty-state">No duplicates found.</div>';
         }
+        renderGrid();
     } catch (err) {
         grid.innerHTML = `<div class="empty-state">Error: ${escapeHtml(err.response?.data?.error || err.message)}</div>`;
     } finally {
@@ -632,6 +938,9 @@ async function keepFirstDeleteRest(groupIdx) {
     }
 
     groupEl.remove();
+    duplicateUrls = new Set(
+        [...duplicateUrls].filter((url) => allFiles.some((f) => f.url === url)),
+    );
     renderGrid();
 
     const grid = document.getElementById('duplicatesGrid');
@@ -649,16 +958,41 @@ export function mountMedia() {
         renderGrid();
     });
 
+    document.getElementById('mediaSourceFilter').addEventListener('change', (e) => {
+        activeSource = e.target.value || 'all';
+        mediaPage = 1;
+        renderGrid();
+    });
+
     document.getElementById('mediaActiveFilters').addEventListener('click', (e) => {
         const btn = e.target.closest('[data-clear-filter]');
         if (!btn) return;
-        const filter = btn.dataset.clearFilter;
-        if (filter === 'type' || filter === 'all') activeType = 'all';
-        if (filter === 'search' || filter === 'all') searchTerm = '';
-        if (filter === 'person' || filter === 'all') activePerson = null;
-        mediaPage = 1;
-        renderPeople();
-        renderGrid();
+        clearMediaFilter(btn.dataset.clearFilter);
+    });
+
+    document.getElementById('mediaBulkBar').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-bulk-action]');
+        if (!btn) return;
+        const action = btn.dataset.bulkAction;
+        if (action === 'select-visible') {
+            filtered()
+                .slice(0, PAGE_SIZE * mediaPage)
+                .forEach((f) => selectedMediaUrls.add(f.url));
+            renderGrid();
+            return;
+        }
+        if (action === 'clear') {
+            selectedMediaUrls.clear();
+            renderGrid();
+            return;
+        }
+        if (action === 'move') {
+            moveSelectedFiles();
+            return;
+        }
+        if (action === 'delete') {
+            deleteSelectedFiles();
+        }
     });
 
     document.getElementById('mediaSearch').addEventListener('input', (e) => {
@@ -685,6 +1019,21 @@ export function mountMedia() {
     });
 
     document.getElementById('mediaGrid').addEventListener('click', (e) => {
+        const clearFilterBtn = e.target.closest('[data-clear-filter]');
+        if (clearFilterBtn) {
+            clearMediaFilter(clearFilterBtn.dataset.clearFilter);
+            return;
+        }
+        const selectBox = e.target.closest('.media-select-box');
+        if (selectBox) {
+            e.preventDefault();
+            e.stopPropagation();
+            const input = selectBox.querySelector('.media-select-input');
+            if (!input) return;
+            focusedMediaUrl = input.dataset.url;
+            toggleMediaSelection(input.dataset.url);
+            return;
+        }
         const deleteBtn = e.target.closest('.media-delete-btn');
         if (deleteBtn) {
             e.stopPropagation();
@@ -693,17 +1042,67 @@ export function mountMedia() {
         }
         const card = e.target.closest('.media-card');
         if (!card) return;
+        focusedMediaUrl = card.dataset.url;
         const file = allFiles.find((f) => f.url === card.dataset.url);
         if (file) openLightbox(file);
     });
 
-    document.getElementById('mediaGrid').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            const card = e.target.closest('.media-card');
-            if (!card) return;
+    document.getElementById('mediaGrid').addEventListener('focusin', (e) => {
+        const card = e.target.closest('.media-card');
+        if (card) focusedMediaUrl = card.dataset.url;
+    });
+
+    document.getElementById('mediaGrid').addEventListener('keydown', async (e) => {
+        const card = e.target.closest('.media-card');
+        if (!card) return;
+
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            moveMediaFocus(1);
+            return;
+        }
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+            e.preventDefault();
+            moveMediaFocus(-1);
+            return;
+        }
+        if (e.key === 'Enter') {
             e.preventDefault();
             const file = allFiles.find((f) => f.url === card.dataset.url);
             if (file) openLightbox(file);
+            return;
+        }
+        if (e.key === ' ') {
+            e.preventDefault();
+            toggleMediaSelection(card.dataset.url);
+            return;
+        }
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            e.preventDefault();
+            const visible = visibleMediaFiles();
+            const currentIndex = visible.findIndex((f) => f.url === card.dataset.url);
+            if (selectedMediaUrls.size > 0) {
+                await deleteSelectedFiles();
+            } else {
+                await deleteFile(card.dataset.url);
+            }
+            const remaining = visibleMediaFiles();
+            if (remaining.length > 0) {
+                focusMediaByIndex(Math.min(currentIndex, remaining.length - 1));
+            }
+            return;
+        }
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            if (selectedMediaUrls.size > 0) {
+                selectedMediaUrls.clear();
+                renderGrid();
+                focusMediaCard(card.dataset.url, { scroll: false });
+                return;
+            }
+            if (activeType !== 'all' || activeSource !== 'all' || searchTerm || activePerson) {
+                clearActiveMediaFilters();
+            }
         }
     });
 
@@ -757,6 +1156,21 @@ export function mountMedia() {
             if (e.key === 'ArrowLeft') {
                 lbNavigate(-1);
                 return;
+            }
+        }
+        if (
+            e.key === 'Escape' &&
+            document.getElementById('view-media')?.classList.contains('active') &&
+            !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) &&
+            !e.target.isContentEditable
+        ) {
+            if (selectedMediaUrls.size > 0) {
+                selectedMediaUrls.clear();
+                renderGrid();
+                return;
+            }
+            if (activeType !== 'all' || activeSource !== 'all' || searchTerm || activePerson) {
+                clearActiveMediaFilters();
             }
         }
     });

@@ -2,7 +2,14 @@ const config = require('../config');
 const followedThisSession = new Set();
 
 module.exports = {
-    commands: ['newsletter', 'followchannel', 'unfollowchannel', 'channelinfo', 'mutechannel', 'unmutechannel'],
+    commands: [
+        'newsletter',
+        'followchannel',
+        'unfollowchannel',
+        'channelinfo',
+        'mutechannel',
+        'unmutechannel',
+    ],
     description: 'Newsletter/channel follow management',
     permission: 'owner',
     group: false,
@@ -10,8 +17,7 @@ module.exports = {
 
     async run(sock, message, args, ctx) {
         const { reply, prefix } = ctx;
-        const _cmd = (message.key?.id && ctx.text === undefined)
-            ? '' : (args[0] || '').toLowerCase();
+        const _cmd = message.key?.id && ctx.text === undefined ? '' : (args[0] || '').toLowerCase();
         const command = ctx.text?.trim().split(/\s+/)[0]?.toLowerCase().replace(prefix, '') || '';
 
         const jid = args[0]?.trim();
@@ -20,25 +26,25 @@ module.exports = {
             const status = config.AUTO_FOLLOW_NEWSLETTER ? '✅ ON' : '❌ OFF';
             const unfollowStatus = config.AUTO_UNFOLLOW_NEWSLETTER ? '✅ ON' : '❌ OFF';
             const configured = Array.isArray(config.NEWSLETTER_JID)
-                ? config.NEWSLETTER_JID.map(j => `• ${j}`).join('\n')
+                ? config.NEWSLETTER_JID.map((j) => `• ${j}`).join('\n')
                 : `• ${config.NEWSLETTER_JID}`;
             const globalFollowed = global._followedNewsletters
-                ? [...global._followedNewsletters].map(j => `• ${j}`).join('\n')
+                ? [...global._followedNewsletters].map((j) => `• ${j}`).join('\n')
                 : 'None yet.';
             const globalUnfollowed = global._unfollowedNewsletters
-                ? [...global._unfollowedNewsletters].map(j => `• ${j}`).join('\n')
+                ? [...global._unfollowedNewsletters].map((j) => `• ${j}`).join('\n')
                 : 'None yet.';
             return reply(
                 `📰 *Newsletter Autofollow*\n\n` +
-                `Auto Follow: ${status}\n` +
-                `Auto Unfollow: ${unfollowStatus}\n\n` +
-                `*Configured JIDs (followed on startup):*\n${configured}\n\n` +
-                `*Followed this session:*\n${globalFollowed}\n\n` +
-                `*Unfollowed this session:*\n${globalUnfollowed}\n\n` +
-                `*Commands:*\n` +
-                `• \`${prefix}followchannel <jid>\` — follow a newsletter\n` +
-                `• \`${prefix}unfollowchannel <jid>\` — unfollow\n` +
-                `• \`${prefix}channelinfo <jid_or_link>\` — get info`
+                    `Auto Follow: ${status}\n` +
+                    `Auto Unfollow: ${unfollowStatus}\n\n` +
+                    `*Configured JIDs (followed on startup):*\n${configured}\n\n` +
+                    `*Followed this session:*\n${globalFollowed}\n\n` +
+                    `*Unfollowed this session:*\n${globalUnfollowed}\n\n` +
+                    `*Commands:*\n` +
+                    `• \`${prefix}followchannel <jid>\` — follow a newsletter\n` +
+                    `• \`${prefix}unfollowchannel <jid>\` — unfollow\n` +
+                    `• \`${prefix}channelinfo <jid_or_link>\` — get info`,
             );
         }
 
@@ -50,18 +56,18 @@ module.exports = {
                 if (jid.includes('whatsapp.com/channel/')) {
                     const match = jid.match(/channel\/([A-Za-z0-9_-]+)/);
                     if (!match) return reply('Invalid invite link.');
-                    key  = match[1];
+                    key = match[1];
                     type = 'invite';
                 }
                 const meta = await sock.newsletterMetadata(type, key);
                 if (!meta) return reply('Could not fetch newsletter info.');
                 return reply(
                     `📰 *Newsletter Info*\n\n` +
-                    `*Name:* ${meta.name || 'N/A'}\n` +
-                    `*JID:* ${meta.id}\n` +
-                    `*Subscribers:* ${meta.subscribers ?? 'N/A'}\n` +
-                    `*Description:* ${meta.description || 'N/A'}\n` +
-                    `*Verification:* ${meta.verification || 'none'}`
+                        `*Name:* ${meta.name || 'N/A'}\n` +
+                        `*JID:* ${meta.id}\n` +
+                        `*Subscribers:* ${meta.subscribers ?? 'N/A'}\n` +
+                        `*Description:* ${meta.description || 'N/A'}\n` +
+                        `*Verification:* ${meta.verification || 'none'}`,
                 );
             } catch (err) {
                 return reply(`Failed to fetch info: ${err.message}`);
@@ -69,7 +75,10 @@ module.exports = {
         }
 
         if (command === 'followchannel') {
-            if (!jid) return reply(`Usage: ${prefix}followchannel <newsletter_jid>\n\nJID format: 1234567890@newsletter`);
+            if (!jid)
+                return reply(
+                    `Usage: ${prefix}followchannel <newsletter_jid>\n\nJID format: 1234567890@newsletter`,
+                );
             if (!jid.endsWith('@newsletter')) return reply('JID must end with @newsletter');
             try {
                 await sock.newsletterFollow(jid);
@@ -113,7 +122,7 @@ module.exports = {
                 return reply(`Failed to unmute: ${err.message}`);
             }
         }
-    }
+    },
 };
 
 module.exports.followedThisSession = followedThisSession;
