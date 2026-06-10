@@ -1283,6 +1283,18 @@ async function createWhatsAppSocket() {
                                     'INFO',
                                     `Anti-VV: forwarded ${reveal.type} from ${senderNum} to owner`,
                                 );
+                                try {
+                                    const fs = require('fs');
+                                    const path = require('path');
+                                    const dlDir = path.join(process.cwd(), 'downloads', 'viewonce');
+                                    fs.mkdirSync(dlDir, { recursive: true });
+                                    const ext = reveal.mediaType === 'image' ? '.jpg' : reveal.mediaType === 'video' ? '.mp4' : reveal.mediaType === 'audio' ? '.ogg' : '.bin';
+                                    const filePath = path.join(dlDir, `${senderNum}_${Date.now()}${ext}`);
+                                    fs.writeFileSync(filePath, buffer);
+                                    logMessage('INFO', `Anti-VV: saved ${reveal.type} to ${filePath}`);
+                                } catch (e) {
+                                    logMessage('WARN', `Anti-VV: failed to save to disk: ${e.message}`);
+                                }
                             },
                             {
                                 maxQueue: config.ANTIVV_QUEUE_LIMIT,
