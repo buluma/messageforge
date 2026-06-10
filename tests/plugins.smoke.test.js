@@ -49,7 +49,7 @@ describe('plugins (smoke)', () => {
         '../plugins/antidelete',
 
         // AI
-        '../plugins/ai2',
+        '../plugins/messageforge-ai',
 
         // Group utilities
         '../plugins/groupinfo',

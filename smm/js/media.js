@@ -20,7 +20,6 @@ const PREWARM_THUMB_COUNT = 18;
 
 let allFiles = [];
 let allPersons = [];
-let totalMediaBytes = 0;
 let activeType = 'all';
 let searchTerm = '';
 let activePerson = null;
@@ -65,6 +64,17 @@ function filtered() {
     return sorted(base);
 }
 
+function activePersonRecord() {
+    return activePerson ? allPersons.find((p) => p.id === activePerson) || null : null;
+}
+
+function pruneInvalidPersonState() {
+    if (activePerson && !activePersonRecord()) activePerson = null;
+    if (mergeSourceId && !allPersons.some((p) => p.id === mergeSourceId)) mergeSourceId = null;
+    if (linkPickerOpenId && !allPersons.some((p) => p.id === linkPickerOpenId))
+        linkPickerOpenId = null;
+}
+
 function thumbSrc(file) {
     const version = file.thumbVersion || `${file.mtime || 0}-${file.size || 0}`;
     return `/api/media/thumb?url=${encodeURIComponent(file.url)}&v=${encodeURIComponent(version)}`;
@@ -80,11 +90,66 @@ function prewarmThumbs(files) {
         });
 }
 
+function syncFilterControls() {
+    document
+        .querySelectorAll('#mediaFilterPills .pill')
+        .forEach((p) => p.classList.toggle('active', p.dataset.type === activeType));
+
+    const searchInput = document.getElementById('mediaSearch');
+    if (searchInput && searchInput.value.trim().toLowerCase() !== searchTerm) {
+        searchInput.value = searchTerm;
+    }
+
+    const sortInput = document.getElementById('mediaSort');
+    if (sortInput && sortInput.value !== sortKey) sortInput.value = sortKey;
+}
+
+function renderActiveFilters() {
+    const wrap = document.getElementById('mediaActiveFilters');
+    if (!wrap) return;
+
+    const person = activePersonRecord();
+    const chips = [];
+    if (activeType !== 'all') {
+        chips.push(
+            `<button class="media-filter-chip" data-clear-filter="type">Type: ${escapeHtml(activeType)} ✕</button>`,
+        );
+    }
+    if (searchTerm) {
+        chips.push(
+            `<button class="media-filter-chip" data-clear-filter="search">Search: ${escapeHtml(searchTerm)} ✕</button>`,
+        );
+    }
+    if (person) {
+        chips.push(
+            `<button class="media-filter-chip" data-clear-filter="person">Person: ${escapeHtml(person.name)} ✕</button>`,
+        );
+    }
+
+    if (chips.length === 0) {
+        wrap.hidden = true;
+        wrap.innerHTML = '';
+        return;
+    }
+
+    wrap.hidden = false;
+    wrap.innerHTML = `
+        <span class="media-active-filters-label">Filtered by</span>
+        ${chips.join('')}
+        <button class="media-filter-reset" data-clear-filter="all">Reset filters</button>
+    `;
+}
+
 function renderGrid() {
+    pruneInvalidPersonState();
+    syncFilterControls();
+    renderActiveFilters();
+
     const grid = document.getElementById('mediaGrid');
     const allFiltered = filtered();
+    const filteredBytes = allFiltered.reduce((sum, f) => sum + (f.size || 0), 0);
     const countLabel = `${allFiltered.length} file${allFiltered.length !== 1 ? 's' : ''}`;
-    const sizeLabel = totalMediaBytes > 0 ? ` · ${formatBytes(totalMediaBytes)}` : '';
+    const sizeLabel = filteredBytes > 0 ? ` · ${formatBytes(filteredBytes)}` : '';
     document.getElementById('mediaCount').textContent = countLabel + sizeLabel;
 
     if (allFiltered.length === 0) {
@@ -275,6 +340,8 @@ function lbNavigate(dir) {
 }
 
 function renderPeople() {
+    pruneInvalidPersonState();
+
     const wrap = document.getElementById('peopleSectionWrap');
     const grid = document.getElementById('peopleGrid');
     wrap.hidden = false;
@@ -352,7 +419,9 @@ async function loadPersons() {
     try {
         const data = await api.get('/api/media/persons').then((r) => r.data);
         allPersons = data.persons || [];
+        pruneInvalidPersonState();
         renderPeople();
+        renderGrid();
     } catch {
         /* silent */
     }
@@ -466,8 +535,8 @@ async function loadMedia() {
                 .catch(() => ({ persons: [] })),
         ]);
         allFiles = mediaData.files || [];
-        totalMediaBytes = mediaData.totalBytes || 0;
         allPersons = personsData.persons || [];
+        pruneInvalidPersonState();
         loading.hidden = true;
         renderGrid();
         renderPeople();
@@ -577,9 +646,18 @@ export function mountMedia() {
         if (!pill) return;
         activeType = pill.dataset.type;
         mediaPage = 1;
-        document
-            .querySelectorAll('#mediaFilterPills .pill')
-            .forEach((p) => p.classList.toggle('active', p === pill));
+        renderGrid();
+    });
+
+    document.getElementById('mediaActiveFilters').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-clear-filter]');
+        if (!btn) return;
+        const filter = btn.dataset.clearFilter;
+        if (filter === 'type' || filter === 'all') activeType = 'all';
+        if (filter === 'search' || filter === 'all') searchTerm = '';
+        if (filter === 'person' || filter === 'all') activePerson = null;
+        mediaPage = 1;
+        renderPeople();
         renderGrid();
     });
 
@@ -720,12 +798,13 @@ export function mountMedia() {
         if (mergeIntoBtn) {
             e.stopPropagation();
             const targetId = mergeIntoBtn.dataset.personId;
+            const wasFilteringMergeSource = activePerson === mergeSourceId;
             await api
                 .patch(`/api/media/persons/${mergeSourceId}`, { mergeInto: targetId })
                 .catch(() => {});
+            if (wasFilteringMergeSource) activePerson = targetId;
             mergeSourceId = null;
             await loadPersons();
-            renderGrid();
             return;
         }
 
@@ -746,6 +825,13 @@ export function mountMedia() {
             return;
         }
 
+        if (e.target.closest('.person-link-picker')) {
+            return;
+        }
+
+        const editableName = e.target.closest('.person-name[contenteditable="true"]');
+        if (editableName) return;
+
         // Close picker if clicking outside
         if (!e.target.closest('.person-link-picker')) {
             if (linkPickerOpenId) {
@@ -760,6 +846,7 @@ export function mountMedia() {
         if (!card || mergeSourceId) return;
         const id = card.dataset.personId;
         activePerson = activePerson === id ? null : id;
+        mediaPage = 1;
         renderPeople();
         renderGrid();
     });

@@ -976,8 +976,52 @@ input {
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     flex-wrap: wrap;
+}
+.media-active-filters {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 0 0 18px;
+}
+.media-active-filters[hidden] {
+    display: none;
+}
+.media-active-filters-label {
+    color: var(--text-dim);
+    font-size: 12px;
+}
+.media-filter-chip,
+.media-filter-reset {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1;
+    padding: 6px 9px;
+    transition:
+        background 0.15s,
+        border-color 0.15s,
+        color 0.15s;
+}
+.media-filter-chip {
+    background: rgba(99, 102, 241, 0.13);
+    color: var(--primary-hi);
+    border-color: rgba(99, 102, 241, 0.28);
+}
+.media-filter-chip:hover {
+    background: rgba(99, 102, 241, 0.22);
+    border-color: var(--primary);
+}
+.media-filter-reset {
+    background: transparent;
+    color: var(--text-muted);
+}
+.media-filter-reset:hover {
+    color: var(--text);
+    border-color: var(--border-hi);
 }
 .media-grid {
     display: grid;
