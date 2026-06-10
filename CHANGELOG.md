@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-06-11
+
+### Features
+- **AI Autopilot:** Added `ai-autopilot` plugin to autonomously reply to direct messages, with style handling improvements.
+- **Media Viewer:** Completed chat media viewer, unwraps viewOnce media automatically, and handles 403 expired media links.
+- **Media Roadmap:** Completed media roadmap gaps and improved media thumbnails.
+- **Face Indexer:** Migrated face indexer to sidecar and added unread count functionality.
+- **Chat Management:** Separated archived and active chats.
+
+### Chores & Maintenance
+- **Plugins cleanup:** Removed redundant and vulnerable plugins, merged ping/uptime, and fixed test suites.
+- **Dependencies:** Bumped `qs`, `express`, `axios`, `ws`, `protobufjs`, and `link-preview-js`.
 ## [2.3.0] - 2026-05-02
 
 ### Security (P0)
