@@ -134,3 +134,15 @@ Start with:
 - Keyboard navigation. Initial implementation added.
 - Filter-aware empty states. Initial implementation added.
 - Persistent type/source/sort/search filters. Initial implementation added.
+- Timeline grouping. Initial implementation added.
+- Hover video preview. Initial implementation added.
+- Metadata details panel. Initial implementation added.
+- Favorite/keep marker. Initial implementation added.
+- Face cleanup filters. Initial implementation added.
+- Smart cleanup views. Initial implementation added.
+- Bulk download and local tagging. Gap patch added.
+- Person filter status with previous/next navigation. Gap patch added.
+- Cached seek-frame hover previews via thumbnail variants. Gap patch added.
+- Right-side details drawer. Gap patch added.
+- True no-face filter using face coverage data. Gap patch added.
+- Inline folder picker with suggestions. Gap patch added.

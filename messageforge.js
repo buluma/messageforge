@@ -1948,6 +1948,7 @@ app.get('/api/profile-pic/:jid', async (req, res) => {
 const {
     buildIndex: facesBuildIndex,
     getPersons,
+    getFaceCoverage,
     renamePerson,
     mergePerson,
     deletePerson,
@@ -1965,6 +1966,7 @@ app.use(
         facesBuildIndex,
         facesStatus,
         getPersons,
+        getFaceCoverage,
         renamePerson,
         mergePerson,
         deletePerson,
