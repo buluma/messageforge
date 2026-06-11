@@ -1,5 +1,7 @@
 # MessageForge TODO
 
+Improvement plan: [docs/IMPROVEMENT-CHECKLIST.md](docs/IMPROVEMENT-CHECKLIST.md)
+
 Spec: [docs/07-BAILEYS-GAP-SPEC.md](docs/07-BAILEYS-GAP-SPEC.md)
 Verification: [docs/08-BAILEYS-GAP-VERIFICATION.md](docs/08-BAILEYS-GAP-VERIFICATION.md)
 Audit source: project-wide pass 2026-05-02
