@@ -779,9 +779,7 @@ function renderGrid() {
 function renderDetailsPanel() {
     const panel = document.getElementById('mediaDetailsPanel');
     if (!panel) return;
-    const file =
-        allFiles.find((f) => f.url === selectedDetailUrl) ||
-        allFiles.find((f) => f.url === focusedMediaUrl);
+    const file = selectedDetailUrl ? allFiles.find((f) => f.url === selectedDetailUrl) : null;
     if (!file) {
         panel.hidden = true;
         panel.innerHTML = '';
