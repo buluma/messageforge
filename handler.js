@@ -135,7 +135,7 @@ function checkPermission(plugin, ctx) {
     return { ok: true };
 }
 
-function reportCommandCollisions(loadedPlugins) {
+function getCommandCollisions(loadedPlugins) {
     const ownersByCommand = new Map();
     for (const plugin of loadedPlugins) {
         const file = plugin.__pluginFile || 'unknown-file';
@@ -156,14 +156,18 @@ function reportCommandCollisions(loadedPlugins) {
         }
     }
 
-    const collisions = [...ownersByCommand.entries()]
+    return [...ownersByCommand.entries()]
         .filter(([, owners]) => owners.length > 1)
-        .sort((a, b) => a[0].localeCompare(b[0]));
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([command, owners]) => ({ command, owners }));
+}
 
+function reportCommandCollisions(loadedPlugins) {
+    const collisions = getCommandCollisions(loadedPlugins);
     if (!collisions.length) return;
 
     logger.warn(`[Plugin] Command collision report: ${collisions.length} duplicate aliases found.`);
-    for (const [cmd, owners] of collisions) {
+    for (const { command: cmd, owners } of collisions) {
         const ownerList = owners
             .map((owner, index) => `${index + 1}. ${owner.file} (${owner.primary})`)
             .join(' | ');
@@ -572,8 +576,10 @@ async function handleMessages(sock, message) {
                         isCommandLike,
                         contextInfo: isGroup ? {} : GLOBAL_CONTEXT_INFO,
                     });
-                } catch {
-                    /* ignore plugin onMessage errors */
+                } catch (err) {
+                    logger.warn(
+                        `[Plugin] onMessage error in ${p.__pluginFile || 'unknown-file'}: ${err?.message || err}`,
+                    );
                 }
             }
         }
@@ -1062,6 +1068,7 @@ module.exports = {
     plugins,
     reloadPlugin,
     reloadAllPlugins,
+    getCommandCollisions,
     jidToNum,
     sameNumber,
     levenshtein,

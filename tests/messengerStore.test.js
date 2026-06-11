@@ -1,6 +1,6 @@
 'use strict';
 
-jest.mock('../config', () => ({ DATABASE_TYPE: 'json' }));
+jest.mock('../config', () => ({ DATABASE_TYPE: 'local' }));
 jest.mock('../lib/database', () => ({ getPgPool: () => null }));
 jest.mock('../lib/logger', () => ({
     custom: jest.fn(),

@@ -7,12 +7,15 @@ Core runtime lives at the repo root: `messageforge.js` (startup/connection), `ha
 ## Build, Test, and Development Commands
 
 - `npm install`: install dependencies (Node 20+ required).
-- `cp sample.env .env`: create local config file, then fill required values.
+- `cp sample.env config.env`: create local config file, then fill required values.
 - `npm start`: start the bot (`node messageforge.js`).
 - `node messageforge.js`: direct start, useful during debugging.
+- `npm test`: run Jest unit and integration tests (Node 20+).
+- `npm run lint`: run ESLint (0 errors required).
+- `npm run lint:fix`: auto-fix lint issues.
 - `npx prettier --check .`: verify formatting.
 - `npx prettier --write .`: apply formatting fixes.
-- `docker build -t messageforge .` then `docker run --env-file .env -p 25680:25680 messageforge`: containerized run.
+- `docker build -t messageforge .` then `docker run --env-file config.env -p 25680:25680 messageforge`: containerized run.
 
 ## Coding Style & Naming Conventions
 
@@ -22,11 +25,13 @@ For plugin exports, follow the existing shape (`commands`, `description`, `permi
 
 ## Testing Guidelines
 
-No dedicated `npm test` suite is currently defined. For changes, run targeted manual checks:
+Run `npm test` before opening a PR. CI runs the suite on Node 20 and 22 with `STRICT_COMMAND_COLLISIONS=true`.
+
+For plugin or dispatch changes, also verify manually when possible:
 
 - Start locally and verify affected commands in private and group chats.
 - Validate permission gates (`public/admin/sudo/owner`) and error paths.
-- For persistence changes, confirm both local `data/` behavior and MongoDB fallback when configured.
+- For persistence changes, confirm both local `data/` behavior and PostgreSQL when `DATABASE_TYPE=postgres`.
 
 ## Commit & Pull Request Guidelines
 

@@ -3,22 +3,8 @@ export default api;
 
 const TOKEN_KEY = 'shadow_dashboard_token';
 
-function tokenFromUrl() {
-    try {
-        const token = new URLSearchParams(window.location.search).get('token');
-        return token ? token.trim() : '';
-    } catch {
-        return '';
-    }
-}
-
 export function getDashboardToken() {
     try {
-        const urlToken = tokenFromUrl();
-        if (urlToken) {
-            localStorage.setItem(TOKEN_KEY, urlToken);
-            return urlToken;
-        }
         return (localStorage.getItem(TOKEN_KEY) || '').trim();
     } catch {
         return '';

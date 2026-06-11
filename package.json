@@ -171,6 +171,10 @@
             "/node_modules/",
             "/.claude/"
         ],
+        "coveragePathIgnorePatterns": [
+            "/node_modules/",
+            "/plugins/"
+        ],
         "moduleNameMapper": {
             "^chokidar$": "<rootDir>/tests/__mocks__/chokidar.js"
         }

@@ -27,21 +27,21 @@ Work is split into small, independent PRs. Check items off as they land.
 
 ### PR 1a — Auto-discover all plugins in smoke tests
 
-- [ ] Replace static `pluginRelPaths` list in `tests/plugins.smoke.test.js` with dynamic `fs.readdirSync('plugins/')`
-- [ ] Support event-only plugins: pass if `(commands.length && run)` OR `(isEvent && run)`
-- [ ] *(Optional)* Add `tests/__fixtures__/plugin-export-allowlist.json` for known exceptions
-- [ ] `npm test` passes on Node 20 and 22
+- [x] Replace static `pluginRelPaths` list in `tests/plugins.smoke.test.js` with dynamic `fs.readdirSync('plugins/')`
+- [x] Support event-only plugins: pass if `(commands.length && run)` OR `(isEvent && run)`
+- [x] *(Optional)* Add `tests/__fixtures__/plugin-export-allowlist.json` for known exceptions (allowlist hook in place; file not needed yet)
+- [x] `npm test` passes on Node 20 and 22
 
 **Acceptance:** Every `plugins/*.js` file is covered; failures print the offending filename.
 
 ### PR 1b — Strict collisions in CI + doc cleanup
 
-- [ ] Export `getCommandCollisions()` from `handler.js` (pure function, testable)
-- [ ] Add `tests/handler.collisions.test.js` — assert zero collisions in default plugin set
-- [ ] Run CI with `STRICT_COMMAND_COLLISIONS=true` (workflow env or dedicated job)
-- [ ] Fix `AGENTS.md`: document `npm test` / `npm run lint`; remove stale MongoDB mention
-- [ ] Align `DATABASE_TYPE` docs (`local` in `config.js` vs `json` in tests/docs)
-- [ ] Remove hardcoded `OWNER_NUMBER` default in `config.js`; warn at boot if unset
+- [x] Export `getCommandCollisions()` from `handler.js` (pure function, testable)
+- [x] Add `tests/handler.collisions.test.js` — assert zero collisions in default plugin set
+- [x] Run CI with `STRICT_COMMAND_COLLISIONS=true` (workflow env or dedicated job)
+- [x] Fix `AGENTS.md`: document `npm test` / `npm run lint`; remove stale MongoDB mention
+- [x] Align `DATABASE_TYPE` docs (`local` in `config.js` vs `json` in tests/docs)
+- [x] Remove hardcoded `OWNER_NUMBER` default in `config.js`; warn at boot if unset
 - [ ] **GitHub UI:** enable branch protection — require `Tests` + `lint` checks on `main`/`master`
 
 **Acceptance:** CI fails on duplicate command aliases; contributor docs match reality.
@@ -55,17 +55,17 @@ Work is split into small, independent PRs. Check items off as they land.
 
 ### PR 2 — Production auth + write-path limits
 
-- [ ] Fail fast at boot when `NODE_ENV=production` and `DASHBOARD_TOKEN` is unset (or document explicit opt-out)
-- [ ] Remove `?token=` query-string auth from `extractAuthToken()` in `messageforge.js`
-- [ ] Update `smm/js/api.js` if it passes token via query string
-- [ ] Add stricter per-route rate limit for write endpoints (`/api/send`, `/api/send-media`, `/api/delete-message`, etc.) — e.g. 10/min per IP on top of global 120/min
-- [ ] Document `DASHBOARD_TOKEN` requirement in `sample.env` and `docs/DEPLOYMENT-CHECKLIST.md`
+- [x] Fail fast at boot when `NODE_ENV=production` and `DASHBOARD_TOKEN` is unset (or document explicit opt-out)
+- [x] Remove `?token=` query-string auth from `extractAuthToken()` in `messageforge.js`
+- [x] Update `smm/js/api.js` if it passes token via query string
+- [x] Add stricter per-route rate limit for write endpoints (`/api/send`, `/api/send-media`, `/api/delete-message`, etc.) — e.g. 10/min per IP on top of global 120/min
+- [x] Document `DASHBOARD_TOKEN` requirement in `sample.env` and `docs/DEPLOYMENT-CHECKLIST.md`
 
 **Acceptance:**
 
-- [ ] Production Docker boot fails without `DASHBOARD_TOKEN` (or logs loud warning per chosen policy)
-- [ ] `?token=` no longer authenticates
-- [ ] Burst of 15 `POST /api/send` from one IP returns 429
+- [x] Production Docker boot fails without `DASHBOARD_TOKEN` (or logs loud warning per chosen policy)
+- [x] `?token=` no longer authenticates
+- [ ] Burst of 15 `POST /api/send` from one IP returns 429 (manual verify)
 
 ---
 
@@ -76,9 +76,9 @@ Work is split into small, independent PRs. Check items off as they land.
 
 ### PR 3 — Plugin error visibility + collision metrics
 
-- [ ] Replace silent `catch {}` in `onMessage` loop (`handler.js` ~L575) with `logger.warn` including `plugin.__pluginFile`
-- [ ] Expose collision count in `/api/ops/health` (`messageforge.js`)
-- [ ] Add handler test: `onMessage` errors are logged, not swallowed
+- [x] Replace silent `catch {}` in `onMessage` loop (`handler.js` ~L575) with `logger.warn` including `plugin.__pluginFile`
+- [x] Expose collision count in `/api/ops/health` (`messageforge.js`)
+- [x] Add handler test: `onMessage` errors are logged, not swallowed
 
 **Acceptance:** Plugin hook failures visible in logs; ops dashboard shows collision count (0 in clean tree).
 
@@ -208,10 +208,10 @@ Requires a connected WhatsApp session. Spec: [08-BAILEYS-GAP-VERIFICATION.md](./
 
 ## Recommended first sprint (week 1)
 
-1. [ ] **PR 1a** — full plugin smoke tests (highest ROI, lowest risk)
-2. [ ] **PR 1b** — collision CI + `AGENTS.md` fix
-3. [ ] **PR 2** — production `DASHBOARD_TOKEN` gate + write-path rate limits
-4. [ ] **PR 3** — `onMessage` error logging
+1. [x] **PR 1a** — full plugin smoke tests (highest ROI, lowest risk)
+2. [x] **PR 1b** — collision CI + `AGENTS.md` fix *(branch protection still manual in GitHub UI)*
+3. [x] **PR 2** — production `DASHBOARD_TOKEN` gate + write-path rate limits
+4. [x] **PR 3** — `onMessage` error logging
 
 ---
 

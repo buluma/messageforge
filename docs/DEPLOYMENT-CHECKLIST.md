@@ -20,7 +20,8 @@ Use this checklist before and after deploying MessageForge to production.
 
 ## 2) Security Baseline
 
-- [ ] Dashboard token is set and kept secret.
+- [ ] `NODE_ENV=production` is set in the container/runtime (boot fails without `DASHBOARD_TOKEN`).
+- [ ] Dashboard token is set and kept secret (do not pass via `?token=` query string — use `x-dashboard-token` header or Bearer auth).
 - [ ] Port `25680` exposure is intentional:
     - [ ] LAN/VPN only preferred, or
     - [ ] Reverse proxy with auth/TLS in front.

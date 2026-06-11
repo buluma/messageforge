@@ -30,7 +30,7 @@ module.exports = {
     // Use "any" to accept any leading symbol, or "" / "none" for no prefix
     PREFIX: process.env.PREFIX || '.',
     BOT_NAME: process.env.BOT_NAME || 'MessageForge',
-    OWNER_NUMBER: process.env.OWNER_NUMBER || '254759704347',
+    OWNER_NUMBER: process.env.OWNER_NUMBER || '',
     OWNER_NAME: process.env.OWNER_NAME || 'SHADOWNET',
     DESCRIPTION: process.env.DESCRIPTION || 'MessageForge',
     LIVE_MSG: process.env.LIVE_MSG || 'MessageForge is active',

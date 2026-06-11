@@ -49,7 +49,7 @@ All runtime settings live in `config.js`, which reads from environment variables
 | `PREFIX`                | Command prefix (default `.`). Supports comma-list, `any`, or empty       |
 | `MODE`                  | `public` / `private` / `both` — who can use the bot                      |
 | `THEME`                 | Active theme name (matches a file in `themes/`)                          |
-| `DATABASE_TYPE`         | `json` (default) or `postgres`                                           |
+| `DATABASE_TYPE`         | `local` (default) or `postgres`                                          |
 | `POSTGRES_*`            | Host/port/user/password/db when using postgres                           |
 | `MESSENGER_HISTORY_MAX` | Max messages stored per chat (default 3000)                              |
 

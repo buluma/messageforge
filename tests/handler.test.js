@@ -9,7 +9,7 @@ jest.mock('../config', () => ({
     BOT_NUMBER: '',
     SUDO: '',
     THEME: 'messageforge',
-    DATABASE_TYPE: 'json',
+    DATABASE_TYPE: 'local',
     STRICT_COMMAND_COLLISIONS: false,
 }));
 
@@ -36,6 +36,7 @@ jest.mock('fs', () => {
     };
 });
 
+const logger = require('../lib/logger');
 const {
     handleMessages,
     safeSend,
@@ -531,6 +532,23 @@ describe('handleMessages', () => {
         await handleMessages(sock, makeMsg({ text: '.zzzzz' }));
         expect(plugin.run).not.toHaveBeenCalled();
         expect(sock.sendMessage).not.toHaveBeenCalled();
+    });
+
+    test('plugin onMessage error is logged, not swallowed', async () => {
+        const eventPlugin = makePlugin(['noop'], {
+            onMessage: jest.fn().mockRejectedValue(new Error('hook boom')),
+        });
+        eventPlugin.__pluginFile = 'event-test.js';
+        const remove = withPlugins(eventPlugin);
+        try {
+            const sock = makeSock();
+            await handleMessages(sock, makeMsg({ text: 'hello world' }));
+            expect(logger.warn).toHaveBeenCalledWith(
+                expect.stringContaining('[Plugin] onMessage error in event-test.js: hook boom'),
+            );
+        } finally {
+            remove();
+        }
     });
 
     // ── Plugin error handling ────────────────────────────────────────────────
