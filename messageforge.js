@@ -42,6 +42,7 @@ const { createMediaRoutes, MEDIA_EXTS, scanMediaDir } = require('./lib/mediaRout
 const { makeMessageCache, makeGetMessage, bindAntiDelete } = require('./lib/antiDelete');
 const { createStatusSaver } = require('./lib/statusRoutes');
 const { createFaceRoutes } = require('./lib/faceRoutes');
+const { buildIndex: facesBuildIndex } = require('./lib/faceIndexer');
 const {
     downloadMediaBuffer,
     enqueueAntiViewOnceJob,
@@ -96,6 +97,10 @@ io.use((socket, next) => {
 
 io.on('connection', (socket) => {
     socket.join(DASHBOARD_ROOM);
+    // Send pending QR code if available (emitted before dashboard connected)
+    if (global._pendingQR) {
+        socket.emit('qr', global._pendingQR);
+    }
 });
 
 app.use(express.json({ limit: '70mb' }));
@@ -108,6 +113,15 @@ app.use('/api', globalApiRateLimit);
 
 // ── Write-path rate limiter (10 req/min per IP on mutating endpoints) ─────────
 app.use('/api', writeRateLimit);
+
+// ── QR code endpoint (for WhatsApp pairing) ────────────────────────
+app.get('/api/qr', (req, res) => {
+    if (global._pendingQR) {
+        res.json({ qr: global._pendingQR.qr, raw: global._pendingQR.raw });
+    } else {
+        res.status(404).json({ error: 'No QR code available yet' });
+    }
+});
 
 app.use(express.static(path.join(__dirname, 'smm')));
 app.use('/media-files', requireDashboardAuth, express.static(path.join(__dirname, 'data')));
@@ -126,11 +140,16 @@ app.use('/api', (req, res, next) => {
 app.use('/gh', requireDashboardAuth);
 
 // ── Mount Extracted Routes ───────────────────────────────────────────────
-require('./lib/routes').mountAll(app, { store, getSock: () => global.sock });
+require('./lib/routes').mountAll(app, {
+    store,
+    getSock: () => global.sock,
+    requireDashboardAuth,
+    facesBuildIndex,
+});
 
-httpSrv.listen(port, () => {
-    logMessage('INFO', `Server listening on port ${port}.`);
-    logMessage('INFO', `Dashboard: http://localhost:${port}`);
+httpSrv.listen(config.PORT, () => {
+    logMessage('INFO', `Server listening on port ${config.PORT}.`);
+    logMessage('INFO', `Dashboard: http://localhost:${config.PORT}`);
 
     // ── Heroku keep-alive self-ping ─────────────────────────────────────────
     // On Heroku free/eco dynos the process sleeps after 30 min of no traffic,

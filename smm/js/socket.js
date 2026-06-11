@@ -4,7 +4,7 @@ import { setupFocusTrap } from './utils.js';
 
 export const events = new EventTarget();
 
-const FORWARD = ['new-message', 'presence-update', 'reaction-update'];
+const FORWARD = ['new-message', 'presence-update', 'reaction-update', 'qr'];
 let authPromptShown = false;
 
 function showAuthModal(sock) {

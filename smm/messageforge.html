@@ -747,5 +747,17 @@
                 </div>
             </div>
         </div>
+    <!-- QR code overlay for WhatsApp pairing -->
+    <div id="qrOverlay" class="qr-overlay" hidden>
+        <div class="qr-overlay-content">
+            <button id="qrCloseBtn" class="ghost-btn" style="position:absolute;top:8px;right:8px;font-size:18px">✕</button>
+            <h3 style="margin:0 0 12px 0;font-family:var(--font-display);color:var(--text-primary)">Scan QR Code</h3>
+            <img id="qrImage" src="" alt="WhatsApp QR Code" style="width:260px;height:260px;border-radius:8px;background:#fff;padding:8px"/>
+            <p style="margin:12px 0 0 0;font-size:13px;color:var(--text-secondary)">
+                Open WhatsApp on your phone → Settings → Linked Devices → <strong>Link a Device</strong> → scan this QR
+            </p>
+            <p id="qrCodeText" style="margin:8px 0 0 0;font-size:13px;color:var(--text-secondary)"></p>
+        </div>
+    </div>
     </body>
 </html>

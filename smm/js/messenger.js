@@ -76,6 +76,28 @@ export function mountMessenger() {
             updateDocumentTitle();
         }
     });
+    function showQR(data) {
+        const overlay = document.getElementById('qrOverlay');
+        const img = document.getElementById('qrImage');
+        const txt = document.getElementById('qrCodeText');
+        if (!overlay) return;
+        if (data?.qr) {
+            img.src = data.qr;
+            if (txt) txt.textContent = data.raw ? `raw: ${data.raw.substring(0, 40)}...` : '';
+            overlay.hidden = false;
+        } else {
+            overlay.hidden = true;
+        }
+    }
+    on('qr', showQR);
+    // Fallback: check REST API for pending QR (in case Socket.IO event was missed)
+    fetch('/api/qr').then(r => r.json()).then(data => {
+        if (data?.qr) showQR(data);
+    }).catch(() => {});
+    document.getElementById('qrCloseBtn')?.addEventListener('click', () => {
+        document.getElementById('qrOverlay').hidden = true;
+    });
+
     on('presence-update', ({ jid, presences }) => {
         if (jid !== state.activeJid) return;
         const values = Object.values(presences || {});
@@ -1106,9 +1128,14 @@ function cancelReply() {
     document.getElementById('replyPreview').hidden = true;
 }
 
+let _lastTypingSent = 0;
 function handleTyping() {
     if (!state.activeJid) return;
-    api.sendTypingState(state.activeJid, 'composing').catch(() => {});
+    const now = Date.now();
+    if (now - _lastTypingSent > 1000) {
+        _lastTypingSent = now;
+        api.sendTypingState(state.activeJid, 'composing').catch(() => {});
+    }
     clearTimeout(state.typingTimer);
     state.typingTimer = setTimeout(() => {
         api.sendTypingState(state.activeJid, 'paused').catch(() => {});

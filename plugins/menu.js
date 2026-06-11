@@ -7,14 +7,19 @@ const { proto, generateMessageIDV2 } = baileys;
 const WEBSITE = 'https://github.com/buluma/messageforge';
 const TZ = 'Africa/Nairobi';
 
-// ── Import category enum from handler ────────────────────────────────────────
-let CATEGORY_META = {};
-try {
-    const { PLUGIN_CATEGORIES } = require('../handler');
-    CATEGORY_META = PLUGIN_CATEGORIES;
-} catch {
-    // Fallback if handler cannot be loaded during build checks
-}
+// ── Category icon/label mapping (mirrors handler.PLUGIN_CATEGORIES) ─────────
+const CATEGORY_META = {
+    moderation: { icon: '🛡️', label: 'Moderation' },
+    media: { icon: '🎵', label: 'Media' },
+    downloaders: { icon: '⬇️', label: 'Downloaders' },
+    ai: { icon: '🤖', label: 'AI & Intelligence' },
+    utility: { icon: '🔧', label: 'Utility' },
+    games: { icon: '🎮', label: 'Games' },
+    group: { icon: '👥', label: 'Group Management' },
+    owner: { icon: '👑', label: 'Owner' },
+    automation: { icon: '⚙️', label: 'Automation' },
+    search: { icon: '🔍', label: 'Search & Info' },
+};
 
 // ── Filename heuristic rules for plugins without explicit category ───────────
 const FILENAME_HEURISTICS = [
