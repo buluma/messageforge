@@ -1,14 +1,19 @@
 'use strict';
 
 const axios = require('axios');
-const { pipeline } = require('stream');
-const { promisify } = require('util');
-const streamPipeline = promisify(pipeline);
 const fs = require('fs');
 const path = require('path');
 const tiktokScraper = require('../lib/tiktokProfileScraper');
+const { downloadToFile } = require('../lib/resilientDownloader');
 
 const DATA_DIR = path.join(__dirname, '..', 'data', 'tiktok');
+const TIKTOK_MOBILE_UA =
+    'com.zhiliaoapp.musically/2022803040 (Linux; U; Android 10; en_US; Pixel 4; Build/QQ3A.200805.001; Cronet/TTNetVersion:5f9640e3 2021-04-21 QuicVersion:47946d2a 2020-10-14)';
+const TIKTOK_MEDIA_HEADERS = {
+    'User-Agent': TIKTOK_MOBILE_UA,
+    Accept: '*/*',
+    Referer: 'https://www.tiktok.com/',
+};
 
 // ─── Telegram Config ────────────────────────────────────────────────────────────
 function getTelegramConfig() {
@@ -181,13 +186,29 @@ function parseTikWM(data) {
     }
 
     // Video branch
-    if (!d.play) return null;
+    if (!d.play && !d.wmplay) return null;
 
     const wmField = d.wm;
     const hasWatermark = wmField === 1 || wmField === true || wmField === '1';
 
     return {
-        videoUrl: d.play,
+        videoUrl: d.wmplay || d.play,
+        videoCandidates: [
+            d.wmplay
+                ? { label: 'TikWM wmplay', url: d.wmplay, headers: TIKTOK_MEDIA_HEADERS }
+                : null,
+            d.play ? { label: 'TikWM play', url: d.play, headers: TIKTOK_MEDIA_HEADERS } : null,
+            d.hdplay
+                ? { label: 'TikWM hdplay', url: d.hdplay, headers: TIKTOK_MEDIA_HEADERS }
+                : null,
+            d.id
+                ? {
+                      label: 'TikWM media proxy',
+                      url: `https://tikwm.com/video/media/play/${d.id}.mp4`,
+                      headers: TIKTOK_MEDIA_HEADERS,
+                  }
+                : null,
+        ].filter(Boolean),
         hdUrl: d.hdplay || null,
         wmplayUrl: d.wmplay || null,
         author: d.author?.nickname || d.author?.name || 'Unknown',
@@ -210,6 +231,9 @@ function parseTiklydown(data) {
     if (!data?.videoUrl) return null;
     return {
         videoUrl: data.videoUrl,
+        videoCandidates: [
+            { label: 'Tiklydown video', url: data.videoUrl, headers: TIKTOK_MEDIA_HEADERS },
+        ],
         author: data.author || 'Unknown',
         likes: data.stats?.digg_count,
         hasWatermark: false, // Tiklydown removes watermarks
@@ -224,6 +248,9 @@ function parseMusicaldown(data) {
     if (!data?.videoUrl) return null;
     return {
         videoUrl: data.videoUrl,
+        videoCandidates: [
+            { label: 'Musicaldown video', url: data.videoUrl, headers: TIKTOK_MEDIA_HEADERS },
+        ],
         author: data.author || 'Unknown',
         hasWatermark: false, // Musicaldown removes watermarks
         api: 'Musicaldown',
@@ -251,6 +278,13 @@ async function fetchWithWatermarkRemoval(url, quality) {
             if (!video.videoUrl) throw new Error('no_video_url');
             return {
                 videoUrl: quality === 'hd' && video.videoUrl ? video.videoUrl : video.videoUrl,
+                videoCandidates: [
+                    {
+                        label: 'TikTok API video',
+                        url: video.videoUrl,
+                        headers: TIKTOK_MEDIA_HEADERS,
+                    },
+                ],
                 author: video.author?.nickname || resolved.nickname || 'Unknown',
                 likes: video.stats?.likeCount,
                 plays: video.stats?.playCount,
@@ -331,11 +365,13 @@ async function fetchWithWatermarkRemoval(url, quality) {
                     result.videoUrl = result.hdUrl;
                 }
 
-                // If TikWM has watermark, try wmplay (with watermark) and note it
-                if (strategy.name === 'TikWM' && result.hasWatermark && result.wmplayUrl) {
+                // TikWM's wmplay endpoint often redirects to a CDN edge that accepts
+                // mobile-app style requests more reliably than the primary play URL.
+                if (strategy.name === 'TikWM' && result.wmplayUrl) {
                     console.log(
-                        `[TikTok] TikWM returned video with watermark, trying alternative...`,
+                        `[TikTok] TikWM returned a mobile playback URL, including it as primary...`,
                     );
+                    result.videoUrl = result.wmplayUrl;
                     result.hasWatermark = false; // Assume success for now
                 }
 
@@ -587,13 +623,18 @@ module.exports = {
                         `[TikTok] Photo ${i + 1}/${result.images.length}: ${imgUrl.slice(0, 60)}...`,
                     );
 
-                    const imgRes = await axios({
-                        method: 'get',
-                        url: imgUrl,
-                        responseType: 'stream',
-                        timeout: 30000,
-                    });
-                    await streamPipeline(imgRes.data, fs.createWriteStream(imgPath));
+                    await downloadToFile(
+                        [
+                            {
+                                label: `TikTok photo ${i + 1}`,
+                                url: imgUrl,
+                                headers: TIKTOK_MEDIA_HEADERS,
+                                timeout: 30000,
+                            },
+                        ],
+                        imgPath,
+                        { minBytes: 512 },
+                    );
                     savedPaths.push(imgPath);
                 }
 
@@ -649,22 +690,20 @@ module.exports = {
                 const fileId = `tt_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
                 const savedPath = path.join(DATA_DIR, `${fileId}.mp4`);
 
-                const res = await axios({
-                    method: 'get',
-                    url: result.videoUrl,
-                    responseType: 'stream',
-                    timeout: 60000,
-                });
-
-                await streamPipeline(res.data, fs.createWriteStream(savedPath));
-
-                const stat = fs.statSync(savedPath);
-                if (stat.size < 1024) {
-                    throw new Error('Downloaded file is too small (likely corrupted)');
-                }
+                const download = await downloadToFile(
+                    result.videoCandidates?.length
+                        ? result.videoCandidates
+                        : [{ label: result.api || 'TikTok video', url: result.videoUrl }],
+                    savedPath,
+                    {
+                        timeout: 60000,
+                        minBytes: 1024,
+                        headers: TIKTOK_MEDIA_HEADERS,
+                    },
+                );
 
                 console.log(
-                    `[TikTok] Download complete: ${(stat.size / 1024 / 1024).toFixed(2)} MB`,
+                    `[TikTok] Download complete via ${download.label}: ${(download.size / 1024 / 1024).toFixed(2)} MB`,
                 );
                 console.log(`[TikTok] Saved to: ${savedPath}`);
 
@@ -738,10 +777,16 @@ module.exports = {
             }
         } catch (err) {
             console.error(`[TikTok] Error: ${err.message}`);
+            const attempts = Array.isArray(err.attempts) ? err.attempts : [];
+            const suffix = attempts.length
+                ? `\n\nTried ${attempts.length} media URL${attempts.length !== 1 ? 's' : ''}: ${attempts
+                      .map((item) => item.type)
+                      .join(', ')}`
+                : '';
             await sock.sendMessage(
                 sender,
                 {
-                    text: fmt(`❌ *Download Error*\n\n${err.message}`),
+                    text: fmt(`❌ *Download Error*\n\n${err.message}${suffix}`),
                     contextInfo,
                 },
                 { quoted: message },

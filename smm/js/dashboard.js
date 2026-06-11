@@ -59,9 +59,36 @@ async function refreshAll() {
         fetchDeveloper(),
         fetchAndRenderPlugins(),
         fetchAndRenderChart(),
+        fetchAndRenderHealth(),
     ]);
     document.getElementById('lastUpdated').textContent =
         `Updated ${new Date().toLocaleTimeString()}`;
+}
+
+async function fetchAndRenderHealth() {
+    try {
+        const health = await api.opsHealth();
+        const ok = health.status === 'ok' && health.bot?.socketReady;
+        setText('opsHealthStatus', ok ? 'Healthy' : 'Degraded');
+        setText('opsBotState', health.bot?.socketReady ? 'Socket ready' : 'Socket offline');
+        setText('opsUptime', formatDuration(health.uptimeSeconds || 0));
+        setText('opsMemory', formatBytes(health.memory?.rss || 0));
+        setText(
+            'opsStorage',
+            `data ${formatBytes(health.storage?.dataBytes || 0)} · logs ${formatBytes(health.storage?.logsBytes || 0)}`,
+        );
+        setText(
+            'opsTelegram',
+            health.integrations?.telegramAutoSend
+                ? health.integrations.telegramConfigured
+                    ? 'Auto-send on'
+                    : 'Auto-send missing config'
+                : 'Auto-send off',
+        );
+        setText('opsPlugins', health.counts?.plugins);
+    } catch {
+        setText('opsHealthStatus', 'Unavailable');
+    }
 }
 
 // ── Repo stats ───────────────────────────────────────────────────
@@ -293,4 +320,22 @@ function renderCommitChart(githubSeries, localSeries) {
 function setText(id, val) {
     const el = document.getElementById(id);
     if (el) el.textContent = val ?? '—';
+}
+
+function formatBytes(bytes) {
+    const value = Number(bytes || 0);
+    if (value < 1024) return `${value} B`;
+    if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+    if (value < 1024 * 1024 * 1024) return `${(value / 1024 / 1024).toFixed(1)} MB`;
+    return `${(value / 1024 / 1024 / 1024).toFixed(1)} GB`;
+}
+
+function formatDuration(seconds) {
+    const total = Math.max(0, Number(seconds || 0));
+    const days = Math.floor(total / 86400);
+    const hours = Math.floor((total % 86400) / 3600);
+    const mins = Math.floor((total % 3600) / 60);
+    if (days) return `${days}d ${hours}h`;
+    if (hours) return `${hours}h ${mins}m`;
+    return `${mins}m`;
 }

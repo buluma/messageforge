@@ -18,6 +18,7 @@ const path = require('path');
 
 const REPO_ROOT = path.join(__dirname, '..');
 const PLUGINS_DIR = path.join(REPO_ROOT, 'plugins');
+const INTENTIONAL_PRIVATE_PUBLIC = new Set(['autoreply-scheduler.js', 'statussave.js']);
 
 function boolToTri(v) {
     if (v === true) return 'true';
@@ -108,7 +109,12 @@ function main() {
         }
 
         // - group-only restriction on a public command is often surprising (but might be fine).
-        if (perm === 'public' && allowPrivate && !allowGroup) {
+        if (
+            perm === 'public' &&
+            allowPrivate &&
+            !allowGroup &&
+            !INTENTIONAL_PRIVATE_PUBLIC.has(file)
+        ) {
             findings.push({
                 severity: 'warn',
                 file,

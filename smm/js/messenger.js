@@ -16,6 +16,7 @@ const PAGE_SIZE = 60;
 let chatTimeTicker = null;
 let activeChatRequest = null;
 const SCROLL_BOTTOM_THRESHOLD = 72;
+let chatMediaObserver = null;
 
 // ── Quick-reply template state ────────────────────────────────────
 let quickReplies = [];
@@ -1137,7 +1138,11 @@ async function openChatMediaModal() {
     if (!state.activeJid) return;
     const modal = document.getElementById('chatMediaModal');
     const grid = document.getElementById('chatMediaGrid');
+    const viewer = document.getElementById('chatMediaViewer');
+    if (chatMediaObserver) chatMediaObserver.disconnect();
     modal.hidden = false;
+    viewer.hidden = true;
+    grid.hidden = false;
     grid.innerHTML = '<div class="empty-state">Loading media...</div>';
 
     try {
@@ -1165,31 +1170,157 @@ async function openChatMediaModal() {
                 const isDoc = type === 'documentMessage';
                 const isSticker = type === 'stickerMessage';
                 const url = `/api/media/${encodeURIComponent(state.activeJid)}/${msg.msgId}`;
+                const thumb = chatMediaThumb(mediaObj);
 
+                let label = 'Image';
                 let content = '';
                 if (isVideo) {
-                    content = `<video src="${url}" controls style="width: 100%; height: 100%; object-fit: cover;"></video>`;
+                    label = 'Video';
+                    content = chatMediaPreviewLink(url, thumb, label, '▶');
                 } else if (isAudio) {
-                    content = `<div style="display:flex;align-items:center;justify-content:center;height:100%;background:rgba(0,0,0,0.2);"><audio src="${url}" controls style="width: 90%;"></audio></div>`;
+                    label = 'Audio';
+                    content = `<button class="chat-media-file chat-media-audio chat-media-open" type="button">▶ Audio</button>`;
                 } else if (isDoc) {
-                    content = `<a href="${url}" target="_blank" style="display:flex;align-items:center;justify-content:center;height:100%;background:rgba(0,0,0,0.2);text-decoration:none;color:inherit;">📄 ${mediaObj.fileName || 'Document'}</a>`;
+                    label = 'Document';
+                    content = `<button class="chat-media-file chat-media-open" type="button">📄 ${escapeHtml(mediaObj.fileName || 'Document')}</button>`;
+                } else if (isSticker) {
+                    label = 'Sticker';
+                    content = thumb
+                        ? chatMediaPreviewLink(url, thumb, label, '')
+                        : `<img class="chat-media-item-media chat-media-sticker chat-media-lazy" data-src="${url}" alt="Sticker" loading="lazy" decoding="async" />`;
                 } else {
-                    content = `<img src="${url}" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy" />`;
+                    content = thumb
+                        ? chatMediaPreviewLink(url, thumb, label, '')
+                        : `<img class="chat-media-item-media chat-media-lazy" data-src="${url}" alt="Chat media" loading="lazy" decoding="async" />`;
                 }
 
                 return `
-                <div class="media-card" style="aspect-ratio: 1; overflow: hidden; background: var(--surface); border-radius: 8px; border: 1px solid var(--border);">
+                <div class="chat-media-card" title="${escapeHtml(label)}" data-url="${url}" data-kind="${escapeHtml(label.toLowerCase())}">
                     ${content}
+                    <div class="chat-media-broken">Preview unavailable</div>
                 </div>
             `;
             })
             .join('');
+        setupChatMediaLazyLoad(grid);
     } catch (e) {
         grid.innerHTML = `<div class="empty-state">Error loading media: ${e.message}</div>`;
     }
 }
 
+function chatMediaThumb(mediaObj) {
+    const raw = mediaObj?.jpegThumbnail;
+    if (!raw) return '';
+    if (typeof raw === 'string') return `data:image/jpeg;base64,${raw}`;
+    if (Array.isArray(raw?.data)) {
+        const bytes = raw.data.reduce((text, byte) => text + String.fromCharCode(byte), '');
+        return `data:image/jpeg;base64,${btoa(bytes)}`;
+    }
+    return '';
+}
+
+function chatMediaPreviewLink(url, thumb, label, icon) {
+    if (!thumb) {
+        return `<button class="chat-media-file chat-media-open" type="button">${escapeHtml(icon || label)} ${escapeHtml(label)}</button>`;
+    }
+    return `
+        <button class="chat-media-preview chat-media-open" type="button" aria-label="Open ${escapeHtml(label)}">
+            <img class="chat-media-item-media" src="${thumb}" alt="${escapeHtml(label)} preview" loading="lazy" decoding="async" />
+            ${icon ? `<span class="chat-media-play">${escapeHtml(icon)}</span>` : ''}
+        </button>
+    `;
+}
+
+function setupChatMediaLazyLoad(grid) {
+    const items = Array.from(grid.querySelectorAll('.chat-media-lazy'));
+    grid.querySelectorAll('.chat-media-item-media').forEach((el) => {
+        el.addEventListener(
+            'error',
+            () => el.closest('.chat-media-card')?.classList.add('is-broken'),
+            { once: true },
+        );
+    });
+    if (!items.length) return;
+
+    const loadItem = (el) => {
+        if (!el.dataset.src) return;
+        el.src = el.dataset.src;
+        delete el.dataset.src;
+        el.closest('.chat-media-card')?.classList.add('is-loading');
+        el.addEventListener(
+            'load',
+            () => el.closest('.chat-media-card')?.classList.remove('is-loading'),
+            { once: true },
+        );
+        el.addEventListener(
+            'loadedmetadata',
+            () => el.closest('.chat-media-card')?.classList.remove('is-loading'),
+            { once: true },
+        );
+        el.addEventListener(
+            'error',
+            () => el.closest('.chat-media-card')?.classList.add('is-broken'),
+            { once: true },
+        );
+    };
+
+    if (!('IntersectionObserver' in window)) {
+        items.slice(0, 12).forEach(loadItem);
+        return;
+    }
+
+    chatMediaObserver = new IntersectionObserver(
+        (entries) => {
+            for (const entry of entries) {
+                if (!entry.isIntersecting) continue;
+                chatMediaObserver.unobserve(entry.target);
+                loadItem(entry.target);
+            }
+        },
+        { root: grid, rootMargin: '220px 0px', threshold: 0.01 },
+    );
+    items.forEach((item) => chatMediaObserver.observe(item));
+}
+
 document.getElementById('chatMediaModalClose').addEventListener('click', () => {
+    if (chatMediaObserver) chatMediaObserver.disconnect();
+    chatMediaObserver = null;
     document.getElementById('chatMediaModal').hidden = true;
     document.getElementById('chatMediaGrid').innerHTML = '';
+    document.getElementById('chatMediaViewerContent').innerHTML = '';
 });
+
+document.getElementById('chatMediaGrid').addEventListener('click', (event) => {
+    const card = event.target.closest('.chat-media-card');
+    if (!card) return;
+    event.preventDefault();
+    openChatMediaViewer(card.dataset.url, card.dataset.kind);
+});
+
+document.getElementById('chatMediaViewerBack').addEventListener('click', () => {
+    document.getElementById('chatMediaViewer').hidden = true;
+    document.getElementById('chatMediaViewerContent').innerHTML = '';
+    document.getElementById('chatMediaGrid').hidden = false;
+});
+
+function openChatMediaViewer(url, kind) {
+    if (!url) return;
+    const grid = document.getElementById('chatMediaGrid');
+    const viewer = document.getElementById('chatMediaViewer');
+    const content = document.getElementById('chatMediaViewerContent');
+    const open = document.getElementById('chatMediaViewerOpen');
+
+    grid.hidden = true;
+    viewer.hidden = false;
+    open.href = url;
+
+    if (kind === 'video') {
+        content.innerHTML = `<video class="chat-media-viewer-media" src="${url}" controls autoplay></video>`;
+    } else if (kind === 'audio') {
+        content.innerHTML = `<audio class="chat-media-viewer-audio" src="${url}" controls autoplay></audio>`;
+    } else if (kind === 'document') {
+        content.innerHTML = `<a class="chat-media-file" href="${url}" target="_blank" rel="noopener">Open document</a>`;
+    } else {
+        content.innerHTML = `<img class="chat-media-viewer-media" src="${url}" alt="Chat media" />`;
+    }
+}

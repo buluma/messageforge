@@ -10,7 +10,7 @@ module.exports = {
     usage: '.ban @user | .unban @user | .banlist',
     permission: 'admin',
     group: true,
-    private: true,
+    private: false,
 
     run: async (sock, message, args, ctx) => {
         const { jid, contextInfo, mentionedJid, fmt } = ctx;

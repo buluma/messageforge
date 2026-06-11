@@ -63,6 +63,7 @@ api.interceptors.response.use(
 
 // ── Identity / chats ──────────────────────────────────────────────
 export const authConfig = () => api.get('/api/auth/config').then((r) => r.data);
+export const opsHealth = () => api.get('/api/ops/health').then((r) => r.data);
 export const me = () => api.get('/api/me').then((r) => r.data);
 export const fetchChats = (options = {}) =>
     api

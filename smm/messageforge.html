@@ -365,6 +365,40 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="card">
+                            <header class="card-header">
+                                <h3>Operational Health</h3>
+                                <span id="opsHealthStatus" class="muted" role="status"
+                                    >Loading…</span
+                                >
+                            </header>
+                            <dl class="health-grid">
+                                <div>
+                                    <dt>Bot</dt>
+                                    <dd id="opsBotState">—</dd>
+                                </div>
+                                <div>
+                                    <dt>Uptime</dt>
+                                    <dd id="opsUptime">—</dd>
+                                </div>
+                                <div>
+                                    <dt>Memory</dt>
+                                    <dd id="opsMemory">—</dd>
+                                </div>
+                                <div>
+                                    <dt>Storage</dt>
+                                    <dd id="opsStorage">—</dd>
+                                </div>
+                                <div>
+                                    <dt>Telegram</dt>
+                                    <dd id="opsTelegram">—</dd>
+                                </div>
+                                <div>
+                                    <dt>Plugins</dt>
+                                    <dd id="opsPlugins">—</dd>
+                                </div>
+                            </dl>
+                        </div>
                     </div>
                 </section>
 
@@ -607,28 +641,30 @@
 
         <!-- Chat Media Modal -->
         <div id="chatMediaModal" class="qr-modal" role="dialog" aria-modal="true" hidden>
-            <div
-                class="qr-modal-box"
-                style="
-                    max-width: 800px;
-                    width: 90%;
-                    height: 80vh;
-                    display: flex;
-                    flex-direction: column;
-                "
-            >
+            <div class="qr-modal-box chat-media-modal-box">
                 <div class="qr-modal-header">
                     <h3>Chat Media</h3>
                     <button id="chatMediaModalClose" class="ghost-btn" aria-label="Close modal">
                         ✕
                     </button>
                 </div>
-                <div
-                    id="chatMediaGrid"
-                    class="media-grid"
-                    style="flex: 1; overflow-y: auto; padding: 16px"
-                >
+                <div id="chatMediaGrid" class="chat-media-grid">
                     <div class="empty-state">Loading media...</div>
+                </div>
+                <div id="chatMediaViewer" class="chat-media-viewer" hidden>
+                    <div class="chat-media-viewer-header">
+                        <button id="chatMediaViewerBack" class="ghost-btn">← Back</button>
+                        <a
+                            id="chatMediaViewerOpen"
+                            class="ghost-btn"
+                            href="#"
+                            target="_blank"
+                            rel="noopener"
+                        >
+                            Open
+                        </a>
+                    </div>
+                    <div id="chatMediaViewerContent" class="chat-media-viewer-content"></div>
                 </div>
             </div>
         </div>

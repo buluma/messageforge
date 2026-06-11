@@ -1,6 +1,7 @@
 // MessageForge runtime entrypoint with WhatsApp connection and dashboard wiring
 const { File: BufferFile } = require('node:buffer');
 global.File = BufferFile;
+process.title = 'messageforge';
 process.setMaxListeners(20);
 
 // ── Integrity verification ─────────────────────────────────────────────────
@@ -1288,12 +1289,28 @@ async function createWhatsAppSocket() {
                                     const path = require('path');
                                     const dlDir = path.join(process.cwd(), 'downloads', 'viewonce');
                                     fs.mkdirSync(dlDir, { recursive: true });
-                                    const ext = reveal.mediaType === 'image' ? '.jpg' : reveal.mediaType === 'video' ? '.mp4' : reveal.mediaType === 'audio' ? '.ogg' : '.bin';
-                                    const filePath = path.join(dlDir, `${senderNum}_${Date.now()}${ext}`);
+                                    const ext =
+                                        reveal.mediaType === 'image'
+                                            ? '.jpg'
+                                            : reveal.mediaType === 'video'
+                                              ? '.mp4'
+                                              : reveal.mediaType === 'audio'
+                                                ? '.ogg'
+                                                : '.bin';
+                                    const filePath = path.join(
+                                        dlDir,
+                                        `${senderNum}_${Date.now()}${ext}`,
+                                    );
                                     fs.writeFileSync(filePath, buffer);
-                                    logMessage('INFO', `Anti-VV: saved ${reveal.type} to ${filePath}`);
+                                    logMessage(
+                                        'INFO',
+                                        `Anti-VV: saved ${reveal.type} to ${filePath}`,
+                                    );
                                 } catch (e) {
-                                    logMessage('WARN', `Anti-VV: failed to save to disk: ${e.message}`);
+                                    logMessage(
+                                        'WARN',
+                                        `Anti-VV: failed to save to disk: ${e.message}`,
+                                    );
                                 }
                             },
                             {
@@ -1541,6 +1558,7 @@ const _apiRateLimitMap = new Map();
 const _rateLimitExempt = new Set(['/api/media/thumb', '/api/media/face']);
 app.use('/api', (req, res, next) => {
     const base = '/' + req.path.split('/').slice(1, 4).join('/');
+    if (req.path.startsWith('/media/')) return next();
     if (_rateLimitExempt.has(base)) return next();
 
     const ip = requestIp(req);
@@ -1576,6 +1594,61 @@ app.use('/api', (req, res, next) => {
     return requireDashboardAuth(req, res, next);
 });
 app.use('/gh', requireDashboardAuth);
+
+function dirSizeBytes(dir) {
+    try {
+        if (!fs.existsSync(dir)) return 0;
+        let total = 0;
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            const full = path.join(dir, entry.name);
+            if (entry.isDirectory()) total += dirSizeBytes(full);
+            else if (entry.isFile()) total += fs.statSync(full).size;
+        }
+        return total;
+    } catch {
+        return null;
+    }
+}
+
+app.get('/api/ops/health', (req, res) => {
+    const memory = process.memoryUsage();
+    const dataDir = path.join(__dirname, 'data');
+    const logsDir = path.join(__dirname, 'logs');
+    const sessionDir = path.join(__dirname, 'session');
+
+    res.json({
+        status: global.sock ? 'ok' : 'degraded',
+        time: new Date().toISOString(),
+        uptimeSeconds: Math.floor(process.uptime()),
+        node: process.version,
+        bot: {
+            name: config.BOT_NAME,
+            socketReady: !!global.sock,
+            user: global.sock?.user?.id || null,
+        },
+        counts: {
+            plugins: plugins.length,
+            bannedUsers: global.bannedUsers?.size || 0,
+            autoReplySchedules: Object.keys(global.autoReplySchedules || {}).length,
+        },
+        integrations: {
+            telegramAutoSend: process.env.TELEGRAM_AUTO_SEND === 'true',
+            telegramConfigured: !!process.env.TELEGRAM_BOT_TOKEN && !!process.env.TELEGRAM_CHAT_ID,
+            dashboardTokenRequired: !!dashboardToken,
+        },
+        storage: {
+            dataBytes: dirSizeBytes(dataDir),
+            logsBytes: dirSizeBytes(logsDir),
+            sessionBytes: dirSizeBytes(sessionDir),
+        },
+        memory: {
+            rss: memory.rss,
+            heapUsed: memory.heapUsed,
+            heapTotal: memory.heapTotal,
+            external: memory.external,
+        },
+    });
+});
 
 app.get('/', (req, res) => {
     const html = path.join(__dirname, 'smm', 'messageforge.html');

@@ -1811,6 +1811,11 @@ export function mountMedia() {
         }
         if (e.key === 'Escape') {
             e.preventDefault();
+            if (selectedDetailUrl) {
+                selectedDetailUrl = null;
+                renderDetailsPanel();
+                return;
+            }
             if (selectedMediaUrls.size > 0) {
                 selectedMediaUrls.clear();
                 renderGrid();
