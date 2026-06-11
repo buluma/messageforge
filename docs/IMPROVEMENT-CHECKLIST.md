@@ -156,10 +156,11 @@ Work is split into small, independent PRs. Check items off as they land.
 
 ### PR 6 — Metrics in ops health
 
-- [ ] Create `lib/metrics.js` — in-memory counters: `commandsExecuted`, `commandsFailed`, `sendGuardThrottled`, `pluginOnMessageErrors`
-- [ ] Increment in `handler.js` on dispatch success/failure
-- [ ] Increment in `createSendPacer` when send guard waits
-- [ ] Expose counters in `/api/ops/health`
+- [x] Create `lib/metrics.js` — in-memory counters: `commandsExecuted`, `commandsFailed`, `sendGuardThrottled`, `pluginOnMessageErrors`
+- [x] Increment in `handler.js` on dispatch success/failure
+- [x] Increment in `createSendPacer` when send guard waits
+- [x] Expose counters in `/api/ops/health`
+- [x] Add unit test for metrics module (100% coverage)
 - [ ] *(Optional)* Add request ID middleware for API logs
 
 **Acceptance:** After 10 commands, `/api/ops/health` shows `commandsExecuted: 10`; throttle events increment when send guard waits.

@@ -5,6 +5,7 @@ const path = require('path');
 const config = require('./config');
 const { getStr, getActiveTheme, fmt } = require('./lib/theme');
 const logger = require('./lib/logger');
+const metrics = require('./lib/metrics');
 
 let isJidGroup, areJidsSameUser, jidNormalizedUser;
 try {
@@ -606,6 +607,7 @@ async function handleMessages(sock, message) {
                         contextInfo: isGroup ? {} : GLOBAL_CONTEXT_INFO,
                     });
                 } catch (err) {
+                    metrics.inc('pluginOnMessageErrors');
                     logger.warn(
                         `[Plugin] onMessage error in ${p.__pluginFile || 'unknown-file'}: ${err?.message || err}`,
                     );
@@ -1018,6 +1020,7 @@ async function handleMessages(sock, message) {
             const startedAt = Date.now();
             try {
                 await plugin.run(sock, message, args, ctx);
+                metrics.inc('commandsExecuted');
                 await emitCommandExecuted({
                     sock,
                     command: resolvedCommand,
@@ -1035,6 +1038,7 @@ async function handleMessages(sock, message) {
                 });
                 executed = true;
             } catch (err) {
+                metrics.inc('commandsFailed');
                 logger.error(`[Plugin:${command}] ${err.stack || err.message}`);
                 const errTheme = getActiveTheme();
                 await safeSend(
