@@ -21,3 +21,4 @@ config.env
 /coverage
 secrets/
 /bin
+/lib/whatsapp/data
