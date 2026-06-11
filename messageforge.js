@@ -56,8 +56,33 @@ const { requireDashboardAuth, dashboardToken } = require('./lib/http/dashboardAu
 const { globalApiRateLimit, writeRateLimit } = require('./lib/http/rateLimit');
 const { securityHeaders } = require('./lib/http/securityHeaders');
 const config = require('./config.js');
+const logger = require('./lib/logger');
 const BRAND_NAME = 'MessageForge';
 const BRAND_ICON = '◉';
+const DASHBOARD_ROOM = 'dashboard-authenticated';
+const MEDIA_DATA_DIR = path.join(__dirname, 'data');
+
+function logMessage(type, message) {
+    const typeStr = String(type).toUpperCase();
+    if (typeStr === 'INFO') logger.info(message);
+    else if (typeStr === 'WARN') logger.warn(message);
+    else if (typeStr === 'ERROR' || typeStr === 'CRITICAL') logger.error(message);
+    else if (typeStr === 'SUCCESS') logger.success(message);
+    else logger.custom(typeStr, message);
+}
+
+function validateEnv() {
+    if (!config.OWNER_NUMBER) {
+        logMessage('WARN', 'OWNER_NUMBER is not set. Owner-only features will be unavailable.');
+    }
+    if (process.env.NODE_ENV === 'production' && !dashboardToken) {
+        logMessage('ERROR', 'NODE_ENV=production requires DASHBOARD_TOKEN.');
+        process.exit(1);
+    }
+    if (config.DATABASE_TYPE === 'postgres' && !config.POSTGRES_HOST) {
+        logMessage('WARN', 'DATABASE_TYPE=postgres but POSTGRES_HOST is not set.');
+    }
+}
 
 function getDisplayBotName() {
     const raw = String(config.BOT_NAME || '').trim();
@@ -67,7 +92,12 @@ function getDisplayBotName() {
 }
 
 // ── WhatsApp Connection ───────────────────────────────────────────────────
-const { connectToWhatsApp, scheduleReconnect, store } = require('./lib/whatsapp/connection');
+const {
+    connectToWhatsApp,
+    scheduleReconnect,
+    closeSocket,
+    store,
+} = require('./lib/whatsapp/connection');
 
 // ✅ Express Web API
 const app = express();
@@ -198,9 +228,22 @@ httpSrv.listen(config.PORT, () => {
     const chokidar = require('chokidar');
     const mediaWatcher = chokidar.watch(MEDIA_DATA_DIR, {
         ignoreInitial: true,
-        ignored: /(^|[/\\])\../, // skip dot-dirs (face models, thumbs, etc.)
+        ignored: (filepath) => {
+            const rel = path.relative(MEDIA_DATA_DIR, filepath).replace(/\\/g, '/');
+            return (
+                rel.startsWith('.thumbs/') ||
+                rel.startsWith('.faces/') ||
+                rel.startsWith('face-models/') ||
+                rel.startsWith('messenger-history/')
+            );
+        },
         persistent: true,
-        awaitWriteFinish: { stabilityThreshold: 1500, pollInterval: 200 },
+        usePolling: true,
+        interval: 2000,
+        awaitWriteFinish: { stabilityThreshold: 1500, pollInterval: 500 },
+    });
+    mediaWatcher.on('error', (err) => {
+        logMessage('WARN', `Media watcher disabled: ${err.message}`);
     });
     mediaWatcher.on('add', (filepath) => {
         const ext = path.extname(filepath).toLowerCase();
@@ -231,12 +274,9 @@ async function shutdown(signal) {
             await state.save();
         } catch {}
 
-        clearReconnectTimer();
-        flushRuntimeCaches();
-
-        closeSocket(currentSock || global.sock);
-        currentSock = null;
+        closeSocket(global.sock);
         global.sock = null;
+        global.whatsappConnected = false;
 
         logMessage('INFO', 'Clean shutdown complete.');
         process.exit(0);
@@ -301,9 +341,6 @@ function renderStartupBanner() {
             }
         }
 
-        // loadSession is called ONCE here at startup.
-        // connectToWhatsApp() and all reconnects reuse the saved state on disk.
-        await loadSession();
         await connectToWhatsApp();
     } catch (e) {
         logMessage('CRITICAL', `Bot Init Failed: ${e.stack || e.message}`);

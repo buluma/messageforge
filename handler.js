@@ -330,9 +330,15 @@ if (fs.existsSync(pluginDir)) {
         );
     }
 
-    const watcher = chokidar.watch(pluginDir, { ignoreInitial: true, persistent: false });
+    const watcher = chokidar.watch(pluginDir, {
+        ignoreInitial: true,
+        persistent: false,
+        usePolling: true,
+        interval: 2000,
+    });
     watcher.on('change', _scheduleReload);
     watcher.on('add', _scheduleReload);
+    watcher.on('error', (err) => logger.warn(`[PluginReload] watcher disabled: ${err.message}`));
     logger.custom('PluginReload', 'Watching plugins/ directory for changes');
 }
 

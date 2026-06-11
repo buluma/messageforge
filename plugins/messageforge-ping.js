@@ -1,7 +1,12 @@
 'use strict';
 
 const { performance } = require('perf_hooks');
+const fs = require('fs');
 const os = require('os');
+
+function isUsableImageRef(value) {
+    return typeof value === 'string' && (/^https?:\/\//i.test(value) || fs.existsSync(value));
+}
 
 module.exports = {
     commands: ['ping', 'uptime', 'runtime'],
@@ -39,7 +44,7 @@ module.exports = {
 
 ✨ _Powered by ${botName}_`;
 
-        if (pic) {
+        if (isUsableImageRef(pic)) {
             await safeSend({ image: { url: pic }, caption, contextInfo }, { quoted: message });
         } else {
             await safeSend({ text: caption, contextInfo }, { quoted: message });
