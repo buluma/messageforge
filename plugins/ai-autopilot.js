@@ -185,6 +185,115 @@ function chatSettings(state, jid) {
     };
 }
 
+function applyAutopilotControl(jid, action = 'status', args = []) {
+    const state = loadAutopilotState();
+    const normalizedAction = String(action || 'status').toLowerCase();
+    const value = args.join(' ').trim();
+
+    if (normalizedAction === 'on') {
+        state.chats[jid] = { ...(state.chats[jid] || {}), enabled: true, mode: 'auto' };
+        saveAutopilotState(state);
+        return {
+            ok: true,
+            message:
+                'AI Autopilot Enabled. It will autonomously reply to new direct messages in this chat.',
+            state: loadAutopilotState(),
+        };
+    }
+
+    if (normalizedAction === 'off') {
+        delete state.chats[jid];
+        saveAutopilotState(state);
+        conversationMemory.delete(jid);
+        return {
+            ok: true,
+            message: 'AI Autopilot Disabled for this chat.',
+            state: loadAutopilotState(),
+        };
+    }
+
+    if (normalizedAction === 'profile') {
+        if (!value) {
+            return { ok: true, message: `Current profile:\n${state.settings.voiceProfile}`, state };
+        }
+        state.settings.voiceProfile = value.toLowerCase() === 'reset' ? DEFAULT_PROFILE : value;
+        saveAutopilotState(state);
+        return {
+            ok: true,
+            message: 'Autopilot voice profile updated.',
+            state: loadAutopilotState(),
+        };
+    }
+
+    if (normalizedAction === 'learn') {
+        const sub = String(args[0] || '').toLowerCase();
+        if (sub === 'on') state.settings.learnStyle = true;
+        else if (sub === 'off') state.settings.learnStyle = false;
+        else if (sub === 'reset') state.styleSamples = [];
+        else {
+            return {
+                ok: true,
+                message: `Learn style: ${state.settings.learnStyle ? 'ON' : 'OFF'}\nSamples: ${state.styleSamples.length}`,
+                state,
+            };
+        }
+        saveAutopilotState(state);
+        return {
+            ok: true,
+            message: 'Autopilot learning settings updated.',
+            state: loadAutopilotState(),
+        };
+    }
+
+    if (normalizedAction === 'mode') {
+        const mode = String(args[0] || '').toLowerCase();
+        if (!['auto', 'ask', 'quiet'].includes(mode)) {
+            return { ok: false, message: 'Mode must be auto, ask, or quiet.', state };
+        }
+        state.chats[jid] = { ...(state.chats[jid] || {}), enabled: true, mode };
+        saveAutopilotState(state);
+        return {
+            ok: true,
+            message: `Autopilot mode set to ${mode}.`,
+            state: loadAutopilotState(),
+        };
+    }
+
+    if (normalizedAction === 'delay') {
+        const min = Number(args[0]);
+        const max = Number(args[1]);
+        if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < min) {
+            return { ok: false, message: 'Delay requires min_ms and max_ms.', state };
+        }
+        state.settings.minDelayMs = min;
+        state.settings.maxDelayMs = max;
+        saveAutopilotState(state);
+        return {
+            ok: true,
+            message: `Autopilot delay set to ${min}-${max}ms.`,
+            state: loadAutopilotState(),
+        };
+    }
+
+    if (normalizedAction === 'logs') {
+        const logs = state.logs.slice(-5).reverse();
+        return {
+            ok: true,
+            message: logs.length
+                ? logs
+                      .map(
+                          (item, idx) =>
+                              `${idx + 1}. ${new Date(item.ts).toLocaleString()}\n${item.decision}: ${item.reason}\n${item.input || ''}\n-> ${item.output || ''}`,
+                      )
+                      .join('\n\n')
+                : 'No autopilot logs yet.',
+            state,
+        };
+    }
+
+    return { ok: true, message: renderStatus(state, jid), state };
+}
+
 async function decideReply({ text, history, state, mode }) {
     if (mode === 'quiet') return { shouldReply: false, reason: 'quiet mode' };
     const ai = await askTextAI({
@@ -247,69 +356,11 @@ module.exports = {
 
     run: async (_sock, _message, args, { sender, reply, isGroup }) => {
         if (isGroup) return reply('AI Autopilot is only available in direct chats.');
-        const state = loadAutopilotState();
         const action = args[0]?.toLowerCase();
-        const value = args.slice(1).join(' ').trim();
         const jid = sender;
 
-        if (action === 'on') {
-            state.chats[jid] = { ...(state.chats[jid] || {}), enabled: true, mode: 'auto' };
-            saveAutopilotState(state);
-            return reply(
-                `✅ *AI Autopilot Enabled*\nI will now autonomously reply to new direct messages in this chat.`,
-            );
-        } else if (action === 'off') {
-            delete state.chats[jid];
-            saveAutopilotState(state);
-            conversationMemory.delete(jid); // clear memory for this chat
-            return reply(`🚫 *AI Autopilot Disabled*\nI have stopped auto-replying in this chat.`);
-        } else if (action === 'status') {
-            return reply(renderStatus(state, jid));
-        } else if (action === 'profile') {
-            if (!value) return reply(`Current profile:\n${state.settings.voiceProfile}`);
-            state.settings.voiceProfile = value.toLowerCase() === 'reset' ? DEFAULT_PROFILE : value;
-            saveAutopilotState(state);
-            return reply('✅ Autopilot voice profile updated.');
-        } else if (action === 'learn') {
-            const sub = args[1]?.toLowerCase();
-            if (sub === 'on') state.settings.learnStyle = true;
-            else if (sub === 'off') state.settings.learnStyle = false;
-            else if (sub === 'reset') state.styleSamples = [];
-            else
-                return reply(
-                    `Learn style: ${state.settings.learnStyle ? 'ON' : 'OFF'}\nSamples: ${state.styleSamples.length}\nUse \`.autopilot learn on|off|reset\`.`,
-                );
-            saveAutopilotState(state);
-            return reply('✅ Autopilot learning settings updated.');
-        } else if (action === 'mode') {
-            const mode = args[1]?.toLowerCase();
-            if (!['auto', 'ask', 'quiet'].includes(mode)) {
-                return reply('Usage: `.autopilot mode auto|ask|quiet`');
-            }
-            state.chats[jid] = { ...(state.chats[jid] || {}), enabled: true, mode };
-            saveAutopilotState(state);
-            return reply(`✅ Autopilot mode set to *${mode}*.`);
-        } else if (action === 'delay') {
-            const min = Number(args[1]);
-            const max = Number(args[2]);
-            if (!Number.isFinite(min) || !Number.isFinite(max) || min < 0 || max < min) {
-                return reply('Usage: `.autopilot delay <min_ms> <max_ms>`');
-            }
-            state.settings.minDelayMs = min;
-            state.settings.maxDelayMs = max;
-            saveAutopilotState(state);
-            return reply(`✅ Autopilot delay set to ${min}-${max}ms.`);
-        } else if (action === 'logs') {
-            const logs = state.logs.slice(-5).reverse();
-            if (!logs.length) return reply('No autopilot logs yet.');
-            return reply(
-                logs
-                    .map(
-                        (item, idx) =>
-                            `${idx + 1}. ${new Date(item.ts).toLocaleString()}\n${item.decision}: ${item.reason}\n${item.input || ''}\n→ ${item.output || ''}`,
-                    )
-                    .join('\n\n'),
-            );
+        if (['on', 'off', 'status', 'profile', 'learn', 'mode', 'delay', 'logs'].includes(action)) {
+            return reply(applyAutopilotControl(jid, action, args.slice(1)).message);
         } else {
             return reply(
                 `🤖 *AI Autopilot*\n\n` +
@@ -414,5 +465,18 @@ module.exports = {
         conversationMemory,
         inFlightChats,
         lastReplyAt,
+        applyAutopilotControl,
+        renderStatus,
+        chatSettings,
+    },
+    dashboardControl: applyAutopilotControl,
+    dashboardStatus: (jid) => {
+        const state = loadAutopilotState();
+        return {
+            ok: true,
+            message: renderStatus(state, jid),
+            state,
+            chat: chatSettings(state, jid),
+        };
     },
 };

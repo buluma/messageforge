@@ -2165,6 +2165,31 @@ app.post('/api/toggle-archive', async (req, res) => {
     }
 });
 
+app.get('/api/control/autopilot/:jid', (req, res) => {
+    const { jid } = req.params;
+    if (!jid) return res.status(400).json({ error: 'Missing jid' });
+    if (!isValidJid(jid)) return res.status(400).json({ error: 'Invalid jid' });
+    try {
+        const autopilot = require('./plugins/ai-autopilot');
+        res.json(autopilot.dashboardStatus(jid));
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/control/autopilot', (req, res) => {
+    const { jid, action, args } = req.body || {};
+    if (!jid) return res.status(400).json({ error: 'Missing jid' });
+    if (!isValidJid(jid)) return res.status(400).json({ error: 'Invalid jid' });
+    try {
+        const autopilot = require('./plugins/ai-autopilot');
+        const result = autopilot.dashboardControl(jid, action, Array.isArray(args) ? args : []);
+        res.status(result.ok === false ? 400 : 200).json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.post('/api/react', async (req, res) => {
     const { jid, msgId, fromMe, participant, emoji } = req.body;
     if (!jid || !msgId || !emoji) return res.status(400).json({ error: 'Missing params' });

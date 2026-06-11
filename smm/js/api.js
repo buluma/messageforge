@@ -90,6 +90,12 @@ export const fetchChatMedia = (jid) => {
     return api.get(`/api/chats/${encodeURIComponent(jid)}/media`).then((r) => r.data);
 };
 
+export const autopilotStatus = (jid) =>
+    api.get(`/api/control/autopilot/${encodeURIComponent(jid)}`).then((r) => r.data);
+
+export const autopilotControl = (jid, action, args = []) =>
+    api.post('/api/control/autopilot', { jid, action, args }).then((r) => r.data);
+
 // ── Send / actions ────────────────────────────────────────────────
 export const sendText = (jid, text, quoted) =>
     api.post('/api/send', { jid, text, ...(quoted ? { quoted } : {}) }).then((r) => r.data);

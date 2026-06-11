@@ -173,6 +173,14 @@
                                 >
                                     🖼️
                                 </button>
+                                <button
+                                    id="openAutopilotControl"
+                                    class="ghost-btn"
+                                    title="Autopilot controls"
+                                    aria-label="Autopilot controls"
+                                >
+                                    🤖
+                                </button>
                             </div>
                         </header>
 
@@ -665,6 +673,46 @@
                         </a>
                     </div>
                     <div id="chatMediaViewerContent" class="chat-media-viewer-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Autopilot control modal -->
+        <div id="autopilotModal" class="qr-modal" role="dialog" aria-modal="true" hidden>
+            <div class="qr-modal-box autopilot-modal-box">
+                <div class="qr-modal-header">
+                    <h3>Autopilot</h3>
+                    <button id="autopilotModalClose" class="ghost-btn" aria-label="Close modal">
+                        ✕
+                    </button>
+                </div>
+                <div class="autopilot-modal-body">
+                    <pre id="autopilotStatusText" class="autopilot-status">Loading...</pre>
+                    <div class="autopilot-actions">
+                        <button class="btn" data-autopilot-action="on">Enable</button>
+                        <button class="ghost-btn" data-autopilot-action="off">Disable</button>
+                        <button class="ghost-btn" data-autopilot-action="mode:auto">
+                            Mode Auto
+                        </button>
+                        <button class="ghost-btn" data-autopilot-action="mode:ask">Mode Ask</button>
+                        <button class="ghost-btn" data-autopilot-action="mode:quiet">
+                            Mode Quiet
+                        </button>
+                        <button class="ghost-btn" data-autopilot-action="learn:on">Learn On</button>
+                        <button class="ghost-btn" data-autopilot-action="learn:off">
+                            Learn Off
+                        </button>
+                        <button class="ghost-btn" data-autopilot-action="logs">Logs</button>
+                    </div>
+                    <label class="autopilot-field">
+                        Voice profile
+                        <textarea id="autopilotProfileInput" rows="4"></textarea>
+                    </label>
+                    <button id="autopilotSaveProfile" class="btn">Save Profile</button>
+                    <p class="autopilot-note">
+                        Dashboard controls update the bot state only. They do not send WhatsApp
+                        messages into this chat.
+                    </p>
                 </div>
             </div>
         </div>

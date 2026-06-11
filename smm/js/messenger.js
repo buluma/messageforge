@@ -139,6 +139,12 @@ export function mountMessenger() {
     document.getElementById('togglePin').onclick = toggleActivePin;
     document.getElementById('toggleArchive').onclick = toggleActiveArchive;
     document.getElementById('viewChatMedia').onclick = openChatMediaModal;
+    document.getElementById('openAutopilotControl').onclick = openAutopilotModal;
+    document.getElementById('autopilotModalClose').onclick = closeAutopilotModal;
+    document.getElementById('autopilotSaveProfile').onclick = saveAutopilotProfile;
+    document.querySelectorAll('[data-autopilot-action]').forEach((button) => {
+        button.addEventListener('click', () => runAutopilotAction(button.dataset.autopilotAction));
+    });
     document.getElementById('loadOlderBtn').onclick = loadOlderMessages;
     document.getElementById('scrollToBottomBtn').onclick = () =>
         scrollThreadToBottom({ force: true });
@@ -1131,6 +1137,58 @@ async function toggleActiveArchive() {
     } catch (e) {
         console.error('toggle archive error', e);
         alert('Failed to toggle archive');
+    }
+}
+
+async function openAutopilotModal() {
+    if (!state.activeJid) return;
+    const modal = document.getElementById('autopilotModal');
+    modal.hidden = false;
+    await refreshAutopilotModal();
+}
+
+function closeAutopilotModal() {
+    document.getElementById('autopilotModal').hidden = true;
+}
+
+async function refreshAutopilotModal(message = '') {
+    const statusEl = document.getElementById('autopilotStatusText');
+    const profileEl = document.getElementById('autopilotProfileInput');
+    if (!state.activeJid) return;
+    statusEl.textContent = message || 'Loading...';
+    try {
+        const data = await api.autopilotStatus(state.activeJid);
+        statusEl.textContent = [message, data.message].filter(Boolean).join('\n\n');
+        profileEl.value = data.state?.settings?.voiceProfile || '';
+    } catch (e) {
+        statusEl.textContent = `Failed to load autopilot status: ${e.message}`;
+    }
+}
+
+async function runAutopilotAction(rawAction) {
+    if (!state.activeJid || !rawAction) return;
+    const [action, arg] = rawAction.split(':');
+    const args = arg ? [arg] : [];
+    try {
+        const data = await api.autopilotControl(state.activeJid, action, args);
+        await refreshAutopilotModal(data.message);
+    } catch (e) {
+        await refreshAutopilotModal(`Failed: ${e.response?.data?.message || e.message}`);
+    }
+}
+
+async function saveAutopilotProfile() {
+    if (!state.activeJid) return;
+    const profile = document.getElementById('autopilotProfileInput').value.trim();
+    try {
+        const data = await api.autopilotControl(
+            state.activeJid,
+            'profile',
+            profile ? [profile] : [],
+        );
+        await refreshAutopilotModal(data.message);
+    } catch (e) {
+        await refreshAutopilotModal(`Failed: ${e.response?.data?.message || e.message}`);
     }
 }
 
