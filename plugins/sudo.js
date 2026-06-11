@@ -24,6 +24,7 @@ function isRealOwner(ctx) {
 module.exports = {
     commands: ['sudo'],
     description: 'Manage sudo users - grant owner-level access to trusted users',
+    category: 'owner',
     permission: 'owner',
     run: async (sock, message, args, ctx) => {
         const { jid, reply, mentionedJid } = ctx;

@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['stock', 'stockprice', 'shares'],
     description: 'Get live stock price from Yahoo Finance',
+    category: 'search',
     permission: 'public',
     group: true,
     private: true,

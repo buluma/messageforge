@@ -13,6 +13,7 @@ const FALLBACK_APIS = (link) => [
 module.exports = {
     commands: ['music'],
     description: 'Search and download a song from YouTube',
+    category: 'media',
     permission: 'public',
     group: true,
     private: true,

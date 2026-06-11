@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['imagine', 'generate', 'aiimage', 'img'],
     description: 'Generate an AI image from a text prompt',
+    category: 'ai',
     usage: '.imagine <description>',
     permission: 'public',
     group: true,

@@ -11,6 +11,7 @@ const SUPPORT_URL = 'https://chat.whatsapp.com/GzCZZxVnAHMINWdPQkGwJR';
 module.exports = {
     commands: ['repo', 'repository'],
     description: 'Show MessageForge repository info',
+    category: 'utility',
     permission: 'public',
     group: true,
     private: true,

@@ -44,6 +44,7 @@ global.antifloodSettings = settings;
 module.exports = {
     commands: ['antiflood', 'floodoff', 'floodon', 'floodlimit', 'flood'],
     description: 'Auto-kick members who spam messages too fast',
+    category: 'moderation',
     usage: '.antiflood on | .antiflood off | .antiflood limit 5 10',
     permission: 'admin',
     group: true,

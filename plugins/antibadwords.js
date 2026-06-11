@@ -49,6 +49,7 @@ module.exports = [
     {
         commands: ['antibadwords', 'antiswear', 'noswear'],
         description: 'Toggle anti-bad-words filter in a group — auto-deletes profanity',
+        category: 'moderation',
         usage: '.antibad on/off',
         permission: 'admin',
         group: true,
@@ -91,6 +92,7 @@ module.exports = [
     {
         commands: ['addword', 'addban', 'banword'],
         description: 'Add a custom word to the bad-words filter for this group',
+        category: 'moderation',
         usage: '.addword <word>',
         permission: 'admin',
         group: true,
@@ -113,6 +115,7 @@ module.exports = [
     {
         commands: ['removeword', 'unbanword', 'delword'],
         description: 'Remove a word from the bad-words filter',
+        category: 'moderation',
         usage: '.removeword <word>',
         permission: 'admin',
         group: true,
@@ -137,6 +140,7 @@ module.exports = [
     {
         commands: ['badwordslist', 'badwords', 'bannedwords'],
         description: 'Show all banned words in this group',
+        category: 'moderation',
         permission: 'admin',
         group: true,
         private: false,
@@ -157,6 +161,7 @@ module.exports = [
     {
         commands: [],
         description: 'Anti-bad-words event listener',
+        category: 'moderation',
         permission: 'public',
         group: true,
         private: false,

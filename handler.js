@@ -41,6 +41,20 @@ const PERM = {
     OWNER: 'owner',
 };
 
+// ─── Plugin category enum ────────────────────────────────────────────────────
+const PLUGIN_CATEGORIES = {
+    moderation: { icon: '🛡️', label: 'Moderation' },
+    media: { icon: '🎵', label: 'Media' },
+    downloaders: { icon: '⬇️', label: 'Downloaders' },
+    ai: { icon: '🤖', label: 'AI & Intelligence' },
+    utility: { icon: '🔧', label: 'Utility' },
+    games: { icon: '🎮', label: 'Games' },
+    group: { icon: '👥', label: 'Group Management' },
+    owner: { icon: '👑', label: 'Owner' },
+    automation: { icon: '⚙️', label: 'Automation' },
+    search: { icon: '🔍', label: 'Search & Info' },
+};
+
 // ─── Group metadata cache (5 min TTL) ───────────────────────────────────────
 const groupCache = new Map();
 const GROUP_CACHE_TTL = config.GROUP_CACHE_TTL_MS;
@@ -210,6 +224,14 @@ function loadPlugins() {
                         typeof mod.run === 'function') ||
                     (mod.isEvent && typeof mod.run === 'function')
                 ) {
+                    // Validate optional category field
+                    if (mod.category && !PLUGIN_CATEGORIES[mod.category]) {
+                        logger.warn(
+                            `[Plugin] Unknown category "${mod.category}" in ${file} — must be one of: ${Object.keys(PLUGIN_CATEGORIES).join(', ')}`,
+                        );
+                    }
+                    // Default tags to empty array
+                    if (!Array.isArray(mod.tags)) mod.tags = [];
                     plugins.push(mod);
                 } else {
                     logger.warn(
@@ -264,6 +286,13 @@ function reloadPlugin(filename) {
                 mod.commands.length &&
                 typeof mod.run === 'function'
             ) {
+                // Validate optional category field
+                if (mod.category && !PLUGIN_CATEGORIES[mod.category]) {
+                    logger.warn(
+                        `[Plugin] Unknown category "${mod.category}" in ${filename} — must be one of: ${Object.keys(PLUGIN_CATEGORIES).join(', ')}`,
+                    );
+                }
+                if (!Array.isArray(mod.tags)) mod.tags = [];
                 plugins.push(mod);
             }
         }
@@ -1069,6 +1098,7 @@ module.exports = {
     reloadPlugin,
     reloadAllPlugins,
     getCommandCollisions,
+    PLUGIN_CATEGORIES,
     jidToNum,
     sameNumber,
     levenshtein,

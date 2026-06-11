@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['mediafire', 'mf', 'mfdl'],
     description: 'Get MediaFire direct download link',
+    category: 'downloaders',
     permission: 'public',
     group: true,
     private: true,

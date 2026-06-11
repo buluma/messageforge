@@ -9,6 +9,7 @@ global.welcomeSettings = groupSettings;
 module.exports = {
     commands: ['welcome', 'goodbye', 'setwelcome', 'setgoodbye', 'welcomeoff', 'goodbyeoff'],
     description: 'Auto-welcome new members and farewell members who leave',
+    category: 'group',
     usage: '.welcome on/off | .setwelcome Custom message (use {name} for member name)',
     permission: 'admin',
     group: true,

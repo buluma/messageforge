@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['stickersearch', 'findsticker', 'giphy'],
     description: 'Search and send animated stickers/GIFs',
+    category: 'media',
     permission: 'public',
     group: true,
     private: true,

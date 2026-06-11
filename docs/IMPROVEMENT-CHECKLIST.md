@@ -131,19 +131,19 @@ Work is split into small, independent PRs. Check items off as they land.
 
 ### PR 5a — Schema + validation (non-breaking)
 
-- [ ] Document optional plugin fields: `category`, `tags`, `hidden`
-- [ ] Validate `category` against allowed enum on load; warn on unknown
-- [ ] Update `docs/04-PLUGINS.md`
+- [x] Document optional plugin fields: `category`, `tags`, `hidden`
+- [x] Validate `category` against allowed enum on load; warn on unknown
+- [x] Update `docs/04-PLUGINS.md`
 
 **Starter categories:** `moderation`, `media`, `downloaders`, `ai`, `utility`, `games`, `group`, `owner`, `automation`, `search`
 
 ### PR 5b — Surface in menu + API
 
-- [ ] Group `.menu` output by `category` in `plugins/menu.js`
-- [ ] Fall back to filename heuristics when `category` is absent
-- [ ] Extend `GET /api/plugins` to return `{ commands, description, permission, category, tags, file }`
-- [ ] *(Optional)* Add category filter to dashboard plugins view (`smm/js/dashboard.js`)
-- [ ] Tag top ~20 most-used plugins first (don't block on tagging all 160)
+- [x] Group `.menu` output by `category` in `plugins/menu.js`
+- [x] Fall back to filename heuristics when `category` is absent
+- [x] Extend `GET /api/plugins` to return `{ commands, description, permission, category, tags, file }`
+- [x] Add category filter to dashboard plugins view (`smm/js/dashboard.js`)
+- [x] Tag top ~20 most-used plugins first (don't block on tagging all 160)
 
 **Acceptance:** Menu is grouped; `/api/plugins` supports dashboard filtering; untagged plugins still work.
 

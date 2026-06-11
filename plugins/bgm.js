@@ -112,6 +112,7 @@ function hasAudioStream(videoPath) {
 module.exports = {
     commands: ['bgm', 'addmusic', 'videomusic', 'musicvideo', 'addbgm'],
     description: 'Add background music to a video. Reply to a video with audio (or vice versa).',
+    category: 'media',
     usage: [
         '.bgm              → reply to video + send audio (or vice versa)',
         '.bgm --vol 50     → set BGM volume (0–100, default 30)',

@@ -3,6 +3,7 @@
 module.exports = {
     commands: ['calc', 'calculate', 'math'],
     description: 'Evaluate a math expression',
+    category: 'utility',
     usage: '.calc <expression>',
     permission: 'public',
     group: true,

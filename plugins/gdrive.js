@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['gdrive', 'googledrive', 'gdl'],
     description: 'Get direct download link from Google Drive',
+    category: 'downloaders',
     permission: 'public',
     group: true,
     private: true,

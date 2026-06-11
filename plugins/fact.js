@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['facts', 'funfact'],
     description: 'Get a random interesting fact',
+    category: 'utility',
     permission: 'public',
     group: true,
     private: true,

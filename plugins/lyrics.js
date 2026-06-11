@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['lyrics', 'lyric'],
     description: 'Search song lyrics by artist and title',
+    category: 'media',
     usage: '.lyrics <artist> - <song>',
     permission: 'public',
     group: true,

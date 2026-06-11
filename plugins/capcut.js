@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['capcut', 'capcutdl'],
     description: 'Download CapCut videos',
+    category: 'downloaders',
     permission: 'public',
     group: true,
     private: true,

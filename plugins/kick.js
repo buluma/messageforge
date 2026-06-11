@@ -3,6 +3,7 @@
 module.exports = {
     commands: ['kick', 'remove'],
     description: 'Remove a member from the group (reply to their message or mention them)',
+    category: 'moderation',
     usage: '.kick @user',
     permission: 'admin',
     group: true,

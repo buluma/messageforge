@@ -5,6 +5,7 @@ const ytdl = require('ytdl-core');
 module.exports = {
     commands: ['yt', 'youtube'],
     description: 'Download a YouTube video',
+    category: 'downloaders',
     permission: 'public',
     group: true,
     private: true,

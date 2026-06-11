@@ -45,6 +45,7 @@ async function _fetchViaOEmbed(_username) {
 module.exports = {
     commands: ['igstalk', 'instastalk', 'iginfo', 'instagramstalk'],
     description: 'Stalk an Instagram profile — followers, bio, posts and more',
+    category: 'search',
     usage: '.igstalk <username>',
     permission: 'public',
     group: true,

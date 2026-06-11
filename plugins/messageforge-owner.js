@@ -5,6 +5,7 @@ const config = require('../config');
 module.exports = {
     commands: ['owner', 'creator'],
     description: 'Show bot owner contact information',
+    category: 'owner',
     permission: 'public',
     group: true,
     private: true,

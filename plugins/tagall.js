@@ -3,6 +3,7 @@
 module.exports = {
     commands: ['mentionall', 'pingall'],
     description: 'Mention all members in the group',
+    category: 'group',
     usage: '.tagall [message]',
     permission: 'admin',
     group: true,

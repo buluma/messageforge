@@ -5,6 +5,7 @@ const { getCommandRaw } = require('../lib/command');
 module.exports = {
     commands: ['lock', 'unlock', 'close', 'open'],
     description: 'Lock (only admins can send) or unlock (everyone can send) the group',
+    category: 'group',
     usage: '.lock | .unlock',
     permission: 'admin',
     group: true,

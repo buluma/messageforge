@@ -245,6 +245,7 @@ function getGroupConfig(jid) {
 module.exports = {
     commands: ['antifake'],
     description: 'Block users with unrecognized/fake phone numbers from joining groups',
+    category: 'moderation',
     permission: 'admin',
     group: true,
     private: false,

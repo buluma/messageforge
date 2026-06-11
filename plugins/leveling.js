@@ -93,6 +93,7 @@ global.addXP = function (jid, sender, amount = null) {
 module.exports = {
     commands: ['level', 'rank', 'xp', 'leaderboard', 'lb', 'levels'],
     description: 'XP leveling system — earn XP by chatting, unlock titles',
+    category: 'group',
     usage: '.level | .leaderboard',
     permission: 'public',
     group: true,

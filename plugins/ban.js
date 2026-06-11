@@ -7,6 +7,7 @@ if (!global.bannedUsers) global.bannedUsers = new Set();
 module.exports = {
     commands: ['ban', 'unban', 'banlist'],
     description: 'Ban/unban users from using bot commands',
+    category: 'moderation',
     usage: '.ban @user | .unban @user | .banlist',
     permission: 'admin',
     group: true,

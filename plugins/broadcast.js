@@ -3,6 +3,7 @@
 module.exports = {
     commands: ['broadcast', 'bc'],
     description: 'Broadcast a message to all groups the bot is in (owner only)',
+    category: 'group',
     usage: '.broadcast Your message here',
     permission: 'owner',
     group: true,

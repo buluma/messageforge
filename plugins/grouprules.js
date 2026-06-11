@@ -18,6 +18,7 @@ function saveRules(data) {
 module.exports = {
     commands: ['setrules', 'delrules'],
     description: 'Set/show/delete group rules',
+    category: 'group',
     permission: 'admin',
     group: true,
     private: false,

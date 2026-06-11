@@ -5,6 +5,7 @@ const sessions = new Map();
 module.exports = {
     commands: ['guessnumber', 'ng'],
     description: 'Number guessing game (1–100)',
+    category: 'games',
     permission: 'public',
     group: true,
     private: true,

@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['define', 'dict', 'meaning', 'definition'],
     description: 'Look up the definition of an English word',
+    category: 'utility',
     usage: '.define <word>',
     permission: 'public',
     group: true,

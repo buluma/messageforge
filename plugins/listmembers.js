@@ -3,6 +3,7 @@
 module.exports = {
     commands: ['members', 'listmembers', 'memberlist'],
     description: 'List all group members',
+    category: 'group',
     permission: 'public',
     group: true,
     private: false,

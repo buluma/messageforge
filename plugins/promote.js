@@ -5,6 +5,7 @@ const { getCommand } = require('../lib/command');
 module.exports = {
     commands: ['promote', 'demote', 'admin', 'unadmin'],
     description: 'Promote or demote a group member (reply or mention)',
+    category: 'group',
     usage: '.promote @user | .demote @user',
     permission: 'admin',
     group: true,

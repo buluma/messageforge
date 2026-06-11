@@ -29,6 +29,7 @@ function getEffectiveMode(configMode) {
 module.exports = {
     commands: ['autoview', 'autolike', 'autoreact', 'autostatus', 'statusconfig'],
     description: 'Control automatic status viewing and liking at runtime',
+    category: 'automation',
     usage: '.autoview on/off  |  .autolike on/off  |  .autostatus',
     permission: 'owner',
     group: false,

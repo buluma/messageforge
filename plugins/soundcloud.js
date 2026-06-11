@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['soundcloud', 'scdl', 'sc'],
     description: 'Download SoundCloud audio',
+    category: 'downloaders',
     permission: 'public',
     group: true,
     private: true,

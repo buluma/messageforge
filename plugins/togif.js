@@ -4,6 +4,7 @@ const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 module.exports = {
     commands: ['togif', 'gif', 'mp4togif'],
     description: 'Convert sticker or video to GIF',
+    category: 'media',
     permission: 'public',
     group: true,
     private: true,

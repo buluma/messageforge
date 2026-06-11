@@ -86,6 +86,7 @@ function initCallHandler(sock, ownerJid) {
 module.exports = {
     commands: ['anticall'],
     description: 'Manage anti-call protection — owner only',
+    category: 'moderation',
     permission: 'owner',
     group: false,
     private: true,

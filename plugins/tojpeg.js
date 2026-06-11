@@ -4,6 +4,7 @@ const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
 module.exports = {
     commands: ['tojpeg', 'stickertoimg', 'unwebp'],
     description: 'Convert sticker to JPEG image',
+    category: 'media',
     permission: 'public',
     group: true,
     private: true,

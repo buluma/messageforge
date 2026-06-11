@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['domain', 'domaininfo'],
     description: 'WHOIS lookup for a domain',
+    category: 'search',
     permission: 'public',
     group: true,
     private: true,

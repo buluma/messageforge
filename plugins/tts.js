@@ -17,6 +17,7 @@ const VOICES = {
 module.exports = {
     commands: ['tts', 'speak', 'voice'],
     description: 'Convert text to speech audio',
+    category: 'ai',
     usage: '.tts <text>  or  .tts <lang> <text>',
     permission: 'public',
     group: true,

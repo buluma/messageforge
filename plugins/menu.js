@@ -7,272 +7,106 @@ const { proto, generateMessageIDV2 } = baileys;
 const WEBSITE = 'https://github.com/buluma/messageforge';
 const TZ = 'Africa/Nairobi';
 
-// ── Category definitions ─────────────────────────────────────────────────────
-const CATEGORIES = [
-    {
-        icon: '⬇️',
-        name: 'Downloaders',
-        cmds: ['yt', 'tiktok', 'instagram', 'facebook', 'apk', 'catbox'],
-    },
-    { icon: '🎵', name: 'Music & Audio', cmds: ['play', 'shazam', 'lyrics', 'toaudio'] },
-    {
-        icon: '🤖',
-        name: 'AI & Intelligence',
-        cmds: [
-            'ai',
-            'agent',
-            'ask',
-            'messageforge',
-            'assistant',
-            'imagine',
-            'translate',
-            'define',
-            'tts',
-            'calc',
-            'shorten',
-            'gitclone',
-            'anime',
-            'manga',
-        ],
-    },
-    {
-        icon: '🌍',
-        name: 'Search & Info',
-        cmds: ['wiki', 'country', 'ip', 'currency', 'time', 'weather', 'numberfact'],
-    },
-    { icon: '🖼️', name: 'Media Tools', cmds: ['vv', 'ascii', 'qrcode', 'react'] },
-    {
-        icon: '👥',
-        name: 'Group Management',
-        cmds: [
-            'kick',
-            'promote',
-            'demote',
-            'ban',
-            'unban',
-            'banlist',
-            'tagall',
-            'hidetag',
-            'poll',
-            'lock',
-            'unlock',
-            'link',
-            'revoke',
-            'setname',
-            'setdesc',
-            'broadcast',
-        ],
-    },
-    {
-        icon: '👋',
-        name: 'Welcome & Events',
-        cmds: ['welcome', 'goodbye', 'setwelcome', 'setgoodbye', 'welcomequiz', 'setquiz'],
-    },
-    {
-        icon: '🛡️',
-        name: 'Protection',
-        cmds: [
-            'antidemote',
-            'antidelete',
-            'antilink',
-            'anticall',
-            'antivv',
-            'autoreply',
-            'blocklist',
-            'afk',
-            'auditlog',
-        ],
-    },
-    {
-        icon: '😄',
-        name: 'Fun & Entertainment',
-        cmds: [
-            'joke',
-            'fact',
-            'riddle',
-            'meme',
-            'quote',
-            'advice',
-            'compliment',
-            'flip',
-            'bible',
-            'hello',
-        ],
-    },
-    {
-        icon: '🔒',
-        name: 'Privacy & Utilities',
-        cmds: ['password', 'morse', 'base64', 'tempmail', 'virus', 'eval'],
-    },
-    {
-        icon: '📊',
-        name: 'Status & Profile',
-        cmds: ['save', 'spp', 'presence', 'autojoin', 'analytics', 'topusers', 'peakhours'],
-    },
-    {
-        icon: '📰',
-        name: 'Channels',
-        cmds: ['newsletter', 'followchannel', 'unfollowchannel', 'channelinfo'],
-    },
-    {
-        icon: 'ℹ️',
-        name: 'Bot Info',
-        cmds: [
-            'alive',
-            'ping',
-            'uptime',
-            'owner',
-            'getjid',
-            'repo',
-            'remind',
-            'rremind',
-            'myreminders',
-        ],
-    },
-    {
-        icon: '👑',
-        name: 'Owner & Sudo',
-        cmds: [
-            'sudo',
-            'setsudo',
-            'delsudo',
-            'getsudo',
-            'resetsudo',
-            'block',
-            'unblock',
-            'setmode',
-            'setprefix',
-            'setbotname',
-            'join',
-            'cmd',
-            'restart',
-            'shutdown',
-            'backupgroup',
-            'restoregroup',
-        ],
-    },
-    {
-        icon: '🎮',
-        name: 'Games',
-        cmds: [
-            'rps',
-            'hangman',
-            'ttt',
-            'trivia',
-            'riddle',
-            'slots',
-            '8ball',
-            'scramble',
-            'flagquiz',
-            'mathquiz',
-            'wordchain',
-            'emojiguess',
-            'challenge',
-            'dailychallenge',
-        ],
-    },
-    {
-        icon: '🔧',
-        name: 'Text & Dev Tools',
-        cmds: [
-            'reverse',
-            'upper',
-            'lower',
-            'mock',
-            'binary',
-            'rot13',
-            'leet',
-            'json',
-            'urlencode',
-            'hash',
-            'timestamp',
-            'regex',
-            'httpcode',
-            'password',
-        ],
-    },
-    {
-        icon: '💰',
-        name: 'Crypto & Finance',
-        cmds: [
-            'crypto',
-            'loan',
-            'savings',
-            'tax',
-            'inflation',
-            'billsplit',
-            'salary',
-            'discount',
-            'budget',
-        ],
-    },
-    {
-        icon: '💪',
-        name: 'Health & Fitness',
-        cmds: [
-            'workout',
-            'stretching',
-            'calories',
-            'water',
-            'sleep',
-            'meditation',
-            'steps',
-            'yoga',
-            'bmi',
-        ],
-    },
-    {
-        icon: '📚',
-        name: 'Education',
-        cmds: [
-            'element',
-            'planet',
-            'zodiac',
-            'vocab',
-            'acronym',
-            'flag',
-            'nato',
-            'country',
-            'phrasebook',
-        ],
-    },
-    {
-        icon: '📝',
-        name: 'Productivity',
-        cmds: [
-            'pomodoro',
-            'habits',
-            'goals',
-            'journal',
-            'flashcards',
-            'bookmarks',
-            'schedule',
-            'todo',
-            'notes',
-            'timer',
-            'bookmark',
-            'saved',
-            'autoreply',
-            'awaymsg',
-            'expense',
-            'splitbill',
-            'balances',
-        ],
-    },
-    { icon: '🏆', name: 'Leveling & XP', cmds: ['level', 'rank', 'xp', 'leaderboard'] },
-    { icon: '🔗', name: 'Link Tools', cmds: ['summarize', 'linkpreview', 'tldr'] },
-    { icon: '🎤', name: 'Voice Tools', cmds: ['transcribe', 'voicetotext', 'tts'] },
+// ── Import category enum from handler ────────────────────────────────────────
+let CATEGORY_META = {};
+try {
+    const { PLUGIN_CATEGORIES } = require('../handler');
+    CATEGORY_META = PLUGIN_CATEGORIES;
+} catch {
+    // Fallback if handler cannot be loaded during build checks
+}
+
+// ── Filename heuristic rules for plugins without explicit category ───────────
+const FILENAME_HEURISTICS = [
+    { pattern: /^anti/i, category: 'moderation' },
+    { pattern: /^(kick|promote|demote|ban|warn|purge|mutemember)/i, category: 'moderation' },
+    { pattern: /(group|grouplink|groupinfo|groupbackup|grouprules|groupstatus|tagall|hidetag|poll|lock|unlock|welcome|welcomequiz|autojoin|broadcast|leveling|usage-analytics)/i, category: 'group' },
+    { pattern: /^(yt|tiktok|instagram|facebook|twitter|mediafire|gdrive|capcut|soundcloud|apk|catbox|gitclone|reddit|pinterest|spotify)/i, category: 'downloaders' },
+    { pattern: /^(game|games|wordgame|numberguess|dailychallenge|trivia)/i, category: 'games' },
+    { pattern: /^(messageforge|ai-|summarize|transcribe|translate|tts|imagine)/i, category: 'ai' },
+    { pattern: /(stalk|search|whois|wiki|news|weather|stock|info-lookup|githubstalk|igstalk|tiktokstalk)/i, category: 'search' },
+    { pattern: /^(sudo|setprefix|baileys-gap|messageforge-owner)/i, category: 'owner' },
+    { pattern: /(auto|scheduler)/i, category: 'automation' },
+    { pattern: /^(music|lyrics|shazam|bgm|toaudio|togif|tojpeg|quotly|stickersearch|carbon)/i, category: 'media' },
 ];
 
+const DEFAULT_CATEGORY = 'utility';
+
 const DIVIDER = '━━━━━━━━━━━━━━━━━━━━━━━';
+
+/**
+ * Infer a plugin's category from its filename when no explicit category is set.
+ * @param {string} filename - e.g. "antilink.js"
+ * @returns {string} The inferred category key
+ */
+function heuristicCategory(filename) {
+    if (!filename) return DEFAULT_CATEGORY;
+    for (const { pattern, category } of FILENAME_HEURISTICS) {
+        if (pattern.test(filename)) return category;
+    }
+    return DEFAULT_CATEGORY;
+}
+
+/**
+ * Build a grouped category map from the loaded plugins.
+ * @param {Array} plugins - The handler's plugins array
+ * @returns {{ groups: Array, totalCommands: number }}
+ *   groups: [{ icon, name, commands: [formattedCmd, ...] }]
+ */
+function buildCategoryGroups(plugins) {
+    const groups = new Map(); // categoryKey -> { icon, name, commands: Set }
+
+    for (const plugin of plugins) {
+        // Skip hidden plugins
+        if (plugin.hidden) continue;
+        if (!Array.isArray(plugin.commands) || !plugin.commands.length) continue;
+
+        const cat = plugin.category && CATEGORY_META[plugin.category]
+            ? plugin.category
+            : heuristicCategory(plugin.__pluginFile || '');
+
+        if (!groups.has(cat)) {
+            const meta = CATEGORY_META[cat] || { icon: '🔧', label: 'Other' };
+            groups.set(cat, { icon: meta.icon, name: meta.label, commands: new Set() });
+        }
+
+        const group = groups.get(cat);
+        for (const cmd of plugin.commands) {
+            if (cmd) group.commands.add(cmd);
+        }
+    }
+
+    // Sort groups: defined order first, then alphabetical
+    const categoryOrder = Object.keys(CATEGORY_META);
+    const sorted = [...groups.entries()].sort((a, b) => {
+        const ai = categoryOrder.indexOf(a[0]);
+        const bi = categoryOrder.indexOf(b[0]);
+        if (ai !== -1 && bi !== -1) return ai - bi;
+        if (ai !== -1) return -1;
+        if (bi !== -1) return 1;
+        return a[0].localeCompare(b[0]);
+    });
+
+    let totalCommands = 0;
+    const result = sorted.map(([key, group]) => {
+        const cmdArray = [...group.commands].sort();
+        totalCommands += cmdArray.length;
+        return {
+            icon: group.icon,
+            name: group.name,
+            commands: cmdArray,
+        };
+    });
+
+    return { groups: result, totalCommands };
+}
 
 function section(title, cmds) {
     return `${title}\n${cmds.join('  ·  ')}`;
 }
 
 function buildMenuText(plugins, pfx, botName, ownerNum, mode, byText) {
-    const allCmds = new Set(plugins.flatMap((p) => p.commands || []));
-    const assigned = new Set();
+    const { groups } = buildCategoryGroups(plugins);
     const modeEmoji = mode === 'PUBLIC' ? '🟢' : mode === 'PRIVATE' ? '🔒' : '🔵';
     const now = moment().tz(TZ);
 
@@ -296,28 +130,10 @@ function buildMenuText(plugins, pfx, botName, ownerNum, mode, byText) {
     ].join('\n');
 
     const catBlocks = [];
-    for (const { icon, name, cmds } of CATEGORIES) {
-        const found = [...new Set(cmds.filter((c) => allCmds.has(c)))];
-        if (!found.length) continue;
-        found.forEach((c) => assigned.add(c));
-        catBlocks.push(
-            section(
-                `${icon} *${name}*`,
-                found.map((c) => `\`${pfx}${c}\``),
-            ),
-        );
+    for (const { icon, name, commands } of groups) {
+        const formatted = commands.map((c) => `\`${pfx}${c}\``);
+        catBlocks.push(section(`${icon} *${name}*`, formatted));
     }
-
-    const rest = [...allCmds].filter(
-        (c) => !assigned.has(c) && !['menu', 'help', 'list'].includes(c),
-    );
-    if (rest.length)
-        catBlocks.push(
-            section(
-                `🔧 *Other*`,
-                rest.map((c) => `\`${pfx}${c}\``),
-            ),
-        );
 
     const footer = [
         ``,
@@ -374,6 +190,7 @@ module.exports = {
     permission: 'public',
     group: true,
     private: true,
+    category: 'utility',
 
     run: async (sock, message, args, ctx) => {
         const { prefix, contextInfo, jid, config, getStr } = ctx;

@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['pinterest', 'pin', 'pindl'],
     description: 'Download Pinterest images and videos',
+    category: 'downloaders',
     permission: 'public',
     group: true,
     private: true,

@@ -37,6 +37,7 @@ function scramble(word) {
 module.exports = {
     commands: ['ws'],
     description: 'Unscramble the word game',
+    category: 'games',
     permission: 'public',
     group: true,
     private: true,

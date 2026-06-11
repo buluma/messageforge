@@ -9,6 +9,7 @@ const TZ = 'Africa/Nairobi';
 module.exports = {
     commands: ['alive', 'bot', 'botinfo'],
     description: 'Show bot status with full theme styling',
+    category: 'utility',
     permission: 'public',
     group: true,
     private: true,

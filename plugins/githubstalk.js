@@ -27,6 +27,7 @@ function barOf(value, max, len = 10) {
 module.exports = {
     commands: ['githubstalk', 'ghstalk', 'github', 'gh'],
     description: 'Stalk a GitHub profile — repos, stars, bio, activity and more',
+    category: 'search',
     usage: '.ghstalk <username>',
     permission: 'public',
     group: true,

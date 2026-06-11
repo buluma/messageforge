@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['spotify', 'spoti', 'spdl'],
     description: 'Search Spotify track info and download audio',
+    category: 'downloaders',
     permission: 'public',
     group: true,
     private: true,

@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['reddit', 'rdl'],
     description: 'Download Reddit images and videos',
+    category: 'downloaders',
     permission: 'public',
     group: true,
     private: true,

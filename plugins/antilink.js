@@ -3,6 +3,7 @@ if (!global.antilinkGroups) global.antilinkGroups = new Set();
 module.exports = {
     commands: ['antilink'],
     description: 'Toggle antilink protection in a group. Deletes any message containing a URL.',
+    category: 'moderation',
     permission: 'admin',
     group: true,
     private: false,

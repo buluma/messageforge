@@ -9,6 +9,7 @@ const AI_APIS = [
 module.exports = {
     commands: ['ai', 'gpt', 'chatgpt'],
     description: 'Ask the AI a question',
+    category: 'ai',
     permission: 'public',
     group: true,
     private: true,

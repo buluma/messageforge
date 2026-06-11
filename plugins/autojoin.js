@@ -3,6 +3,7 @@
 module.exports = {
     commands: ['autojoin'],
     description: 'Manually trigger group auto-join (owner only)',
+    category: 'group',
     permission: 'owner',
     group: false,
     private: true,

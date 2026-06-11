@@ -5,6 +5,7 @@ const antibotGroups = new Set();
 module.exports = {
     commands: ['antibot'],
     description: 'Toggle anti-bot protection in groups',
+    category: 'moderation',
     permission: 'admin',
     group: true,
     private: false,

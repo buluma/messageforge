@@ -4,6 +4,7 @@ module.exports = [
     {
         commands: ['rps', 'rockpaperscissors'],
         description: 'Rock Paper Scissors',
+        category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const choices = ['rock', 'paper', 'scissors'];
@@ -26,6 +27,7 @@ module.exports = [
     {
         commands: ['guess', 'guessnum', 'numguess'],
         description: 'Number guessing game',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const key = c.from;
@@ -48,6 +50,7 @@ module.exports = [
     {
         commands: ['8ball', 'magicball', 'eightball'],
         description: 'Magic 8-ball',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             if (!a.length) return c.reply('Usage: .8ball <question>');
@@ -81,6 +84,7 @@ module.exports = [
     {
         commands: ['trivia', 'quiz'],
         description: 'Random trivia question',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const questions = [
@@ -113,6 +117,7 @@ module.exports = [
     {
         commands: ['answer', 'ans'],
         description: 'Answer trivia',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const key = c.from + '_trivia';
@@ -128,6 +133,7 @@ module.exports = [
     {
         commands: ['riddle'],
         description: 'Random riddle',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const riddles = [
@@ -160,6 +166,7 @@ module.exports = [
     {
         commands: ['solve'],
         description: 'Solve riddle',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const key = c.from + '_riddle';
@@ -172,6 +179,7 @@ module.exports = [
     {
         commands: ['hangman', 'hm'],
         description: 'Hangman game',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const key = c.from + '_hangman';
@@ -235,6 +243,7 @@ module.exports = [
     {
         commands: ['ttt', 'tictactoe'],
         description: 'Tic Tac Toe',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const key = c.from + '_ttt';
@@ -296,6 +305,7 @@ module.exports = [
     {
         commands: ['wordscramble', 'unscramble', 'scrambleword'],
         description: 'Word scramble game',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const key = c.from + '_scramble';
@@ -350,6 +360,7 @@ module.exports = [
     {
         commands: ['wouldyourather', 'wyr'],
         description: 'Would you rather',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const opts = [
@@ -376,6 +387,7 @@ module.exports = [
     {
         commands: ['truth', 'truthq'],
         description: 'Truth question',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const qs = [
@@ -401,6 +413,7 @@ module.exports = [
     {
         commands: ['dare', 'dareq'],
         description: 'Dare challenge',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const ds = [
@@ -426,6 +439,7 @@ module.exports = [
     {
         commands: ['neverhaveiever', 'nhie'],
         description: 'Never have I ever',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const items = [
@@ -453,6 +467,7 @@ module.exports = [
     {
         commands: ['slot', 'slots', 'slotmachine'],
         description: 'Slot machine game',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const symbols = ['🍒', '🍋', '🍊', '🍇', '⭐', '💎', '7️⃣'];
@@ -468,6 +483,7 @@ module.exports = [
     {
         commands: ['fortune', 'fortunecookie'],
         description: 'Fortune cookie',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const fortunes = [
@@ -495,6 +511,7 @@ module.exports = [
     {
         commands: ['thisorthat', 'tot'],
         description: 'This or that',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const opts = [
@@ -521,6 +538,7 @@ module.exports = [
     {
         commands: ['emoji', 'emojicombo'],
         description: 'Random emoji combination',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const emojis = [
@@ -585,6 +603,7 @@ module.exports = [
     {
         commands: ['roast', 'roastme'],
         description: 'Friendly roast',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const roasts = [
@@ -607,6 +626,7 @@ module.exports = [
     {
         commands: ['compliment', 'comp'],
         description: 'Random compliment',
+    category: 'games',
         permission: 'public',
         run: async (s, m, a, c) => {
             const comps = [

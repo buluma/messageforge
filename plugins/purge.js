@@ -3,6 +3,7 @@
 module.exports = {
     commands: ['purge', 'clear', 'delmsg'],
     description: 'Delete multiple messages (reply to start message)',
+    category: 'moderation',
     permission: 'admin',
     group: true,
     private: false,

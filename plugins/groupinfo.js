@@ -3,6 +3,7 @@
 module.exports = {
     commands: ['gcinfo'],
     description: 'Show detailed group information and statistics',
+    category: 'group',
     usage: '.groupinfo',
     permission: 'public',
     group: true,

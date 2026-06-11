@@ -6,6 +6,7 @@ const OWM_KEY = '060a6bcfa19809c2cd4d97a212b19273';
 module.exports = {
     commands: ['weather', 'climate', 'mosam'],
     description: 'Get current weather for a location',
+    category: 'search',
     permission: 'public',
     group: true,
     private: true,

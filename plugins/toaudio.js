@@ -9,6 +9,7 @@ const { dlBuffer } = require('../lib/dlmedia');
 module.exports = {
     commands: ['toaudio', 'tomp3', 'tovn', 'audio'],
     description: 'Convert a video or voice message to an MP3 audio file',
+    category: 'media',
     usage: '.toaudio (reply to a video or audio message)',
     permission: 'public',
     group: true,

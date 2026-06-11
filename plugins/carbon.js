@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['carbon', 'codeimg', 'code2img'],
     description: 'Convert code to a beautiful image via Carbon',
+    category: 'media',
     permission: 'public',
     group: true,
     private: true,

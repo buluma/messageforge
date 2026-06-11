@@ -12,5 +12,6 @@ export const state = {
     allPlugins: [],
     commitsChart: null,
     pluginFilter: 'all',
+    pluginCategoryFilter: 'all',
     pluginQuery: '',
 };

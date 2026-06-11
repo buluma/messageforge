@@ -4,6 +4,7 @@ const GH_REGEX = /(?:https|git)(?::\/\/|@)github\.com[\/:]([^\/:]+)\/(.+)/i;
 module.exports = {
     commands: ['gitclone'],
     description: 'Download a GitHub repository as a ZIP file',
+    category: 'downloaders',
     permission: 'public',
     group: true,
     private: true,

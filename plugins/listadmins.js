@@ -3,6 +3,7 @@
 module.exports = {
     commands: ['adminlist'],
     description: 'List all group admins',
+    category: 'group',
     permission: 'public',
     group: true,
     private: false,

@@ -7,6 +7,7 @@ global.antiDemoteGroups = enabledGroups;
 module.exports = {
     commands: ['antidemote'],
     description: 'Kick anyone who demotes a group admin (requires bot to be admin)',
+    category: 'moderation',
     permission: 'admin',
     group: true,
     private: false,

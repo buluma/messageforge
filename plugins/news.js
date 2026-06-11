@@ -54,6 +54,7 @@ function fmtDate(input) {
 module.exports = {
     commands: ['news', 'headlines'],
     description: 'Get latest news headlines',
+    category: 'search',
     permission: 'public',
     group: true,
     private: true,

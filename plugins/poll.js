@@ -3,6 +3,7 @@
 module.exports = {
     commands: ['poll', 'vote'],
     description: 'Create a WhatsApp native poll in the group',
+    category: 'group',
     usage: '.poll Question | Option1 | Option2 | ...',
     permission: 'admin',
     group: true,

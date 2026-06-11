@@ -48,6 +48,7 @@ global.logAction = function (jid, action, actor, target, details = '') {
 module.exports = {
     commands: ['auditlog', 'audit', 'adminlog', 'actionlog', 'grouplog'],
     description: 'View admin action audit log — tracks kicks, promotes, demotes, settings changes',
+    category: 'moderation',
     usage: '.auditlog [number] | .audit @user',
     permission: 'admin',
     group: true,

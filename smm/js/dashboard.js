@@ -124,6 +124,7 @@ async function fetchDeveloper() {
 async function fetchAndRenderPlugins() {
     try {
         state.allPlugins = (await api.fetchPlugins()) || [];
+        renderCategoryPills();
         setText('pluginsCount', state.allPlugins.length);
         document.getElementById('pluginsLoading').style.display = 'none';
         renderPlugins();
@@ -139,6 +140,7 @@ function renderPlugins() {
     const q = (state.pluginQuery || '').toLowerCase();
     const filtered = state.allPlugins.filter((p) => {
         if (state.pluginFilter !== 'all' && p.permission !== state.pluginFilter) return false;
+        if (state.pluginCategoryFilter !== 'all' && (p.category || 'uncategorized') !== state.pluginCategoryFilter) return false;
         if (!q) return true;
         const name = toTitleCase(p.name || (p.commands || [])[0] || '').toLowerCase();
         const desc = (p.description || '').toLowerCase();
@@ -150,14 +152,43 @@ function renderPlugins() {
         card.className = 'plugin-card';
         const cmd = (p.commands || [])[0] || 'unknown';
         const perm = p.permission || 'public';
-        card.innerHTML = `
-      <div class="plugin-name">${escapeHtml(toTitleCase(p.name || cmd))}</div>
-      <div class="plugin-desc">${escapeHtml(p.description || 'No description')}</div>
-      <div class="plugin-cmd">.${escapeHtml(cmd)}</div>
-      <span class="plugin-perm ${perm}">${escapeHtml(perm)}</span>`;
+        const cat = p.category || null;
+        const catHtml = cat ? '<span class="plugin-cat">' + escapeHtml(cat) + '</span>' : '';
+        card.innerHTML = [
+        '<div class="plugin-name">' + escapeHtml(toTitleCase(p.name || cmd)) + '</div>',
+        '<div class="plugin-desc">' + escapeHtml(p.description || 'No description') + '</div>',
+        '<div class="plugin-cmd">.' + escapeHtml(cmd) + '</div>',
+        '<span class="plugin-perm ' + perm + '">' + escapeHtml(perm) + '</span>',
+        catHtml,
+        ].join('\n');
         grid.appendChild(card);
     }
 }
+
+function renderCategoryPills() {
+    const container = document.getElementById("pluginCategoryPills");
+    if (!container) return;
+    const cats = new Set();
+    for (const p of state.allPlugins) {
+        if (p.category) cats.add(p.category);
+    }
+    const sorted = [...cats].sort();
+    let html = "";
+    html += "<button class=\"pill" + (state.pluginCategoryFilter === "all" ? " active" : "") + "\" data-cat=\"all\">All</button>";
+    for (const c of sorted) {
+        html += "<button class=\"pill" + (state.pluginCategoryFilter === c ? " active" : "") + "\" data-cat=\"" + c + "\">" + c + "</button>";
+    }
+    container.innerHTML = html;
+
+    container.querySelectorAll(".pill[data-cat]").forEach(function(btn) {
+        btn.onclick = function() {
+            container.querySelectorAll(".pill[data-cat]").forEach(function(p) { p.classList.toggle("active", p === btn); });
+            state.pluginCategoryFilter = btn.dataset.cat;
+            renderPlugins();
+        };
+    });
+}
+
 
 // ── Chart ────────────────────────────────────────────────────────
 async function fetchAndRenderChart() {

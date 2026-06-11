@@ -4,6 +4,7 @@ const axios = require('axios');
 module.exports = {
     commands: ['wiki', 'wikipedia', 'search'],
     description: 'Search Wikipedia for any topic',
+    category: 'search',
     usage: '.wiki <topic>',
     permission: 'public',
     group: true,

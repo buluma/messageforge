@@ -171,6 +171,7 @@ module.exports = {
         'readmsg',
     ],
     description: 'Baileys gap commands (privacy/chat/broadcast/pairing/edit/primitives)',
+    category: 'owner',
     permission: 'owner',
     group: true,
     private: true,

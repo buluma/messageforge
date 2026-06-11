@@ -19,6 +19,7 @@ function barOf(value, max, len = 12) {
 module.exports = {
     commands: ['tiktokstalk', 'ttstalk', 'tksearch', 'ttuser', 'tikstalk'],
     description: 'Stalk a TikTok profile — followers, videos, likes, bio and more',
+    category: 'search',
     usage: '.tiktokstalk <username>',
     permission: 'public',
     group: true,
