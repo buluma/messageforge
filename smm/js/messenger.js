@@ -869,13 +869,13 @@ function appendMessage(m, options = {}) {
     b.querySelector('.delete-btn').onclick = (e) => {
         e.stopPropagation();
         if (confirm('Delete this message?')) {
-            doDelete(m.key, b);
+            doDelete(bubbleMessageKey(b, m.key), b);
         }
     };
     b.querySelectorAll('.reaction-picker span').forEach((el) => {
         el.onclick = (e) => {
             e.stopPropagation();
-            doReact(m.key, el.textContent.trim());
+            doReact(bubbleMessageKey(b, m.key), el.textContent.trim());
         };
     });
 
@@ -972,10 +972,13 @@ async function sendMediaFile(file) {
     try {
         const res = await api.sendMedia(state.activeJid, file);
         if (res?.messageId) {
+            state.renderedMsgIds.delete(tempId);
             state.renderedMsgIds.add(res.messageId);
             const bubble = document.querySelector(`[data-id="${tempId}"]`);
             if (bubble) {
                 bubble.dataset.id = res.messageId;
+                const reactionsEl = document.getElementById(`reactions-${tempId}`);
+                if (reactionsEl) reactionsEl.id = `reactions-${res.messageId}`;
                 const jid = state.activeJid;
                 const img = bubble.querySelector('img');
                 if (img) img.src = `/api/media/${encodeURIComponent(jid)}/${res.messageId}`;
@@ -1025,6 +1028,32 @@ function updateReactionBadge(msgId, emoji, sender) {
                 `<span class="msg-reaction-badge">${escapeHtml(e)}${c > 1 ? ` ${c}` : ''}</span>`,
         )
         .join('');
+}
+
+// Read the live message key from the bubble — optimistic sends swap temp IDs on the DOM node.
+function bubbleMessageKey(bubble, fallbackKey = {}) {
+    return {
+        ...fallbackKey,
+        id: bubble?.dataset?.id || fallbackKey.id,
+        remoteJid: fallbackKey.remoteJid || state.activeJid,
+        participant: bubble?.dataset?.participant || fallbackKey.participant,
+        fromMe: fallbackKey.fromMe ?? bubble?.classList?.contains('sent'),
+    };
+}
+
+function unwrapMediaPayload(messageRoot) {
+    if (!messageRoot) return { type: '', mediaObj: null };
+    const wrapperType = Object.keys(messageRoot)[0];
+    if (!wrapperType) return { type: '', mediaObj: null };
+
+    if (['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2'].includes(wrapperType)) {
+        const inner = messageRoot[wrapperType]?.message;
+        if (!inner) return { type: '', mediaObj: null };
+        const type = Object.keys(inner)[0];
+        return { type, mediaObj: type ? inner[type] : null };
+    }
+
+    return { type: wrapperType, mediaObj: messageRoot[wrapperType] };
 }
 
 // ── Delete ────────────────────────────────────────────────────────
@@ -1404,13 +1433,8 @@ function renderChatMediaGrid() {
     if (chatMediaObserver) chatMediaObserver.disconnect();
 
     filteredChatMedia = currentChatMedia.filter((msg) => {
-        const m = msg.message;
-        if (!m) return false;
-        let type = Object.keys(m)[0];
-        if (['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2'].includes(type)) {
-            if (!m[type].message) return false;
-            type = Object.keys(m[type].message)[0];
-        }
+        const { type } = unwrapMediaPayload(msg.message);
+        if (!type) return false;
 
         if (activeMediaTab === 'all') return true;
         if (activeMediaTab === 'images')
@@ -1428,14 +1452,8 @@ function renderChatMediaGrid() {
 
     grid.innerHTML = filteredChatMedia
         .map((msg, index) => {
-            const m = msg.message;
-            if (!m) return '';
-            let type = Object.keys(m)[0];
-            let mediaObj = m[type];
-            if (['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2'].includes(type)) {
-                type = Object.keys(m[type].message)[0];
-                mediaObj = m[type].message[type];
-            }
+            const { type, mediaObj } = unwrapMediaPayload(msg.message);
+            if (!type || !mediaObj) return '';
 
             const isVideo = type === 'videoMessage';
             const isAudio = type === 'audioMessage';
