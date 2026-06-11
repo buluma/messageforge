@@ -96,6 +96,10 @@ const {
     sendRevealedMedia,
 } = require('./lib/viewonce');
 const messengerStore = require('./lib/messengerStore');
+const { requestIp, isLocalAddress } = require('./lib/http/requestIp');
+const { requireDashboardAuth, dashboardToken } = require('./lib/http/dashboardAuth');
+const { globalApiRateLimit, writeRateLimit } = require('./lib/http/rateLimit');
+const { securityHeaders } = require('./lib/http/securityHeaders');
 const config = require('./config.js');
 const BRAND_NAME = 'MessageForge';
 const BRAND_ICON = '◉';
@@ -245,53 +249,7 @@ const prefix = config.PREFIX || '.';
 const tempDir = path.join(os.tmpdir(), 'messageforge-cache');
 const port = config.PORT;
 const pluginsDir = path.join(__dirname, 'plugins');
-const dashboardToken = String(process.env.DASHBOARD_TOKEN || '').trim();
 const DASHBOARD_ROOM = 'dashboard-authenticated';
-
-function isLocalAddress(ip = '') {
-    const value = String(ip).trim();
-    return (
-        value === '::1' ||
-        value === '127.0.0.1' ||
-        value === '::ffff:127.0.0.1' ||
-        value.startsWith('127.') ||
-        value.toLowerCase().includes('localhost')
-    );
-}
-
-function requestIp(req) {
-    const fwd = String(req.headers['x-forwarded-for'] || '')
-        .split(',')[0]
-        .trim();
-    return fwd || req.socket?.remoteAddress || '';
-}
-
-function extractAuthToken(source = {}) {
-    const authHeader = String(source.headers?.authorization || '');
-    const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
-    const headerToken = String(source.headers?.['x-dashboard-token'] || '').trim();
-    return bearer || headerToken;
-}
-
-function isAuthorizedByToken(provided) {
-    return !!dashboardToken && provided === dashboardToken;
-}
-
-function requireDashboardAuth(req, res, next) {
-    if (dashboardToken) {
-        const provided = extractAuthToken(req);
-        if (!isAuthorizedByToken(provided)) {
-            return res.status(401).json({ error: 'Unauthorized dashboard access token' });
-        }
-        return next();
-    }
-
-    const ip = requestIp(req);
-    if (isLocalAddress(ip)) return next();
-    return res
-        .status(403)
-        .json({ error: 'Dashboard access denied. Set DASHBOARD_TOKEN for remote access.' });
-}
 
 function emitDashboard(event, payload) {
     if (!global.io) return;
@@ -1552,84 +1510,13 @@ io.on('connection', (socket) => {
 app.use(express.json({ limit: '70mb' }));
 
 // ── Security headers ──────────────────────────────────────────────────────────
-app.use((req, res, next) => {
-    res.setHeader(
-        'Content-Security-Policy',
-        "default-src 'self'; script-src 'self' cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src fonts.gstatic.com; img-src 'self' data: avatars.githubusercontent.com; connect-src 'self' api.github.com wss:; media-src 'self' blob:",
-    );
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-    next();
-});
+app.use(securityHeaders);
 
 // ── API rate limiter (120 req/min per IP, /api/* only) ────────────────────────
-// Static image routes (thumbnails, face crops) are excluded — they're called
-// by the browser for every gallery tile and would exhaust the budget instantly.
-const _apiRateLimitMap = new Map();
-const _rateLimitExempt = new Set(['/api/media/thumb', '/api/media/face']);
-app.use('/api', (req, res, next) => {
-    const base = '/' + req.path.split('/').slice(1, 4).join('/');
-    if (req.path.startsWith('/media/')) return next();
-    if (_rateLimitExempt.has(base)) return next();
-
-    const ip = requestIp(req);
-    const now = Date.now();
-    const window = 60 * 1000;
-    const limit = 120;
-
-    let entry = _apiRateLimitMap.get(ip);
-    if (!entry || now >= entry.resetAt) {
-        entry = { count: 0, resetAt: now + window };
-        _apiRateLimitMap.set(ip, entry);
-    }
-
-    entry.count++;
-    if (entry.count > limit) {
-        return res.status(429).json({ error: 'Too many requests' });
-    }
-    next();
-});
+app.use('/api', globalApiRateLimit);
 
 // ── Write-path rate limiter (10 req/min per IP on mutating endpoints) ─────────
-const _writeRateLimitMap = new Map();
-const _writeRateLimitPaths = new Set([
-    '/send',
-    '/send-media',
-    '/delete-message',
-    '/react',
-    '/typing',
-    '/toggle-pin',
-    '/toggle-archive',
-    '/read',
-    '/control/autopilot',
-    '/quick-replies',
-    '/chat-alias',
-]);
-app.use('/api', (req, res, next) => {
-    if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
-
-    const isWritePath = Array.from(_writeRateLimitPaths).some(
-        (p) => req.path === p || req.path.startsWith(p + '/'),
-    );
-    if (!isWritePath) return next();
-
-    const ip = requestIp(req);
-    const now = Date.now();
-    const window = 60 * 1000;
-    const limit = 10;
-
-    let entry = _writeRateLimitMap.get(ip);
-    if (!entry || now >= entry.resetAt) {
-        entry = { count: 0, resetAt: now + window };
-        _writeRateLimitMap.set(ip, entry);
-    }
-
-    entry.count++;
-    if (entry.count > limit) {
-        return res.status(429).json({ error: 'Too many write requests' });
-    }
-    next();
-});
+app.use('/api', writeRateLimit);
 
 app.use(express.static(path.join(__dirname, 'smm')));
 app.use('/media-files', requireDashboardAuth, express.static(path.join(__dirname, 'data')));

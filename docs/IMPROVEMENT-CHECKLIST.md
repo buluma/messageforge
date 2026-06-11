@@ -93,11 +93,11 @@ Work is split into small, independent PRs. Check items off as they land.
 
 ### PR 4a — Extract shared HTTP middleware
 
-- [ ] Create `lib/http/requestIp.js` — `requestIp`, `isLocalAddress`
-- [ ] Create `lib/http/dashboardAuth.js` — `extractAuthToken`, `requireDashboardAuth`, `isAuthorizedByToken`
-- [ ] Create `lib/http/rateLimit.js` — global + write-path limiters
-- [ ] Create `lib/http/securityHeaders.js` — CSP, `nosniff`, `X-Frame-Options`
-- [ ] Wire middleware from `messageforge.js`
+- [x] Create `lib/http/requestIp.js` — `requestIp`, `isLocalAddress`
+- [x] Create `lib/http/dashboardAuth.js` — `extractAuthToken`, `requireDashboardAuth`, `isAuthorizedByToken`
+- [x] Create `lib/http/rateLimit.js` — global + write-path limiters
+- [x] Create `lib/http/securityHeaders.js` — CSP, `nosniff`, `X-Frame-Options`
+- [x] Wire middleware from `messageforge.js`
 
 **Acceptance:** No behavior change; `curl /health` and dashboard login still work.
 
