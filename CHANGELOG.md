@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Features
+- **Send media from Chat:** Added file picker and support for sending files (images, videos, audio, and documents) directly from the dashboard chat area.
+- **Message Deletion:** Fully wired up the UI delete button to call the message deletion API.
+- **Date Separators:** Implemented automated chronological date separators (e.g. "Today", "Yesterday", specific dates) in the chat thread.
+- **Media Gallery Filtering:** Added filter tabs (All, Photos, Videos, Docs, Audio) in the Chat Media modal.
+- **Slideshow Navigation:** Added previous/next slideshow controls and index indicator to the chat media viewer.
+- **ViewOnce Media Rendering:** Fixed broken image/video rendering of viewOnce messages in chat bubbles by unwrapping ephemeral message payloads.
+
+
 ## [2.4.0] - 2026-06-11
 
 ### Features

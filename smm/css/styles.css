@@ -2724,3 +2724,102 @@ input {
     justify-content: flex-end;
     margin-top: 4px;
 }
+
+/* ── Chat & Media Improvements ──────────────────────────────────── */
+
+.chat-input-area .attach-btn {
+    font-size: 18px;
+    padding: 8px;
+    transition:
+        transform 0.2s ease,
+        opacity 0.2s;
+    cursor: pointer;
+}
+
+.chat-input-area .attach-btn:hover {
+    transform: scale(1.15) rotate(15deg);
+    opacity: 0.9;
+}
+
+.chat-media-tabs {
+    display: flex;
+    gap: 8px;
+    margin: 8px 0 16px 0;
+    border-bottom: 1px solid var(--border-hi);
+    padding-bottom: 8px;
+}
+
+.chat-media-tabs .tab-btn {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted, #888);
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+        color 0.2s,
+        border-color 0.2s;
+}
+
+.chat-media-tabs .tab-btn:hover {
+    color: var(--text);
+}
+
+.chat-media-tabs .tab-btn.active {
+    color: var(--primary);
+    border-color: var(--primary);
+    font-weight: 600;
+}
+
+.chat-media-viewer-nav {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-3);
+    border-radius: var(--radius-sm);
+    padding: 2px 8px;
+    border: 1px solid var(--border-hi);
+}
+
+.chat-media-viewer-nav span {
+    font-size: 12px;
+    font-weight: 600;
+    min-width: 45px;
+    text-align: center;
+    color: var(--text-muted, #888);
+}
+
+.chat-media-viewer-nav button {
+    font-size: 12px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: color 0.15s;
+}
+
+.chat-media-viewer-nav button:hover {
+    color: var(--primary);
+}
+
+.date-separator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 16px 0;
+    width: 100%;
+    user-select: none;
+}
+
+.date-separator span {
+    background: var(--bg-3);
+    color: var(--text-muted, #888);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--border-hi);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}

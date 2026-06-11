@@ -34,6 +34,12 @@ const chatItemNodes = new Map();
 const unreadCounts = new Map();
 let chatAliases = {};
 
+// ── Chat Media / Slideshow state ──────────────────────────────────
+let currentChatMedia = [];
+let filteredChatMedia = [];
+let activeMediaTab = 'all';
+let currentMediaIndex = -1;
+
 function updateDocumentTitle() {
     let total = 0;
     for (const count of unreadCounts.values()) {
@@ -146,6 +152,50 @@ export function mountMessenger() {
         button.addEventListener('click', () => runAutopilotAction(button.dataset.autopilotAction));
     });
     document.getElementById('loadOlderBtn').onclick = loadOlderMessages;
+
+    // Media/attachment triggers
+    const attachMediaBtn = document.getElementById('attachMediaBtn');
+    const hiddenFileInput = document.getElementById('hiddenFileInput');
+    if (attachMediaBtn && hiddenFileInput) {
+        attachMediaBtn.onclick = () => hiddenFileInput.click();
+        hiddenFileInput.onchange = async (e) => {
+            const files = Array.from(e.target.files || []);
+            if (!files.length) return;
+            for (const file of files) {
+                await sendMediaFile(file);
+            }
+            e.target.value = '';
+        };
+    }
+
+    // Media viewer slideshow & tabs triggers
+    const prevBtn = document.getElementById('chatMediaViewerPrev');
+    const nextBtn = document.getElementById('chatMediaViewerNext');
+    if (prevBtn) {
+        prevBtn.onclick = () => {
+            if (currentMediaIndex > 0) openChatMediaViewerAtIndex(currentMediaIndex - 1);
+        };
+    }
+    if (nextBtn) {
+        nextBtn.onclick = () => {
+            if (currentMediaIndex < filteredChatMedia.length - 1)
+                openChatMediaViewerAtIndex(currentMediaIndex + 1);
+        };
+    }
+
+    const mediaTabs = document.getElementById('chatMediaTabs');
+    if (mediaTabs) {
+        mediaTabs.onclick = (e) => {
+            const btn = e.target.closest('.tab-btn');
+            if (!btn) return;
+            document
+                .querySelectorAll('#chatMediaTabs .tab-btn')
+                .forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeMediaTab = btn.dataset.tab;
+            renderChatMediaGrid();
+        };
+    }
     document.getElementById('scrollToBottomBtn').onclick = () =>
         scrollThreadToBottom({ force: true });
     document.getElementById('messageThread').addEventListener('scroll', updateScrollBottomButton);
@@ -630,7 +680,8 @@ async function selectChat(chat) {
         state.msgReactions.clear();
         state.chatPage.set(chat.jid, data.page || { hasMore: false, before: null });
         const msgs = data.messages || [];
-        msgs.forEach((m) => appendMessage(m, { autoScroll: false }));
+        msgs.forEach((m) => appendMessage(m, { autoScroll: false, skipDateSeparator: true }));
+        updateDateSeparators();
         scrollThreadToBottom({ force: true });
         document.getElementById('messageInput').focus();
         loadOlderBtn.hidden = !data.page?.hasMore;
@@ -669,8 +720,9 @@ async function loadOlderMessages() {
         });
         const msgs = data.messages || [];
         for (let i = msgs.length - 1; i >= 0; i -= 1) {
-            appendMessage(msgs[i], { prepend: true, autoScroll: false });
+            appendMessage(msgs[i], { prepend: true, autoScroll: false, skipDateSeparator: true });
         }
+        updateDateSeparators();
         state.chatPage.set(state.activeJid, data.page || { hasMore: false, before: null });
         btn.hidden = !data.page?.hasMore;
         const newHeight = thread.scrollHeight;
@@ -730,8 +782,15 @@ function appendMessage(m, options = {}) {
     b.className = `msg-bubble ${m.key.fromMe ? 'sent' : 'received'}`;
     b.dataset.id = m.key.id;
     if (m.key.participant) b.dataset.participant = m.key.participant;
+    b.dataset.timestamp = m.messageTimestamp || '';
 
-    const msg = m.message || {};
+    // Unwrap ephemeral and view-once messages
+    let msg = m.message || {};
+    let type = Object.keys(msg)[0];
+    if (['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2'].includes(type)) {
+        msg = msg[type]?.message || {};
+    }
+
     const text =
         msg.conversation ||
         msg.extendedTextMessage?.text ||
@@ -762,22 +821,27 @@ function appendMessage(m, options = {}) {
     const quoted = ctx?.quotedMessage;
     let quotedHtml = '';
     if (quoted) {
+        let qMsg = quoted;
+        let qType = Object.keys(qMsg)[0];
+        if (['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2'].includes(qType)) {
+            qMsg = qMsg[qType]?.message || {};
+        }
         const qText =
-            quoted.conversation ||
-            quoted.extendedTextMessage?.text ||
-            quoted.imageMessage?.caption ||
-            quoted.videoMessage?.caption ||
-            (quoted.imageMessage ? '📷 Photo' : '') ||
-            (quoted.videoMessage ? '🎥 Video' : '') ||
-            (quoted.audioMessage ? '🎵 Audio' : '') ||
-            (quoted.stickerMessage ? '🌟 Sticker' : '') ||
-            (quoted.documentMessage ? '📄 Document' : '') ||
+            qMsg.conversation ||
+            qMsg.extendedTextMessage?.text ||
+            qMsg.imageMessage?.caption ||
+            qMsg.videoMessage?.caption ||
+            (qMsg.imageMessage ? '📷 Photo' : '') ||
+            (qMsg.videoMessage ? '🎥 Video' : '') ||
+            (qMsg.audioMessage ? '🎵 Audio' : '') ||
+            (qMsg.stickerMessage ? '🌟 Sticker' : '') ||
+            (qMsg.documentMessage ? '📄 Document' : '') ||
             '[Media]';
         const author = ctx.participant ? jidShort(ctx.participant) : '';
         quotedHtml = `<div class="quoted-msg">${author ? `<div class="quoted-author">${escapeHtml(author)}</div>` : ''}<div class="quoted-text">${formatWAText(qText)}</div></div>`;
     }
 
-    const actionsHtml = `<div class="msg-actions"><span class="msg-action-btn reply-btn" title="Reply">↩️</span></div>`;
+    const actionsHtml = `<div class="msg-actions"><span class="msg-action-btn reply-btn" title="Reply">↩️</span><span class="msg-action-btn delete-btn" title="Delete">🗑️</span></div>`;
     const reactionPickerHtml = m.key.fromMe
         ? ''
         : `<div class="reaction-picker"><span>👍</span><span>❤️</span><span>😂</span><span>😮</span><span>😢</span><span>🙏</span></div>`;
@@ -802,6 +866,12 @@ function appendMessage(m, options = {}) {
             `Replying: ${(text || '[Media]').slice(0, 60)}`;
         document.getElementById('messageInput').focus();
     };
+    b.querySelector('.delete-btn').onclick = (e) => {
+        e.stopPropagation();
+        if (confirm('Delete this message?')) {
+            doDelete(m.key, b);
+        }
+    };
     b.querySelectorAll('.reaction-picker span').forEach((el) => {
         el.onclick = (e) => {
             e.stopPropagation();
@@ -811,8 +881,119 @@ function appendMessage(m, options = {}) {
 
     if (prepend) thread.insertBefore(b, thread.firstChild);
     else thread.appendChild(b);
+
+    if (!options.skipDateSeparator) {
+        updateDateSeparators();
+    }
+
     if (autoScroll && shouldStickBottom) thread.scrollTop = thread.scrollHeight;
     updateScrollBottomButton();
+}
+
+// ── Date Separators & Media Helpers ────────────────────────────────
+
+function getMessageDateLabel(ts) {
+    if (!ts) return '';
+    let secs = 0;
+    if (typeof ts === 'number' && Number.isFinite(ts)) {
+        secs = ts > 1e12 ? Math.floor(ts / 1000) : Math.floor(ts);
+    } else if (typeof ts === 'string') {
+        const n = Number(ts);
+        if (Number.isFinite(n)) secs = n > 1e12 ? Math.floor(n / 1000) : Math.floor(n);
+    } else if (ts && typeof ts === 'object') {
+        if (typeof ts.low === 'number') secs = Math.floor(ts.low);
+        else if (typeof ts.toString === 'function') {
+            const n = Number(ts.toString());
+            if (Number.isFinite(n)) secs = n > 1e12 ? Math.floor(n / 1000) : Math.floor(n);
+        }
+    }
+    if (!secs) return '';
+    const date = new Date(secs * 1000);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+        return 'Today';
+    } else if (date.toDateString() === yesterday.toDateString()) {
+        return 'Yesterday';
+    } else {
+        return date.toLocaleDateString(undefined, {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+        });
+    }
+}
+
+function updateDateSeparators() {
+    const thread = document.getElementById('messageThread');
+    if (!thread) return;
+    // Remove all existing date separators
+    thread.querySelectorAll('.date-separator').forEach((el) => el.remove());
+
+    const bubbles = thread.querySelectorAll('.msg-bubble');
+    let lastDateLabel = '';
+    bubbles.forEach((b) => {
+        const ts = b.dataset.timestamp;
+        if (!ts) return;
+        const label = getMessageDateLabel(ts);
+        if (label && label !== lastDateLabel) {
+            const separator = document.createElement('div');
+            separator.className = 'date-separator';
+            separator.innerHTML = `<span>${escapeHtml(label)}</span>`;
+            thread.insertBefore(separator, b);
+            lastDateLabel = label;
+        }
+    });
+}
+
+async function sendMediaFile(file) {
+    if (!state.activeJid) return;
+    const tempId = 'temp-' + Date.now();
+    let mediaType = file.type.split('/')[0];
+    let tempMessage = {};
+    if (mediaType === 'image') {
+        tempMessage.imageMessage = { caption: file.name };
+    } else if (mediaType === 'video') {
+        tempMessage.videoMessage = { caption: file.name };
+    } else if (mediaType === 'audio') {
+        tempMessage.audioMessage = {};
+    } else {
+        tempMessage.documentMessage = { fileName: file.name };
+    }
+
+    appendMessage({
+        key: { id: tempId, fromMe: true },
+        message: tempMessage,
+        messageTimestamp: Math.floor(Date.now() / 1000),
+    });
+
+    try {
+        const res = await api.sendMedia(state.activeJid, file);
+        if (res?.messageId) {
+            state.renderedMsgIds.add(res.messageId);
+            const bubble = document.querySelector(`[data-id="${tempId}"]`);
+            if (bubble) {
+                bubble.dataset.id = res.messageId;
+                const jid = state.activeJid;
+                const img = bubble.querySelector('img');
+                if (img) img.src = `/api/media/${encodeURIComponent(jid)}/${res.messageId}`;
+                const video = bubble.querySelector('video');
+                if (video) video.src = `/api/media/${encodeURIComponent(jid)}/${res.messageId}`;
+                const audio = bubble.querySelector('audio');
+                if (audio) audio.src = `/api/media/${encodeURIComponent(jid)}/${res.messageId}`;
+                const docLink = bubble.querySelector('a');
+                if (docLink)
+                    docLink.href = `/api/media/${encodeURIComponent(jid)}/${res.messageId}`;
+            }
+        }
+    } catch (e) {
+        toast('Send media failed: ' + e.message, 'error');
+        state.renderedMsgIds.delete(tempId);
+        document.querySelector(`[data-id="${tempId}"]`)?.remove();
+        updateScrollBottomButton();
+    }
 }
 
 // ── Reactions ─────────────────────────────────────────────────────
@@ -1203,66 +1384,151 @@ async function openChatMediaModal() {
     grid.hidden = false;
     grid.innerHTML = '<div class="empty-state">Loading media...</div>';
 
+    // Reset active tab to all
+    activeMediaTab = 'all';
+    document.querySelectorAll('#chatMediaTabs .tab-btn').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.tab === 'all');
+    });
+
     try {
         const data = await api.fetchChatMedia(state.activeJid);
-        const msgs = data.messages || [];
-        if (msgs.length === 0) {
-            grid.innerHTML = '<div class="empty-state">No media found in this chat.</div>';
-            return;
-        }
-
-        grid.innerHTML = msgs
-            .map((msg) => {
-                const m = msg.message;
-                if (!m) return '';
-                let type = Object.keys(m)[0];
-                let mediaObj = m[type];
-                if (['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2'].includes(type)) {
-                    if (!m[type].message) return '';
-                    type = Object.keys(m[type].message)[0];
-                    mediaObj = m[type].message[type];
-                }
-
-                const isVideo = type === 'videoMessage';
-                const isAudio = type === 'audioMessage';
-                const isDoc = type === 'documentMessage';
-                const isSticker = type === 'stickerMessage';
-                const url = `/api/media/${encodeURIComponent(state.activeJid)}/${msg.msgId}`;
-                const thumb = chatMediaThumb(mediaObj);
-
-                let label = 'Image';
-                let content = '';
-                if (isVideo) {
-                    label = 'Video';
-                    content = chatMediaPreviewLink(url, thumb, label, '▶');
-                } else if (isAudio) {
-                    label = 'Audio';
-                    content = `<button class="chat-media-file chat-media-audio chat-media-open" type="button">▶ Audio</button>`;
-                } else if (isDoc) {
-                    label = 'Document';
-                    content = `<button class="chat-media-file chat-media-open" type="button">📄 ${escapeHtml(mediaObj.fileName || 'Document')}</button>`;
-                } else if (isSticker) {
-                    label = 'Sticker';
-                    content = thumb
-                        ? chatMediaPreviewLink(url, thumb, label, '')
-                        : `<img class="chat-media-item-media chat-media-sticker chat-media-lazy" data-src="${url}" alt="Sticker" loading="lazy" decoding="async" />`;
-                } else {
-                    content = thumb
-                        ? chatMediaPreviewLink(url, thumb, label, '')
-                        : `<img class="chat-media-item-media chat-media-lazy" data-src="${url}" alt="Chat media" loading="lazy" decoding="async" />`;
-                }
-
-                return `
-                <div class="chat-media-card" title="${escapeHtml(label)}" data-url="${url}" data-kind="${escapeHtml(label.toLowerCase())}">
-                    ${content}
-                    <div class="chat-media-broken">Preview unavailable</div>
-                </div>
-            `;
-            })
-            .join('');
-        setupChatMediaLazyLoad(grid);
+        currentChatMedia = data.messages || [];
+        renderChatMediaGrid();
     } catch (e) {
         grid.innerHTML = `<div class="empty-state">Error loading media: ${e.message}</div>`;
+    }
+}
+
+function renderChatMediaGrid() {
+    const grid = document.getElementById('chatMediaGrid');
+    if (chatMediaObserver) chatMediaObserver.disconnect();
+
+    filteredChatMedia = currentChatMedia.filter((msg) => {
+        const m = msg.message;
+        if (!m) return false;
+        let type = Object.keys(m)[0];
+        if (['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2'].includes(type)) {
+            if (!m[type].message) return false;
+            type = Object.keys(m[type].message)[0];
+        }
+
+        if (activeMediaTab === 'all') return true;
+        if (activeMediaTab === 'images')
+            return type === 'imageMessage' || type === 'stickerMessage';
+        if (activeMediaTab === 'videos') return type === 'videoMessage';
+        if (activeMediaTab === 'documents') return type === 'documentMessage';
+        if (activeMediaTab === 'audio') return type === 'audioMessage';
+        return false;
+    });
+
+    if (filteredChatMedia.length === 0) {
+        grid.innerHTML = `<div class="empty-state">No media found for category "${activeMediaTab}".</div>`;
+        return;
+    }
+
+    grid.innerHTML = filteredChatMedia
+        .map((msg, index) => {
+            const m = msg.message;
+            if (!m) return '';
+            let type = Object.keys(m)[0];
+            let mediaObj = m[type];
+            if (['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2'].includes(type)) {
+                type = Object.keys(m[type].message)[0];
+                mediaObj = m[type].message[type];
+            }
+
+            const isVideo = type === 'videoMessage';
+            const isAudio = type === 'audioMessage';
+            const isDoc = type === 'documentMessage';
+            const isSticker = type === 'stickerMessage';
+            const url = `/api/media/${encodeURIComponent(state.activeJid)}/${msg.msgId}`;
+            const thumb = chatMediaThumb(mediaObj);
+
+            let label = 'Image';
+            let content = '';
+            if (isVideo) {
+                label = 'Video';
+                content = chatMediaPreviewLink(url, thumb, label, '▶', index);
+            } else if (isAudio) {
+                label = 'Audio';
+                content = `<button class="chat-media-file chat-media-audio chat-media-open" type="button" data-index="${index}">▶ Audio</button>`;
+            } else if (isDoc) {
+                label = 'Document';
+                content = `<button class="chat-media-file chat-media-open" type="button" data-index="${index}">📄 ${escapeHtml(mediaObj.fileName || 'Document')}</button>`;
+            } else if (isSticker) {
+                label = 'Sticker';
+                content = thumb
+                    ? chatMediaPreviewLink(url, thumb, label, '', index)
+                    : `<img class="chat-media-item-media chat-media-sticker chat-media-lazy" data-src="${url}" alt="Sticker" loading="lazy" decoding="async" data-index="${index}" />`;
+            } else {
+                content = thumb
+                    ? chatMediaPreviewLink(url, thumb, label, '', index)
+                    : `<img class="chat-media-item-media chat-media-lazy" data-src="${url}" alt="Chat media" loading="lazy" decoding="async" data-index="${index}" />`;
+            }
+
+            return `
+            <div class="chat-media-card" title="${escapeHtml(label)}" data-url="${url}" data-kind="${escapeHtml(label.toLowerCase())}" data-index="${index}">
+                ${content}
+                <div class="chat-media-broken">Preview unavailable</div>
+            </div>
+        `;
+        })
+        .join('');
+    setupChatMediaLazyLoad(grid);
+}
+
+function openChatMediaViewerAtIndex(index) {
+    if (index < 0 || index >= filteredChatMedia.length) return;
+    currentMediaIndex = index;
+    const msg = filteredChatMedia[index];
+    const m = msg.message;
+    if (!m) return;
+
+    let type = Object.keys(m)[0];
+    let mediaObj = m[type];
+    if (['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2'].includes(type)) {
+        type = Object.keys(m[type].message)[0];
+        mediaObj = m[type].message[type];
+    }
+
+    const isVideo = type === 'videoMessage';
+    const isAudio = type === 'audioMessage';
+    const isDoc = type === 'documentMessage';
+    let kind = 'image';
+    if (isVideo) kind = 'video';
+    else if (isAudio) kind = 'audio';
+    else if (isDoc) kind = 'document';
+
+    const url = `/api/media/${encodeURIComponent(state.activeJid)}/${msg.msgId}`;
+    const grid = document.getElementById('chatMediaGrid');
+    const viewer = document.getElementById('chatMediaViewer');
+    const content = document.getElementById('chatMediaViewerContent');
+    const open = document.getElementById('chatMediaViewerOpen');
+
+    grid.hidden = true;
+    viewer.hidden = false;
+    open.href = url;
+
+    // Update index indicator
+    const indexSpan = document.getElementById('chatMediaViewerIndex');
+    if (indexSpan) {
+        indexSpan.textContent = `${index + 1} / ${filteredChatMedia.length}`;
+    }
+
+    // Enable/disable navigation buttons
+    const prevBtn = document.getElementById('chatMediaViewerPrev');
+    const nextBtn = document.getElementById('chatMediaViewerNext');
+    if (prevBtn) prevBtn.disabled = index === 0;
+    if (nextBtn) nextBtn.disabled = index === filteredChatMedia.length - 1;
+
+    if (kind === 'video') {
+        content.innerHTML = `<video class="chat-media-viewer-media" src="${url}" controls autoplay></video>`;
+    } else if (kind === 'audio') {
+        content.innerHTML = `<audio class="chat-media-viewer-audio" src="${url}" controls autoplay></audio>`;
+    } else if (kind === 'document') {
+        content.innerHTML = `<a class="chat-media-file" href="${url}" target="_blank" rel="noopener">Open document: ${escapeHtml(mediaObj.fileName || 'Download')}</a>`;
+    } else {
+        content.innerHTML = `<img class="chat-media-viewer-media" src="${url}" alt="Chat media" />`;
     }
 }
 
@@ -1277,12 +1543,12 @@ function chatMediaThumb(mediaObj) {
     return '';
 }
 
-function chatMediaPreviewLink(url, thumb, label, icon) {
+function chatMediaPreviewLink(url, thumb, label, icon, index = '') {
     if (!thumb) {
-        return `<button class="chat-media-file chat-media-open" type="button">${escapeHtml(icon || label)} ${escapeHtml(label)}</button>`;
+        return `<button class="chat-media-file chat-media-open" type="button" data-index="${index}">${escapeHtml(icon || label)} ${escapeHtml(label)}</button>`;
     }
     return `
-        <button class="chat-media-preview chat-media-open" type="button" aria-label="Open ${escapeHtml(label)}">
+        <button class="chat-media-preview chat-media-open" type="button" aria-label="Open ${escapeHtml(label)}" data-index="${index}">
             <img class="chat-media-item-media" src="${thumb}" alt="${escapeHtml(label)} preview" loading="lazy" decoding="async" />
             ${icon ? `<span class="chat-media-play">${escapeHtml(icon)}</span>` : ''}
         </button>
@@ -1346,13 +1612,19 @@ document.getElementById('chatMediaModalClose').addEventListener('click', () => {
     document.getElementById('chatMediaModal').hidden = true;
     document.getElementById('chatMediaGrid').innerHTML = '';
     document.getElementById('chatMediaViewerContent').innerHTML = '';
+    currentChatMedia = [];
+    filteredChatMedia = [];
+    currentMediaIndex = -1;
 });
 
 document.getElementById('chatMediaGrid').addEventListener('click', (event) => {
     const card = event.target.closest('.chat-media-card');
     if (!card) return;
     event.preventDefault();
-    openChatMediaViewer(card.dataset.url, card.dataset.kind);
+    const idx = parseInt(card.dataset.index, 10);
+    if (!isNaN(idx)) {
+        openChatMediaViewerAtIndex(idx);
+    }
 });
 
 document.getElementById('chatMediaViewerBack').addEventListener('click', () => {
@@ -1360,25 +1632,3 @@ document.getElementById('chatMediaViewerBack').addEventListener('click', () => {
     document.getElementById('chatMediaViewerContent').innerHTML = '';
     document.getElementById('chatMediaGrid').hidden = false;
 });
-
-function openChatMediaViewer(url, kind) {
-    if (!url) return;
-    const grid = document.getElementById('chatMediaGrid');
-    const viewer = document.getElementById('chatMediaViewer');
-    const content = document.getElementById('chatMediaViewerContent');
-    const open = document.getElementById('chatMediaViewerOpen');
-
-    grid.hidden = true;
-    viewer.hidden = false;
-    open.href = url;
-
-    if (kind === 'video') {
-        content.innerHTML = `<video class="chat-media-viewer-media" src="${url}" controls autoplay></video>`;
-    } else if (kind === 'audio') {
-        content.innerHTML = `<audio class="chat-media-viewer-audio" src="${url}" controls autoplay></audio>`;
-    } else if (kind === 'document') {
-        content.innerHTML = `<a class="chat-media-file" href="${url}" target="_blank" rel="noopener">Open document</a>`;
-    } else {
-        content.innerHTML = `<img class="chat-media-viewer-media" src="${url}" alt="Chat media" />`;
-    }
-}

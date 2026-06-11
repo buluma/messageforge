@@ -239,6 +239,20 @@
                                     <div id="qrList" class="qr-list"></div>
                                 </div>
                             </div>
+                            <button
+                                id="attachMediaBtn"
+                                class="ghost-btn attach-btn"
+                                title="Attach file"
+                                aria-label="Attach file"
+                            >
+                                📎
+                            </button>
+                            <input
+                                type="file"
+                                id="hiddenFileInput"
+                                style="display: none"
+                                multiple
+                            />
                             <input
                                 type="text"
                                 id="messageInput"
@@ -656,12 +670,28 @@
                         ✕
                     </button>
                 </div>
+                <div class="chat-media-tabs" id="chatMediaTabs">
+                    <button class="tab-btn active" data-tab="all">All</button>
+                    <button class="tab-btn" data-tab="images">Photos</button>
+                    <button class="tab-btn" data-tab="videos">Videos</button>
+                    <button class="tab-btn" data-tab="documents">Docs</button>
+                    <button class="tab-btn" data-tab="audio">Audio</button>
+                </div>
                 <div id="chatMediaGrid" class="chat-media-grid">
                     <div class="empty-state">Loading media...</div>
                 </div>
                 <div id="chatMediaViewer" class="chat-media-viewer" hidden>
                     <div class="chat-media-viewer-header">
                         <button id="chatMediaViewerBack" class="ghost-btn">← Back</button>
+                        <div class="chat-media-viewer-nav">
+                            <button id="chatMediaViewerPrev" class="ghost-btn" title="Previous">
+                                ◀
+                            </button>
+                            <span id="chatMediaViewerIndex">0 / 0</span>
+                            <button id="chatMediaViewerNext" class="ghost-btn" title="Next">
+                                ▶
+                            </button>
+                        </div>
                         <a
                             id="chatMediaViewerOpen"
                             class="ghost-btn"

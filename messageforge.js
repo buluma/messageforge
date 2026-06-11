@@ -2121,6 +2121,43 @@ app.post('/api/send', async (req, res) => {
     }
 });
 
+app.post('/api/send-media', async (req, res) => {
+    const { jid, media, mimetype, caption, filename } = req.body;
+    if (!jid || !media) return res.status(400).json({ error: 'Missing jid or media' });
+    if (!isValidJid(jid)) return res.status(400).json({ error: 'Invalid jid' });
+    try {
+        if (!global.sock) return res.status(503).json({ error: 'Socket not ready' });
+        const buffer = Buffer.from(media, 'base64');
+        const type = (mimetype || '').split('/')[0];
+        let content;
+        if (type === 'image') {
+            content = { image: buffer, caption: caption || undefined, mimetype };
+        } else if (type === 'video') {
+            content = { video: buffer, caption: caption || undefined, mimetype };
+        } else if (type === 'audio') {
+            content = { audio: buffer, mimetype, ptt: false };
+        } else {
+            content = {
+                document: buffer,
+                mimetype,
+                fileName: filename || 'file',
+                caption: caption || undefined,
+            };
+        }
+        const { safeSend } = require('./handler');
+        const result = await safeSend(global.sock, jid, content);
+        if (result)
+            messengerStore
+                .persistMessages([result])
+                .catch((e) =>
+                    logMessage('WARN', `[persist] send-media persist failed: ${e.message}`),
+                );
+        res.json({ success: !!result, messageId: result?.key?.id });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.post('/api/toggle-pin', async (req, res) => {
     const { jid } = req.body;
     if (!jid) return res.status(400).json({ error: 'Missing jid' });

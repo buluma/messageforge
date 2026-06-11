@@ -100,6 +100,30 @@ export const autopilotControl = (jid, action, args = []) =>
 export const sendText = (jid, text, quoted) =>
     api.post('/api/send', { jid, text, ...(quoted ? { quoted } : {}) }).then((r) => r.data);
 
+export const sendMedia = (jid, file) => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const base64 = reader.result.split(',')[1];
+            api.post(
+                '/api/send-media',
+                {
+                    jid,
+                    media: base64,
+                    mimetype: file.type,
+                    caption: '',
+                    filename: file.name,
+                },
+                { timeout: 60000 },
+            )
+                .then((r) => resolve(r.data))
+                .catch(reject);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+};
+
 export const reactTo = (jid, msgId, emoji, opts = {}) =>
     api
         .post('/api/react', {
