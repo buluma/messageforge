@@ -117,8 +117,8 @@ Work is split into small, independent PRs. Check items off as they land.
 
 ### PR 4c — Extract WhatsApp connection
 
-- [ ] Create `lib/whatsapp/connection.js` — `connectToWhatsApp`, `scheduleReconnect`, `closeSocket`, `installSendGuard`
-- [ ] Slim `messageforge.js` to ~400 lines: integrity check → config → DB → WA → HTTP
+- [x] Create `lib/whatsapp/connection.js` — `connectToWhatsApp`, `scheduleReconnect`, `closeSocket`, `installSendGuard`
+- [x] Slim `messageforge.js` to ~400 lines: integrity check → config → DB → WA → HTTP
 
 **Acceptance:** Bot connects, reconnects, and sends messages identically to before.
 
