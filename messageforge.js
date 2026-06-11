@@ -75,7 +75,12 @@ const express = require('express');
 const axios = require('axios');
 const P = require('pino');
 const NodeCache = require('node-cache');
-const { handleMessages, groupCache, plugins: handlerPlugins } = require('./handler');
+const {
+    handleMessages,
+    groupCache,
+    plugins: handlerPlugins,
+    getCommandCollisions,
+} = require('./handler');
 const { handleStatusBroadcast } = require('./lib/statusManager');
 const { connectDB, getPgPool } = require('./lib/database');
 const { usePostgresAuthState } = require('./lib/baileysPostgresAuth');
@@ -265,8 +270,7 @@ function extractAuthToken(source = {}) {
     const authHeader = String(source.headers?.authorization || '');
     const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
     const headerToken = String(source.headers?.['x-dashboard-token'] || '').trim();
-    const queryToken = String(source.query?.token || '').trim();
-    return bearer || headerToken || queryToken;
+    return bearer || headerToken;
 }
 
 function isAuthorizedByToken(provided) {
@@ -451,6 +455,13 @@ const globalContextInfo = {};
 function validateEnv() {
     if (!config.OWNER_NUMBER) {
         logMessage('WARN', 'OWNER_NUMBER is not set. Owner-only features will be unavailable.');
+    }
+    if (process.env.NODE_ENV === 'production' && !dashboardToken) {
+        logMessage(
+            'ERROR',
+            'NODE_ENV=production requires DASHBOARD_TOKEN. Set a strong token or use NODE_ENV=development for local runs.',
+        );
+        process.exit(1);
     }
     const sid = (config.SESSION_ID || '').trim();
     if (!sid && !fs.existsSync(credsPath)) {
@@ -1579,6 +1590,47 @@ app.use('/api', (req, res, next) => {
     next();
 });
 
+// ── Write-path rate limiter (10 req/min per IP on mutating endpoints) ─────────
+const _writeRateLimitMap = new Map();
+const _writeRateLimitPaths = new Set([
+    '/send',
+    '/send-media',
+    '/delete-message',
+    '/react',
+    '/typing',
+    '/toggle-pin',
+    '/toggle-archive',
+    '/read',
+    '/control/autopilot',
+    '/quick-replies',
+    '/chat-alias',
+]);
+app.use('/api', (req, res, next) => {
+    if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
+
+    const isWritePath = Array.from(_writeRateLimitPaths).some(
+        (p) => req.path === p || req.path.startsWith(p + '/'),
+    );
+    if (!isWritePath) return next();
+
+    const ip = requestIp(req);
+    const now = Date.now();
+    const window = 60 * 1000;
+    const limit = 10;
+
+    let entry = _writeRateLimitMap.get(ip);
+    if (!entry || now >= entry.resetAt) {
+        entry = { count: 0, resetAt: now + window };
+        _writeRateLimitMap.set(ip, entry);
+    }
+
+    entry.count++;
+    if (entry.count > limit) {
+        return res.status(429).json({ error: 'Too many write requests' });
+    }
+    next();
+});
+
 app.use(express.static(path.join(__dirname, 'smm')));
 app.use('/media-files', requireDashboardAuth, express.static(path.join(__dirname, 'data')));
 
@@ -1627,7 +1679,8 @@ app.get('/api/ops/health', (req, res) => {
             user: global.sock?.user?.id || null,
         },
         counts: {
-            plugins: plugins.length,
+            plugins: handlerPlugins.length,
+            commandCollisions: getCommandCollisions(handlerPlugins).length,
             bannedUsers: global.bannedUsers?.size || 0,
             autoReplySchedules: Object.keys(global.autoReplySchedules || {}).length,
         },
