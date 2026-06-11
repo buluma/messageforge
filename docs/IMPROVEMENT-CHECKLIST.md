@@ -103,15 +103,15 @@ Work is split into small, independent PRs. Check items off as they land.
 
 ### PR 4b — Extract route modules
 
-- [ ] Create `lib/routes/index.js` — `mountAll(app, deps)`
-- [ ] Create `lib/routes/chats.js` — `/api/chats`, messages, aliases, profile-pic
-- [ ] Create `lib/routes/messenger.js` — send, react, typing, delete, read, pin, archive
-- [ ] Create `lib/routes/ops.js` — `/api/ops/health`, `/health`, `/ping`
-- [ ] Create `lib/routes/plugins.js` — `/api/plugins`, reload
-- [ ] Create `lib/routes/github.js` — `/gh/*` proxy
-- [ ] Create `lib/routes/quickReplies.js`
-- [ ] Create `lib/routes/static.js` — smm static, `/`
-- [ ] Use dependency injection: `getSock: () => global.sock` (keep `global.sock` for now)
+- [x] Create `lib/routes/index.js` — `mountAll(app, deps)`
+- [x] Create `lib/routes/chats.js` — `/api/chats`, messages, aliases, profile-pic
+- [x] Create `lib/routes/messenger.js` — send, react, typing, delete, read, pin, archive
+- [x] Create `lib/routes/ops.js` — `/api/ops/health`, `/health`, `/ping`
+- [x] Create `lib/routes/plugins.js` — `/api/plugins`, reload
+- [x] Create `lib/routes/github.js` — `/gh/*` proxy
+- [x] Create `lib/routes/quickReplies.js`
+- [x] Create `lib/routes/static.js` — smm static, `/`
+- [x] Use dependency injection: `getSock: () => global.sock` (keep `global.sock` for now)
 
 **Acceptance:** All existing API routes work; each PR stays under ~500 lines changed where possible.
 
