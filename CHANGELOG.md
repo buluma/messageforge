@@ -7,18 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-06-11
+
 ### Features
+
 - **Send media from Chat:** Added file picker and support for sending files (images, videos, audio, and documents) directly from the dashboard chat area.
 - **Message Deletion:** Fully wired up the UI delete button to call the message deletion API.
 - **Date Separators:** Implemented automated chronological date separators (e.g. "Today", "Yesterday", specific dates) in the chat thread.
 - **Media Gallery Filtering:** Added filter tabs (All, Photos, Videos, Docs, Audio) in the Chat Media modal.
 - **Slideshow Navigation:** Added previous/next slideshow controls and index indicator to the chat media viewer.
 - **ViewOnce Media Rendering:** Fixed broken image/video rendering of viewOnce messages in chat bubbles by unwrapping ephemeral message payloads.
+- **Autopilot Controls:** Added dashboard UI controls to toggle autopilot on/off, change mode (auto/ask/quiet), enable/disable learn mode, view logs, and save voice profiles.
+- **Auto-Download Media:** Implemented automatic downloading of viewOnce media and normal media files into a local folder (`data/` / `media-files/`).
 
+### Chores & Maintenance
+
+- **Dependency Cleanups:** Upgraded `baileys` library to `6.7.22` and removed unused dependencies like `link-preview-js`.
+- **Minor Fixes:** Fixed autopilot closing behavior and optimized dashboard health and media handling routes.
 
 ## [2.4.0] - 2026-06-11
 
 ### Features
+
 - **AI Autopilot:** Added `ai-autopilot` plugin to autonomously reply to direct messages, with style handling improvements.
 - **Media Viewer:** Completed chat media viewer, unwraps viewOnce media automatically, and handles 403 expired media links.
 - **Media Roadmap:** Completed media roadmap gaps and improved media thumbnails.
@@ -26,8 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Chat Management:** Separated archived and active chats.
 
 ### Chores & Maintenance
+
 - **Plugins cleanup:** Removed redundant and vulnerable plugins, merged ping/uptime, and fixed test suites.
 - **Dependencies:** Bumped `qs`, `express`, `axios`, `ws`, `protobufjs`, and `link-preview-js`.
+
 ## [2.3.0] - 2026-05-02
 
 ### Security (P0)

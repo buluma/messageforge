@@ -1,6 +1,6 @@
 {
     "name": "@buluma/messageforge",
-    "version": "2.4.0",
+    "version": "2.5.0",
     "description": "MessageForge — A feature-rich multi-device WhatsApp bot with AI agent, automation features, and anti-ban protection. Built with Node.js and Baileys.",
     "main": "messageforge.js",
     "scripts": {

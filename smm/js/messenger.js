@@ -1481,15 +1481,8 @@ function openChatMediaViewerAtIndex(index) {
     if (index < 0 || index >= filteredChatMedia.length) return;
     currentMediaIndex = index;
     const msg = filteredChatMedia[index];
-    const m = msg.message;
-    if (!m) return;
-
-    let type = Object.keys(m)[0];
-    let mediaObj = m[type];
-    if (['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2'].includes(type)) {
-        type = Object.keys(m[type].message)[0];
-        mediaObj = m[type].message[type];
-    }
+    const { type, mediaObj } = unwrapMediaPayload(msg.message);
+    if (!type || !mediaObj) return;
 
     const isVideo = type === 'videoMessage';
     const isAudio = type === 'audioMessage';
