@@ -117,7 +117,7 @@
         "tempmail.lol": "^4.4.0",
         "terminal-image": "^3.1.1",
         "truesearch": "^1.0.2",
-        "undici": "^6.23.0",
+        "undici": "^6.28.0",
         "url-regex-safe": "^3.0.0",
         "ws": "^8.20.1",
         "xfarr-api": "^3.0.1",
