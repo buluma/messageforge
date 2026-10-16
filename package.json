@@ -144,7 +144,7 @@
         "tough-cookie": "^4.1.4",
         "jpeg-js": "^0.4.4",
         "phin": "^3.7.1",
-        "music-metadata": "^11.12.3"
+        "music-metadata": "^11.16.1"
     },
     "devDependencies": {
         "eslint": "^9.39.4",
