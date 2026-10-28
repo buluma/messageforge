@@ -269,7 +269,6 @@ MessageForge features **1000+ commands** across 175+ specialized plugins. Use yo
 | Command            | Aliases | Description           | Permission |
 | ------------------ | ------- | --------------------- | ---------- |
 | `.newsletter`      |         | Newsletter management | Admin      |
-| `.followchannel`   |         | Follow a channel      | User       |
 | `.unfollowchannel` |         | Unfollow channel      | User       |
 | `.channelinfo`     |         | Channel information   | User       |
 | `.statussave`      |         | Save status to inbox  | User       |
