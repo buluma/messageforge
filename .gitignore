@@ -10,6 +10,7 @@ config.json
 replit.nix
 data/lid-phone-cache.json
 data/push-names.json
+data/greet.json
 .local/
 config.env
 /plans
