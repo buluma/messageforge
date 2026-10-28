@@ -44,7 +44,7 @@ MessageForge uses environment variables for configuration. You can set these in 
 | `AUTO_STATUS_REACT`        | React to statuses with random emojis.                                                                | `true`  |
 | `STATUS_INBOX_JID`         | Single chat/JID where saved status updates are forwarded (`owner`, `me`, user/group JID, or digits). | `me`    |
 | `AUTO_UNFOLLOW_NEWSLETTER` | Automatically unfollow newsletters/channels when detected.                                           | `false` |
-| `AUTO_FOLLOW_NEWSLETTER`   | Automatically follow any newsletter that messages the bot.                                           | `false` |
+| `AUTO_FOLLOW_NEWSLETTER`   | Deprecated; newsletters are never automatically followed.                                           | `false` |
 | `AUTO_TYPING`              | Show "typing..." indicator while processing.                                                         | `true`  |
 | `AUTO_RECORDING`           | Show "recording..." indicator for audio commands.                                                    | `false` |
 | `ALWAYS_ONLINE`            | Keep the bot's status as "Online" 24/7.                                                              | `false` |

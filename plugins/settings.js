@@ -77,7 +77,6 @@ module.exports = {
             `  ${tick(config.READ_MESSAGE)}   Auto Read (blue tick)`,
             `  ${tick(config.ALWAYS_ONLINE)}  Always Online`,
             `  ${tick(config.AUTO_REACT_NEWSLETTER)}  Auto React Newsletter`,
-            `  ${tick(config.AUTO_FOLLOW_NEWSLETTER)}  Auto Follow Newsletters`,
             `  ${tick(config.AUTO_UNFOLLOW_NEWSLETTER)}  Auto Unfollow Newsletters`,
             ``,
             `👋 *Greeting*`,

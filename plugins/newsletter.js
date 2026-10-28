@@ -4,7 +4,6 @@ const followedThisSession = new Set();
 module.exports = {
     commands: [
         'newsletter',
-        'followchannel',
         'unfollowchannel',
         'channelinfo',
         'mutechannel',
@@ -42,7 +41,6 @@ module.exports = {
                     `*Followed this session:*\n${globalFollowed}\n\n` +
                     `*Unfollowed this session:*\n${globalUnfollowed}\n\n` +
                     `*Commands:*\n` +
-                    `• \`${prefix}followchannel <jid>\` — follow a newsletter\n` +
                     `• \`${prefix}unfollowchannel <jid>\` — unfollow\n` +
                     `• \`${prefix}channelinfo <jid_or_link>\` — get info`,
             );
@@ -71,21 +69,6 @@ module.exports = {
                 );
             } catch (err) {
                 return reply(`Failed to fetch info: ${err.message}`);
-            }
-        }
-
-        if (command === 'followchannel') {
-            if (!jid)
-                return reply(
-                    `Usage: ${prefix}followchannel <newsletter_jid>\n\nJID format: 1234567890@newsletter`,
-                );
-            if (!jid.endsWith('@newsletter')) return reply('JID must end with @newsletter');
-            try {
-                await sock.newsletterFollow(jid);
-                followedThisSession.add(jid);
-                return reply(`✅ Successfully followed newsletter:\n${jid}`);
-            } catch (err) {
-                return reply(`Failed to follow: ${err.message}`);
             }
         }
 
